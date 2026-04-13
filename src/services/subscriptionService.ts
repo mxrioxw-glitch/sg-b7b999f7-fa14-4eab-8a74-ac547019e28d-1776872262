@@ -2,15 +2,10 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
 export type Subscription = Tables<"subscriptions">;
-export type SubscriptionPlan = "free_trial" | "basic" | "professional" | "premium";
-export type SubscriptionStatus = "active" | "past_due" | "cancelled" | "trialing";
+export type SubscriptionPlan = "basic" | "professional" | "premium";
+export type SubscriptionStatus = "active" | "past_due" | "cancelled" | "trialing" | "expired";
 
 export const PLAN_LIMITS = {
-  free_trial: {
-    products: 10,
-    employees: 1,
-    features: ["sales", "basic_reports"],
-  },
   basic: {
     products: 50,
     employees: 2,
@@ -33,10 +28,18 @@ export const subscriptionService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
+    const { data: business } = await supabase
+      .from("businesses")
+      .select("id")
+      .eq("owner_id", user.id)
+      .single();
+
+    if (!business) return null;
+
     const { data, error } = await supabase
       .from("subscriptions")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("business_id", business.id)
       .single();
 
     if (error) {
@@ -82,16 +85,18 @@ export const subscriptionService = {
     return currentCount < planLimits.products;
   },
 
-  async createTrialSubscription(userId: string): Promise<void> {
+  async createTrialSubscription(businessId: string): Promise<void> {
     const trialEnd = new Date();
     trialEnd.setDate(trialEnd.getDate() + 7); // 7 days trial
 
     await supabase.from("subscriptions").insert({
-      user_id: userId,
-      plan: "free_trial",
+      business_id: businessId,
+      plan: "premium", // Full access during trial
       status: "trialing",
       current_period_start: new Date().toISOString(),
       current_period_end: trialEnd.toISOString(),
+      trial_start: new Date().toISOString(),
+      trial_end: trialEnd.toISOString(),
     });
   },
 };

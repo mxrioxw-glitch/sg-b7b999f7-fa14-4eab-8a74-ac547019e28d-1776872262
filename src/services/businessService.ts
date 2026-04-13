@@ -32,11 +32,14 @@ export const businessService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { business: null, error: "No authenticated user" };
 
+    const slug = businessData.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-" + Date.now().toString(36);
+
     const { data, error } = await supabase
       .from("businesses")
       .insert({
         owner_id: user.id,
         name: businessData.name,
+        slug,
         address: businessData.address,
         phone: businessData.phone,
         tax_rate: businessData.tax_rate || 16,
