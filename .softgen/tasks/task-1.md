@@ -30,5 +30,6 @@ Crear la arquitectura completa de base de datos multi-tenant con todas las tabla
 - [x] Crear tabla payment_methods (efectivo, tarjeta, etc)
 - [x] Configurar RLS policies para multi-tenant
 - [x] Crear trigger auto-creación de profile
-- [ ] Crear servicio de autenticación (authService.ts)
-- [ ] Configurar emails de autenticación
+- [x] Crear servicio de autenticación (authService.ts)
+- [x] Crear servicios business y subscription
+- [x] Configurar emails de autenticación

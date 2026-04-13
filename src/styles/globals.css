@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Work+Sans:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,75 +12,99 @@
 
 @layer base {
   :root {
-    --radius: 0.55rem;
-    --background: 0 0% 100%;
-    --foreground: 330 0% 0.3%;
-    --card: 0 0% 100%;
-    --card-foreground: 330 0% 0.3%;
+    --radius: 0.5rem;
+    
+    /* POS Coffee Theme - Light Mode */
+    --background: 40 56% 97%;        /* Crema claro #FAF8F5 */
+    --foreground: 16 23% 19%;        /* Café espresso oscuro #2D1F1A */
+    
+    --card: 0 0% 100%;               /* Blanco puro */
+    --card-foreground: 16 23% 19%;   /* Café espresso */
+    
     --popover: 0 0% 100%;
-    --popover-foreground: 330 0% 0.3%;
-    --primary: 0 0% 4.5%;
-    --primary-foreground: 0 0% 97.5%;
-    --secondary: 0 0% 97.3%;
-    --secondary-foreground: 0 0% 4.5%;
-    --muted: 0 0% 97.3%;
-    --muted-foreground: 0 0% 55.7%;
-    --accent: 0 0% 97.3%;
-    --accent-foreground: 0 0% 4.5%;
-    --destructive: 359.9132 100.2494% 67.8807%;
-    --destructive-foreground: 0 0% 0%;
-    --border: 0 0% 92.2%;
-    --input: 0 0% 92.2%;
-    --ring: 0 0% 70.8%;
-    --chart-1: 41.1 71.2% 54.4%;
-    --chart-2: 184.7 32.4% 48.6%;
-    --chart-3: 227.4 15.2% 33.3%;
-    --chart-4: 84.4 74.8% 75.7%;
-    --chart-5: 70.1 74.3% 70.5%;
-    --sidebar: 0 0% 97.5%;
-    --sidebar-foreground: 330 0% 0.3%;
-    --sidebar-primary: 0 0% 4.5%;
-    --sidebar-primary-foreground: 0 0% 97.5%;
-    --sidebar-accent: 0 0% 97.3%;
-    --sidebar-accent-foreground: 0 0% 4.5%;
-    --sidebar-border: 0 0% 92.2%;
-    --sidebar-ring: 0 0% 70.8%;
+    --popover-foreground: 16 23% 19%;
+    
+    --primary: 16 23% 19%;           /* Café espresso - botones principales */
+    --primary-foreground: 0 0% 100%; /* Blanco */
+    
+    --secondary: 16 24% 35%;         /* Café medio #594539 */
+    --secondary-foreground: 0 0% 100%;
+    
+    --accent: 122 39% 49%;           /* Verde menta #50B77C - acciones/success */
+    --accent-foreground: 0 0% 100%;
+    
+    --muted: 0 0% 62%;               /* Gris cálido #9E9E9E */
+    --muted-foreground: 16 23% 19%;
+    
+    --destructive: 0 84% 60%;        /* Rojo para eliminar */
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 0 0% 90%;              /* Bordes sutiles #E5E5E5 */
+    --input: 0 0% 90%;
+    --ring: 122 39% 49%;             /* Verde menta para focus */
+    
+    --chart-1: 122 39% 49%;          /* Verde menta */
+    --chart-2: 16 24% 35%;           /* Café medio */
+    --chart-3: 39 100% 50%;          /* Dorado */
+    --chart-4: 16 23% 19%;           /* Café oscuro */
+    --chart-5: 0 0% 62%;             /* Gris */
+    
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 16 23% 19%;
+    --sidebar-primary: 16 23% 19%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 40 56% 97%;
+    --sidebar-accent-foreground: 16 23% 19%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 122 39% 49%;
   }
 
   .dark {
-    --radius: 0.55rem;
-    --background: 330 0% 0.3%;
-    --foreground: 0 0% 97.5%;
-    --card: 0 0% 4.5%;
-    --card-foreground: 0 0% 97.5%;
-    --popover: 0 0% 8.6%;
-    --popover-foreground: 0 0% 97.5%;
-    --primary: 0 0% 92.2%;
-    --primary-foreground: 0 0% 4.5%;
-    --secondary: 0 0% 8.6%;
-    --secondary-foreground: 0 0% 97.5%;
-    --muted: 0 0% 8.6%;
-    --muted-foreground: 0 0% 70.8%;
-    --accent: 0 0% 21.2%;
-    --accent-foreground: 0 0% 97.5%;
-    --destructive: 359.9132 100.2494% 67.8807%;
-    --destructive-foreground: 0 0% 0%;
-    --border: 0 0% 100% / 15%;
-    --input: 0 0% 100% / 15%;
-    --ring: 0 0% 55.7%;
-    --chart-1: 264.4 77.2% 41.9%;
-    --chart-2: 162.5 46.7% 57.3%;
-    --chart-3: 70.1 74.3% 70.5%;
-    --chart-4: 303.9 75.8% 51.6%;
-    --chart-5: 16.4 84.7% 55.4%;
-    --sidebar: 0 0% 4.5%;
-    --sidebar-foreground: 0 0% 97.5%;
-    --sidebar-primary: 264.4 77.2% 41.9%;
-    --sidebar-primary-foreground: 0 0% 97.5%;
-    --sidebar-accent: 0 0% 8.6%;
-    --sidebar-accent-foreground: 0 0% 97.5%;
-    --sidebar-border: 0 0% 100% / 10%;
-    --sidebar-ring: 0 0% 43.9%;
+    --radius: 0.5rem;
+    
+    /* Dark mode - café más intenso */
+    --background: 16 23% 12%;        /* Café muy oscuro */
+    --foreground: 40 56% 97%;        /* Crema claro */
+    
+    --card: 16 23% 16%;
+    --card-foreground: 40 56% 97%;
+    
+    --popover: 16 23% 16%;
+    --popover-foreground: 40 56% 97%;
+    
+    --primary: 40 56% 97%;
+    --primary-foreground: 16 23% 19%;
+    
+    --secondary: 16 24% 25%;
+    --secondary-foreground: 40 56% 97%;
+    
+    --accent: 122 39% 49%;
+    --accent-foreground: 0 0% 100%;
+    
+    --muted: 0 0% 40%;
+    --muted-foreground: 0 0% 70%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 122 39% 49%;
+    
+    --chart-1: 122 39% 49%;
+    --chart-2: 16 24% 45%;
+    --chart-3: 39 100% 60%;
+    --chart-4: 40 56% 87%;
+    --chart-5: 0 0% 50%;
+    
+    --sidebar: 16 23% 16%;
+    --sidebar-foreground: 40 56% 97%;
+    --sidebar-primary: 122 39% 49%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 16 23% 20%;
+    --sidebar-accent-foreground: 40 56% 97%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 122 39% 49%;
   }
 }
 
@@ -88,11 +114,26 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Work Sans', system-ui, -apple-system, sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    font-weight: 700;
   }
 }
 
 @layer components {
   .container {
     @apply mx-auto px-4 md:px-6 lg:px-8 max-w-7xl w-full;
+  }
+  
+  /* Touch-friendly buttons */
+  .btn-touch {
+    @apply min-h-[60px] px-6 text-base font-semibold rounded-lg transition-all;
+  }
+  
+  /* Product card hover effect */
+  .product-card {
+    @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5;
   }
 }
