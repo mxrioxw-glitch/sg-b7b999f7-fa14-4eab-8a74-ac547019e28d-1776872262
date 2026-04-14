@@ -1,3 +1,5 @@
+
+<![CDATA[
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +39,11 @@ interface VariantForm {
   name: string;
   price_modifier: number;
   sort_order: number;
+  inventory_links: {
+    id?: string;
+    inventory_item_id: string;
+    quantity_per_unit: number;
+  }[];
 }
 
 interface ExtraForm {
@@ -81,7 +88,6 @@ export function ProductForm({
     ProductInventoryLink[]
   >([]);
 
-  // Category creation state
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
 
@@ -111,14 +117,30 @@ export function ProductForm({
         loadProductInventoryLinks(product.id),
       ]);
 
-      setVariants(
-        variantsData.map((v) => ({
-          id: v.id,
-          name: v.name,
-          price_modifier: Number(v.price_modifier),
-          sort_order: v.sort_order || 0,
-        }))
+      // Cargar variantes con sus insumos
+      const variantsWithInventory = await Promise.all(
+        variantsData.map(async (v) => {
+          const { data: variantLinks } = await supabase
+            .from("product_inventory_items")
+            .select("*")
+            .eq("product_id", product.id)
+            .eq("variant_id", v.id);
+
+          return {
+            id: v.id,
+            name: v.name,
+            price_modifier: Number(v.price_modifier),
+            sort_order: v.sort_order || 0,
+            inventory_links: (variantLinks || []).map((link) => ({
+              id: link.id,
+              inventory_item_id: link.inventory_item_id,
+              quantity_per_unit: Number(link.quantity_per_unit),
+            })),
+          };
+        })
       );
+
+      setVariants(variantsWithInventory);
 
       setExtras(
         extrasData.map((e) => ({
@@ -141,7 +163,8 @@ export function ProductForm({
     const { data, error } = await supabase
       .from("product_inventory_items")
       .select("*")
-      .eq("product_id", productId);
+      .eq("product_id", productId)
+      .is("variant_id", null);
 
     if (error) {
       console.error("Error loading product inventory links:", error);
@@ -200,7 +223,12 @@ export function ProductForm({
   const addVariant = () => {
     setVariants([
       ...variants,
-      { name: "", price_modifier: 0, sort_order: variants.length },
+      { 
+        name: "", 
+        price_modifier: 0, 
+        sort_order: variants.length,
+        inventory_links: []
+      },
     ]);
   };
 
@@ -216,6 +244,37 @@ export function ProductForm({
 
   const removeVariant = (index: number) => {
     setVariants(variants.filter((_, i) => i !== index));
+  };
+
+  const addVariantInventoryLink = (variantIndex: number) => {
+    const updated = [...variants];
+    updated[variantIndex].inventory_links.push({
+      inventory_item_id: "",
+      quantity_per_unit: 1,
+    });
+    setVariants(updated);
+  };
+
+  const updateVariantInventoryLink = (
+    variantIndex: number,
+    linkIndex: number,
+    field: "inventory_item_id" | "quantity_per_unit",
+    value: string | number
+  ) => {
+    const updated = [...variants];
+    updated[variantIndex].inventory_links[linkIndex] = {
+      ...updated[variantIndex].inventory_links[linkIndex],
+      [field]: value,
+    };
+    setVariants(updated);
+  };
+
+  const removeVariantInventoryLink = (variantIndex: number, linkIndex: number) => {
+    const updated = [...variants];
+    updated[variantIndex].inventory_links = updated[variantIndex].inventory_links.filter(
+      (_, i) => i !== linkIndex
+    );
+    setVariants(updated);
   };
 
   const addExtra = () => {
@@ -296,6 +355,8 @@ export function ProductForm({
         const existingIds = existingVariants.map((v) => v.id);
 
         for (const variant of variants) {
+          let variantId = variant.id;
+
           if (variant.id && existingIds.includes(variant.id)) {
             await productService.updateProductVariant(variant.id, {
               name: variant.name,
@@ -303,11 +364,51 @@ export function ProductForm({
               sort_order: variant.sort_order,
             });
           } else {
-            await productService.createVariant(savedProduct.id, {
+            const { variant: newVariant } = await productService.createVariant(savedProduct.id, {
               name: variant.name,
               price_modifier: variant.price_modifier,
               sort_order: variant.sort_order,
             });
+            variantId = newVariant?.id;
+          }
+
+          // Guardar insumos de la variante
+          if (variantId) {
+            const { data: existingLinks } = await supabase
+              .from("product_inventory_items")
+              .select("*")
+              .eq("product_id", savedProduct.id)
+              .eq("variant_id", variantId);
+
+            const existingLinkIds = (existingLinks || []).map((l) => l.id);
+
+            for (const link of variant.inventory_links) {
+              if (!link.inventory_item_id) continue;
+
+              if (link.id && existingLinkIds.includes(link.id)) {
+                await supabase
+                  .from("product_inventory_items")
+                  .update({ quantity_per_unit: link.quantity_per_unit })
+                  .eq("id", link.id);
+              } else {
+                await supabase.from("product_inventory_items").insert({
+                  product_id: savedProduct.id,
+                  variant_id: variantId,
+                  inventory_item_id: link.inventory_item_id,
+                  quantity_per_unit: link.quantity_per_unit,
+                });
+              }
+            }
+
+            const linkInventoryIds = variant.inventory_links
+              .filter((l) => l.id)
+              .map((l) => l.id);
+            const toDeleteLinks = existingLinkIds.filter(
+              (id) => !linkInventoryIds.includes(id)
+            );
+            for (const id of toDeleteLinks) {
+              await supabase.from("product_inventory_items").delete().eq("id", id);
+            }
           }
         }
 
@@ -346,7 +447,7 @@ export function ProductForm({
         }
       }
 
-      // Save inventory links
+      // Save inventory links (solo para producto base, sin variante)
       const existingLinks = await loadProductInventoryLinks(savedProduct.id);
       const existingLinkIds = existingLinks.map((l) => l.id).filter(Boolean);
 
@@ -363,6 +464,7 @@ export function ProductForm({
         } else {
           await supabase.from("product_inventory_items").insert({
             product_id: savedProduct.id,
+            variant_id: null,
             inventory_item_id: link.inventory_item_id,
             quantity_per_unit: link.quantity_per_unit,
           });
@@ -403,7 +505,7 @@ export function ProductForm({
           <TabsTrigger value="basic">Básico</TabsTrigger>
           <TabsTrigger value="variants">Variantes</TabsTrigger>
           <TabsTrigger value="extras">Extras</TabsTrigger>
-          <TabsTrigger value="inventory">Insumos</TabsTrigger>
+          <TabsTrigger value="inventory">Insumos Base</TabsTrigger>
         </TabsList>
 
         <TabsContent value="basic" className="space-y-4">
@@ -563,50 +665,135 @@ export function ProductForm({
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Variantes de Producto</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Cada variante puede tener sus propios insumos. Ej: Café Chico usa vaso chico, Café Grande usa vaso grande.
+              </p>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {variants.map((variant, index) => (
-                <div key={index} className="flex gap-4 items-end">
-                  <div className="flex-1">
-                    <Label>Nombre (Ej: Chico, Mediano, Grande)</Label>
-                    <Input
-                      value={variant.name}
-                      onChange={(e) =>
-                        updateVariantField(index, "name", e.target.value)
-                      }
-                      placeholder="Nombre de variante"
-                    />
+            <CardContent className="space-y-6">
+              {variants.map((variant, variantIndex) => (
+                <div key={variantIndex} className="border rounded-lg p-4 space-y-4">
+                  <div className="flex gap-4 items-end">
+                    <div className="flex-1">
+                      <Label>Nombre (Ej: Chico, Mediano, Grande)</Label>
+                      <Input
+                        value={variant.name}
+                        onChange={(e) =>
+                          updateVariantField(variantIndex, "name", e.target.value)
+                        }
+                        placeholder="Nombre de variante"
+                      />
+                    </div>
+                    <div className="w-[150px]">
+                      <Label>Modificador de precio</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={variant.price_modifier}
+                        onChange={(e) =>
+                          updateVariantField(
+                            variantIndex,
+                            "price_modifier",
+                            Number(e.target.value)
+                          )
+                        }
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeVariant(variantIndex)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
-                  <div className="w-[150px]">
-                    <Label>Modificador de precio</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={variant.price_modifier}
-                      onChange={(e) =>
-                        updateVariantField(
-                          index,
-                          "price_modifier",
-                          Number(e.target.value)
-                        )
-                      }
-                      placeholder="0.00"
-                    />
+
+                  {/* Insumos específicos de esta variante */}
+                  <div className="ml-4 border-l-2 border-muted pl-4 space-y-3">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <Package className="w-4 h-4" />
+                      Insumos de esta variante
+                    </div>
+                    {variant.inventory_links.map((link, linkIndex) => (
+                      <div key={linkIndex} className="flex gap-2 items-end">
+                        <div className="flex-1">
+                          <Label className="text-xs">Insumo</Label>
+                          <Select
+                            value={link.inventory_item_id}
+                            onValueChange={(value) =>
+                              updateVariantInventoryLink(
+                                variantIndex,
+                                linkIndex,
+                                "inventory_item_id",
+                                value
+                              )
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar insumo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {inventoryItems.map((item) => (
+                                <SelectItem key={item.id} value={item.id}>
+                                  {item.name} ({item.unit})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="w-[120px]">
+                          <Label className="text-xs">Cantidad</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={link.quantity_per_unit}
+                            onChange={(e) =>
+                              updateVariantInventoryLink(
+                                variantIndex,
+                                linkIndex,
+                                "quantity_per_unit",
+                                Number(e.target.value)
+                              )
+                            }
+                            placeholder="1.00"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            removeVariantInventoryLink(variantIndex, linkIndex)
+                          }
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addVariantInventoryLink(variantIndex)}
+                      disabled={inventoryItems.length === 0}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Agregar Insumo
+                    </Button>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeVariant(index)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
                 </div>
               ))}
               <Button type="button" variant="outline" onClick={addVariant}>
                 <Plus className="w-4 h-4 mr-2" />
                 Agregar Variante
               </Button>
+              {inventoryItems.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  No hay insumos disponibles. Crea insumos en el módulo de Inventario primero.
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -664,11 +851,11 @@ export function ProductForm({
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Package className="w-5 h-5" />
-                Insumos del Producto
+                Insumos del Producto Base
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                Define qué insumos se consumen al vender este producto. Se
-                descontarán automáticamente del inventario.
+                Insumos que se consumen independientemente de la variante. Ej: café en grano, azúcar, etc.
+                Para insumos específicos por variante (vasos, tapas), usa la pestaña Variantes.
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -732,8 +919,7 @@ export function ProductForm({
               </Button>
               {inventoryItems.length === 0 && (
                 <p className="text-sm text-muted-foreground">
-                  No hay insumos disponibles. Crea insumos en el módulo de
-                  Inventario primero.
+                  No hay insumos disponibles. Crea insumos en el módulo de Inventario primero.
                 </p>
               )}
             </CardContent>
@@ -752,3 +938,5 @@ export function ProductForm({
     </form>
   );
 }
+]]>
+</![CDATA[>
