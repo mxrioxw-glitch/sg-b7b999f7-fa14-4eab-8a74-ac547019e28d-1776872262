@@ -1,6 +1,6 @@
 ---
 title: Design System & Core Components
-status: todo
+status: in_progress
 priority: urgent
 type: feature
 tags: [frontend, design, ui]
@@ -13,12 +13,12 @@ position: 2
 Implementar el sistema de diseño completo con paleta café/menta, tipografía profesional, y componentes base reutilizables optimizados para interfaces táctiles tipo POS.
 
 ## Checklist
-- [ ] Configurar fonts (Plus Jakarta Sans + Work Sans)
-- [ ] Customizar globals.css con paleta café/menta
-- [ ] Actualizar tailwind.config.ts con tokens personalizados
-- [ ] Crear componente ProductCard (grid producto con imagen, precio, touch-friendly)
-- [ ] Crear componente Cart (carrito lateral con items, totales, acciones)
-- [ ] Crear componente ProductModal (configuración variantes/extras)
-- [ ] Crear componente Header (navegación principal)
-- [ ] Crear componente Sidebar (menú lateral con módulos)
-- [ ] Actualizar index.tsx con layout base del POS
+- [x] Configurar fonts (Plus Jakarta Sans + Work Sans)
+- [x] Customizar globals.css con paleta café/menta
+- [x] Actualizar tailwind.config.ts con tokens personalizados
+- [x] Crear componente ProductCard (grid producto con imagen, precio, touch-friendly)
+- [x] Crear componente Cart (carrito lateral con items, totales, acciones)
+- [x] Crear componente ProductModal (configuración variantes/extras)
+- [x] Crear componente Header (navegación principal)
+- [x] Crear componente Sidebar (menú lateral con módulos)
+- [x] Actualizar index.tsx con layout base del POS
