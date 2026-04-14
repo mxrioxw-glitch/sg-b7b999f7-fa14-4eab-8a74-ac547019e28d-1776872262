@@ -17,9 +17,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import Header from "@/components/Header";
+import { Header } from "@/components/Header";
 import { Building2, Receipt, Users, CreditCard, Palette, Save, Trash2, Plus, Mail } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
+import type { EmployeeWithUser } from "@/services/employeeService";
 
 type Employee = Database["public"]["Tables"]["employees"]["Row"] & {
   user: {
@@ -40,7 +41,7 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [businessId, setBusinessId] = useState<string>("");
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employees, setEmployees] = useState<EmployeeWithUser[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   
   // Form states
@@ -73,7 +74,7 @@ export default function Settings() {
 
   async function loadData() {
     try {
-      const session = await authService.getSession();
+      const session = await authService.getCurrentSession();
       if (!session) {
         router.push("/auth/login");
         return;
@@ -293,8 +294,7 @@ export default function Settings() {
     if (!businessId || !newPaymentMethod) return;
     
     try {
-      await paymentMethodService.createPaymentMethod({
-        business_id: businessId,
+      await paymentMethodService.createPaymentMethod(businessId, {
         name: newPaymentMethod,
         is_active: true
       });

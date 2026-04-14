@@ -1,7 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Database } from "@/integrations/supabase/types";
 
-export type PaymentMethod = Tables<"payment_methods">;
+type PaymentMethod = Database["public"]["Tables"]["payment_methods"]["Row"];
+type PaymentMethodInsert = Database["public"]["Tables"]["payment_methods"]["Insert"];
+type PaymentMethodUpdate = Database["public"]["Tables"]["payment_methods"]["Update"];
 
 export const paymentMethodService = {
   async getPaymentMethods(businessId: string): Promise<PaymentMethod[]> {
@@ -9,39 +11,56 @@ export const paymentMethodService = {
       .from("payment_methods")
       .select("*")
       .eq("business_id", businessId)
-      .eq("is_active", true)
       .order("sort_order", { ascending: true });
 
     if (error) {
       console.error("Error fetching payment methods:", error);
-      return [];
+      throw error;
     }
 
     return data || [];
   },
 
-  async createPaymentMethod(
-    businessId: string,
-    methodData: {
-      name: string;
-      sortOrder?: number;
-    }
-  ): Promise<{ paymentMethod: PaymentMethod | null; error: string | null }> {
+  async createPaymentMethod(businessId: string, methodData: Omit<PaymentMethodInsert, "business_id">): Promise<PaymentMethod> {
     const { data, error } = await supabase
       .from("payment_methods")
-      .insert({
-        business_id: businessId,
-        name: methodData.name,
-        sort_order: methodData.sortOrder ?? 0,
-      })
+      .insert({ ...methodData, business_id: businessId })
       .select()
       .single();
 
     if (error) {
       console.error("Error creating payment method:", error);
-      return { paymentMethod: null, error: error.message };
+      throw error;
     }
 
-    return { paymentMethod: data, error: null };
+    return data;
   },
+
+  async updatePaymentMethod(id: string, updates: PaymentMethodUpdate): Promise<PaymentMethod> {
+    const { data, error } = await supabase
+      .from("payment_methods")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating payment method:", error);
+      throw error;
+    }
+
+    return data;
+  },
+
+  async deletePaymentMethod(id: string): Promise<void> {
+    const { error } = await supabase
+      .from("payment_methods")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error deleting payment method:", error);
+      throw error;
+    }
+  }
 };

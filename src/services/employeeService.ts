@@ -1,12 +1,21 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
+export type EmployeeWithUser = Database["public"]["Tables"]["employees"]["Row"] & {
+  user: {
+    id: string;
+    email: string | null;
+    full_name: string | null;
+    avatar_url: string | null;
+  } | null;
+};
+
 type Employee = Database["public"]["Tables"]["employees"]["Row"];
 type EmployeeInsert = Database["public"]["Tables"]["employees"]["Insert"];
 type EmployeeUpdate = Database["public"]["Tables"]["employees"]["Update"];
 
 export const employeeService = {
-  async getEmployees(businessId: string): Promise<Employee[]> {
+  async getEmployees(businessId: string): Promise<EmployeeWithUser[]> {
     const { data, error } = await supabase
       .from("employees")
       .select(`
@@ -26,7 +35,7 @@ export const employeeService = {
       throw error;
     }
 
-    return data || [];
+    return (data || []) as EmployeeWithUser[];
   },
 
   async createEmployee(employee: EmployeeInsert): Promise<Employee> {
