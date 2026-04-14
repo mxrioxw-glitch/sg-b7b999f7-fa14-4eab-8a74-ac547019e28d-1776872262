@@ -1,6 +1,6 @@
 ---
 title: POS Core - Sales Module
-status: in_progress
+status: done
 priority: high
 type: feature
 tags:
@@ -25,6 +25,6 @@ Módulo principal de ventas tipo POS moderno: grid de productos táctil, modal d
 - [x] Carrito lateral: agregar/editar/eliminar items
 - [x] Total en tiempo real con impuestos
 - [x] Flujo de pago: selección método (efectivo/tarjeta/mixto)
-- [ ] Generación de ticket (vista previa antes de imprimir)
-- [ ] Confirmación de venta y limpieza de carrito
+- [x] Generación de ticket (vista previa antes de imprimir)
+- [x] Confirmación de venta y limpieza de carrito
 ---TASK:task-5.m

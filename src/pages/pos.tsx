@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { ProductCard } from "@/components/ProductCard";
 import { Cart } from "@/components/Cart";
 import { ProductModal } from "@/components/ProductModal";
+import { TicketPreview } from "@/components/TicketPreview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,6 +39,11 @@ export default function POSPage() {
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [taxRate, setTaxRate] = useState(16);
+  const [businessData, setBusinessData] = useState<{
+    name: string;
+    address?: string;
+    phone?: string;
+  } | null>(null);
 
   const [products, setProducts] = useState<ProductWithDetails[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -52,6 +58,12 @@ export default function POSPage() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
   const [processingPayment, setProcessingPayment] = useState(false);
+
+  const [ticketPreviewOpen, setTicketPreviewOpen] = useState(false);
+  const [completedSale, setCompletedSale] = useState<{
+    saleId: string;
+    date: Date;
+  } | null>(null);
 
   useEffect(() => {
     initializePOS();
@@ -78,6 +90,11 @@ export default function POSPage() {
 
       setBusinessId(business.id);
       setTaxRate(Number(business.tax_rate) || 16);
+      setBusinessData({
+        name: business.name,
+        address: business.address || undefined,
+        phone: business.phone || undefined,
+      });
 
       // TODO: Get employee_id from employees table based on user_id
       // For now, we'll need to create an employee record or get it
@@ -212,14 +229,13 @@ export default function POSPage() {
         return;
       }
 
-      toast({
-        title: "¡Venta completada!",
-        description: `Total: $${total.toFixed(2)}`,
+      // Save completed sale data and show ticket preview
+      setCompletedSale({
+        saleId: sale!.id,
+        date: new Date(),
       });
-
-      // Clear cart and close modal
-      setCartItems([]);
       setPaymentModalOpen(false);
+      setTicketPreviewOpen(true);
     } catch (error) {
       console.error("Error processing payment:", error);
       toast({
@@ -230,6 +246,18 @@ export default function POSPage() {
     } finally {
       setProcessingPayment(false);
     }
+  };
+
+  const handleConfirmSale = () => {
+    // Clear cart and reset state
+    setCartItems([]);
+    setCompletedSale(null);
+    setTicketPreviewOpen(false);
+    
+    toast({
+      title: "¡Venta completada!",
+      description: "Ticket generado exitosamente",
+    });
   };
 
   if (loading) {
@@ -407,6 +435,36 @@ export default function POSPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Ticket Preview Modal */}
+      {completedSale && businessData && (
+        <TicketPreview
+          open={ticketPreviewOpen}
+          onOpenChange={setTicketPreviewOpen}
+          businessName={businessData.name}
+          businessAddress={businessData.address}
+          businessPhone={businessData.phone}
+          saleId={completedSale.saleId}
+          items={cartItems.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            unitPrice: item.price,
+            total: item.price * item.quantity,
+            variant: item.variant,
+            extras: item.extras,
+            notes: item.notes,
+          }))}
+          subtotal={subtotal}
+          taxRate={taxRate}
+          taxAmount={taxAmount}
+          total={total}
+          paymentMethod={
+            paymentMethods.find((m) => m.id === selectedPaymentMethod)?.name || "Efectivo"
+          }
+          date={completedSale.date}
+          onConfirm={handleConfirmSale}
+        />
+      )}
     </div>
   );
 }
