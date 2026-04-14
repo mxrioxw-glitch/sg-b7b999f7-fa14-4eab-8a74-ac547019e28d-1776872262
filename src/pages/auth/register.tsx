@@ -10,6 +10,7 @@ import { useState } from "react";
 import { authService } from "@/services/authService";
 import { businessService } from "@/services/businessService";
 import { subscriptionService } from "@/services/subscriptionService";
+import { supabase } from "@/integrations/supabase/client";
 import { Coffee, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function RegisterPage() {
@@ -46,13 +47,24 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!formData.fullName.trim()) {
+      setError("El nombre completo es requerido");
+      return;
+    }
+
+    if (!formData.businessName.trim()) {
+      setError("El nombre del negocio es requerido");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // 1. Create user account
+      // 1. Create user account with full name
       const { user, error: signUpError } = await authService.signUp(
         formData.email, 
-        formData.password
+        formData.password,
+        formData.fullName
       );
 
       if (signUpError || !user) {
@@ -75,12 +87,30 @@ export default function RegisterPage() {
         return;
       }
 
-      // 3. Create trial subscription
+      // 3. Create employee record (owner role)
+      const { data: employeeData, error: employeeError } = await supabase
+        .from("employees")
+        .insert({
+          business_id: businessData.id,
+          user_id: userId,
+          role: "owner",
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (employeeError) {
+        console.error("Error creating employee:", employeeError);
+        // Don't block registration for this, but log it
+      }
+
+      // 4. Create trial subscription
       await subscriptionService.createTrialSubscription(businessData.id);
 
-      // Success! Redirect to dashboard
-      router.push("/");
+      // Success! Redirect to POS
+      router.push("/pos");
     } catch (err) {
+      console.error("Registration error:", err);
       setError("Error inesperado. Por favor intenta de nuevo.");
       setLoading(false);
     }
