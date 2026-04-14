@@ -10,15 +10,14 @@ import { PaymentModal } from "@/components/PaymentModal";
 import { CustomerIdentificationModal } from "@/components/CustomerIdentificationModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { businessService, type Business } from "@/services/businessService";
 import { productService, type ProductWithDetails } from "@/services/productService";
 import { categoryService, type Category } from "@/services/categoryService";
 import { saleService } from "@/services/saleService";
-import { customerService } from "@/services/customerService";
+import { getCustomers } from "@/services/customerService";
 import { subscriptionService } from "@/services/subscriptionService";
-import { cashRegisterService, type CashRegister } from "@/services/cashRegisterService";
+import { getCashRegisters, type CashRegister } from "@/services/cashRegisterService";
 import { Search, Package, ShoppingCart, ChevronLeft } from "lucide-react";
 import { useIsMobileOrTablet } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -76,7 +75,7 @@ export default function POSPage() {
 
   async function checkSubscriptionAndBusiness() {
     try {
-      const isActive = await subscriptionService.checkSubscriptionStatus();
+      const isActive = await subscriptionService.isSubscriptionActive();
       if (!isActive) {
         router.push("/subscription");
         return;
@@ -108,7 +107,7 @@ export default function POSPage() {
   }
 
   async function loadActiveCashRegister(businessId: string) {
-    const registers = await cashRegisterService.getCashRegisters(businessId);
+    const registers = await getCashRegisters(businessId);
     const active = registers.find(r => r.status === "open");
     setCashRegister(active || null);
   }
@@ -127,8 +126,8 @@ export default function POSPage() {
 
   async function loadCustomers(businessId: string) {
     try {
-      const data = await customerService.getCustomers(businessId);
-      setCustomers(data.map(c => ({ id: c.id, name: c.name, points: c.points || 0 })));
+      const data = await getCustomers(businessId);
+      setCustomers(data.map(c => ({ id: c.id, name: c.name, points: c.loyalty_points || 0 })));
     } catch (e) {}
   }
 
@@ -190,28 +189,30 @@ export default function POSPage() {
     
     setProcessingPayment(true);
     try {
-      const sale = await saleService.createSale({
-        business_id: business.id,
-        cash_register_id: cashRegister.id,
-        customer_id: selectedCustomer?.id || null,
+      const { sale, error } = await saleService.createSale({
+        businessId: business.id,
+        employeeId: cashRegister.employee_id || "",
+        cashRegisterId: cashRegister.id,
+        customerId: selectedCustomer?.id || undefined,
         subtotal: cartSubtotal,
-        tax: cartTax,
+        taxAmount: cartTax,
         total: cartTotal,
-        payment_methods: payments.map(p => ({
-          method: p.type,
-          amount: p.amount
-        })),
+        notes: payments.map(p => `${p.type}: ${p.amount}`).join(", "),
         items: cart.map(item => ({
-          product_id: item.productId,
-          product_name: item.name,
+          productId: item.productId,
+          productName: item.name,
           quantity: item.quantity,
-          unit_price: item.price,
-          total_price: item.price * item.quantity,
-          variant: item.variant,
-          extras: item.extras,
+          unitPrice: item.price,
+          subtotal: item.price * item.quantity,
+          variantName: item.variant,
+          extras: item.extras?.map(e => ({ extraName: e, price: 0 })) || [],
           notes: item.notes
         }))
       });
+
+      if (error || !sale) {
+        throw new Error(error || "Error al procesar la venta");
+      }
 
       toast({
         title: "Venta completada",
@@ -227,6 +228,7 @@ export default function POSPage() {
          date: new Date().toLocaleString(),
          items: cart,
          subtotal: cartSubtotal,
+         taxRate,
          tax: cartTax,
          total: cartTotal,
          payments,
@@ -403,7 +405,14 @@ export default function POSPage() {
         <ProductModal
           open={showProductModal}
           onOpenChange={setShowProductModal}
-          product={selectedProduct}
+          product={{
+            id: selectedProduct.id,
+            name: selectedProduct.name,
+            basePrice: Number(selectedProduct.base_price),
+            image: selectedProduct.image_url || undefined,
+            variants: selectedProduct.variants?.map(v => ({ id: v.id, name: v.name, priceModifier: Number(v.price_modifier) })) || [],
+            extras: selectedProduct.extras?.map(e => ({ id: e.id, name: e.name, price: Number(e.price) })) || []
+          }}
           onAddToCart={addToCart}
         />
       )}
@@ -438,24 +447,28 @@ export default function POSPage() {
       )}
 
       {showTicket && ticketData && (
-        <Dialog open={showTicket} onOpenChange={setShowTicket}>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Venta Exitosa</DialogTitle>
-              <DialogDescription>
-                Ticket de compra generado
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex justify-center py-4 bg-muted/30 rounded-lg">
-              <TicketPreview data={ticketData} />
-            </div>
-            <DialogFooter>
-              <Button onClick={() => setShowTicket(false)} className="w-full">
-                Nueva Venta
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <TicketPreview 
+          open={showTicket} 
+          onOpenChange={setShowTicket}
+          businessName={ticketData.businessName}
+          date={new Date()}
+          items={ticketData.items.map((i: any) => ({
+            name: i.name,
+            quantity: i.quantity,
+            unitPrice: i.price,
+            total: i.price * i.quantity,
+            variant: i.variant,
+            extras: i.extras,
+            notes: i.notes
+          }))}
+          subtotal={ticketData.subtotal}
+          taxRate={ticketData.taxRate}
+          taxAmount={ticketData.tax}
+          total={ticketData.total}
+          paymentMethod={ticketData.payments.map((p: any) => p.type).join(", ")}
+          saleId={ticketData.saleId}
+          onConfirm={() => setShowTicket(false)}
+        />
       )}
     </div>
   );
