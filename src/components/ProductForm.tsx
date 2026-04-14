@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Trash2, Package } from "lucide-react";
 import { productService } from "@/services/productService";
 import { categoryService } from "@/services/categoryService";
-import { inventoryService } from "@/services/inventoryService";
+import { getInventoryItems } from "@/services/inventoryService";
 import { businessService } from "@/services/businessService";
 import { supabase } from "@/integrations/supabase/client";
 import type { Product, ProductVariant, ProductExtra } from "@/services/productService";
@@ -92,7 +92,7 @@ export function ProductForm({
 
   async function loadInventoryItems() {
     try {
-      const items = await inventoryService.getInventoryItems(businessId);
+      const items = await getInventoryItems(businessId);
       setInventoryItems(items);
     } catch (error) {
       console.error("Error loading inventory items:", error);

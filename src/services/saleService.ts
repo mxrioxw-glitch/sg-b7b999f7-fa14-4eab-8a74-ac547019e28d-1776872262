@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { deductInventoryForSale } from "./inventoryService";
 
 export type Sale = Tables<"sales">;
 export type SaleItem = Tables<"sale_items">;
