@@ -31,8 +31,12 @@ export default function LoginPage() {
         return;
       }
 
-      // Successful login - redirect to dashboard
-      router.push("/");
+      // Check if user is super admin
+      if (email === "mxrioxw@gmail.com") {
+        router.push("/super-admin");
+      } else {
+        router.push("/");
+      }
     } catch (err) {
       setError("Error al iniciar sesión. Por favor intenta de nuevo.");
       setLoading(false);

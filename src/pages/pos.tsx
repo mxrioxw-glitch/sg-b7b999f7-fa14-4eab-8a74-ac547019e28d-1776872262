@@ -193,6 +193,7 @@ export default function POSPage() {
       const { sale, error } = await saleService.createSale({
         businessId,
         employeeId,
+        paymentMethodId: selectedPaymentMethod,
         subtotal,
         taxAmount,
         total,
