@@ -338,16 +338,24 @@ export default function POSPage() {
 
       // Award loyalty points if customer was identified
       if (selectedCustomerId && totalPoints > 0) {
+        const customer = customers.find(c => c.id === selectedCustomerId);
+        const newPoints = (customer?.points || 0) + totalPoints;
+
         const { error: pointsError } = await supabase
           .from("customers")
           .update({
-            loyalty_points: supabase.raw(`loyalty_points + ${totalPoints}`)
+            loyalty_points: newPoints
           })
           .eq("id", selectedCustomerId);
 
         if (pointsError) {
           console.error("Error updating loyalty points:", pointsError);
         } else {
+          // Update local state to reflect new points immediately
+          setCustomers(prev => prev.map(c => 
+            c.id === selectedCustomerId ? { ...c, points: newPoints } : c
+          ));
+
           toast({
             title: "¡Puntos ganados!",
             description: `El cliente ganó ${totalPoints} puntos de lealtad`,
