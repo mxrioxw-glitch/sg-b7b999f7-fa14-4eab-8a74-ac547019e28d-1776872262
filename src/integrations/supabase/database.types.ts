@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -451,6 +451,7 @@ export type Database = {
           inventory_item_id: string
           product_id: string
           quantity_per_unit: number
+          variant_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -458,6 +459,7 @@ export type Database = {
           inventory_item_id: string
           product_id: string
           quantity_per_unit?: number
+          variant_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -465,6 +467,7 @@ export type Database = {
           inventory_item_id?: string
           product_id?: string
           quantity_per_unit?: number
+          variant_id?: string | null
         }
         Relationships: [
           {
@@ -479,6 +482,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_inventory_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
