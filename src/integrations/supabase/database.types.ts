@@ -17,6 +17,7 @@ export type Database = {
     Tables: {
       businesses: {
         Row: {
+          accent_color: string | null
           address: string | null
           created_at: string | null
           currency: string | null
@@ -27,6 +28,9 @@ export type Database = {
           name: string
           owner_id: string | null
           phone: string | null
+          pos_name: string | null
+          primary_color: string | null
+          secondary_color: string | null
           slug: string
           tax_included: boolean | null
           tax_rate: number | null
@@ -34,6 +38,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          accent_color?: string | null
           address?: string | null
           created_at?: string | null
           currency?: string | null
@@ -44,6 +49,9 @@ export type Database = {
           name: string
           owner_id?: string | null
           phone?: string | null
+          pos_name?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
           slug: string
           tax_included?: boolean | null
           tax_rate?: number | null
@@ -51,6 +59,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          accent_color?: string | null
           address?: string | null
           created_at?: string | null
           currency?: string | null
@@ -61,6 +70,9 @@ export type Database = {
           name?: string
           owner_id?: string | null
           phone?: string | null
+          pos_name?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
           slug?: string
           tax_included?: boolean | null
           tax_rate?: number | null
