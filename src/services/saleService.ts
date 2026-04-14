@@ -1,5 +1,3 @@
-
-<![CDATA[
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { deductInventoryForSale } from "./inventoryService";
@@ -265,7 +263,7 @@ export async function createSale(data: {
       }
 
       // 2.2. Deduct inventory - support variant-specific inventory
-      let inventoryQuery = supabase
+      const inventoryQuery = supabase
         .from("product_inventory_items")
         .select("inventory_item_id, quantity_per_unit")
         .eq("product_id", item.productId);
@@ -360,5 +358,3 @@ async function deductSingleInventoryItem(
     console.error("Error deducting single inventory item:", error);
   }
 }
-]]>
-</![CDATA[>
