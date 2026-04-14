@@ -1,320 +1,491 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import Head from "next/head";
+import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
-import { ProductCard } from "@/components/ProductCard";
-import { Cart } from "@/components/Cart";
-import { ProductModal } from "@/components/ProductModal";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { LoadingScreen } from "@/components/ui/loading";
-import { productService, type ProductWithDetails } from "@/services/productService";
-import { categoryService, type Category } from "@/services/categoryService";
 import { businessService } from "@/services/businessService";
 import { subscriptionService } from "@/services/subscriptionService";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { 
+  ShoppingCart, 
+  Package, 
+  Users, 
+  DollarSign, 
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  ArrowRight,
+  Clock
+} from "lucide-react";
 
-const DEMO_BUSINESS_ID = "00000000-0000-0000-0000-000000000001";
-
-interface CartItem {
-  id: string;
-  productId: string;
-  name: string;
-  price: number;
-  quantity: number;
-  variant?: string;
-  extras?: string[];
-  notes?: string;
+interface DashboardStats {
+  todaySales: number;
+  todayOrders: number;
+  todayRevenue: number;
+  lowStockItems: number;
+  activeShift: {
+    id: string;
+    openingAmount: number;
+    openedAt: string;
+  } | null;
 }
 
-export default function POSPage() {
+interface RecentSale {
+  id: string;
+  total: number;
+  created_at: string;
+  items_count: number;
+}
+
+interface LowStockItem {
+  id: string;
+  name: string;
+  current_stock: number;
+  min_stock: number;
+  unit: string;
+}
+
+export default function HomePage() {
   const router = useRouter();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [products, setProducts] = useState<ProductWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState<ProductWithDetails | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [needsBusinessSetup, setNeedsBusinessSetup] = useState(false);
   const [businessName, setBusinessName] = useState("");
-  const [settingUpBusiness, setSettingUpBusiness] = useState(false);
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [planName, setPlanName] = useState("");
+  const [stats, setStats] = useState<DashboardStats>({
+    todaySales: 0,
+    todayOrders: 0,
+    todayRevenue: 0,
+    lowStockItems: 0,
+    activeShift: null,
+  });
+  const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
+  const [lowStockItems, setLowStockItems] = useState<LowStockItem[]>([]);
 
   useEffect(() => {
-    checkAuthAndBusiness();
+    loadDashboardData();
   }, []);
 
-  const checkAuthAndBusiness = async () => {
+  async function loadDashboardData() {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
       if (!user) {
         router.push("/auth/login");
         return;
       }
 
-      // Check if user has a business
+      setUserEmail(user.email || "");
+
+      // Get profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      setUserName(profile?.full_name || user.email?.split("@")[0] || "Usuario");
+
+      // Get business
       const business = await businessService.getBusinessByOwnerId(user.id);
-      
       if (!business) {
-        setNeedsBusinessSetup(true);
-        setLoading(false);
+        router.push("/");
         return;
       }
 
-      // Load data normally
-      loadData();
-    } catch (error) {
-      console.error("Error checking auth/business:", error);
-      setLoading(false);
-    }
-  };
+      setBusinessName(business.name);
 
-  const handleBusinessSetup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!businessName.trim()) return;
+      // Get subscription
+      const subscription = await subscriptionService.getCurrentSubscription();
+      if (subscription) {
+        const planNames: Record<string, string> = {
+          basic: "Plan Básico",
+          professional: "Plan Profesional",
+          premium: "Plan Premium",
+        };
+        setPlanName(planNames[subscription.plan] || "Plan Básico");
+      }
 
-    setSettingUpBusiness(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      // Get today's stats
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-      // Create business
-      const { business, error } = await businessService.createBusiness({
-        name: businessName,
-        email: user.email || ""
+      const { data: salesData } = await supabase
+        .from("sales")
+        .select("id, total, created_at")
+        .eq("business_id", business.id)
+        .gte("created_at", today.toISOString())
+        .order("created_at", { ascending: false });
+
+      const todayOrders = salesData?.length || 0;
+      const todayRevenue = salesData?.reduce((sum, sale) => sum + Number(sale.total), 0) || 0;
+
+      // Get total items sold today
+      const { data: itemsData } = await supabase
+        .from("sale_items")
+        .select("quantity, sale_id")
+        .in("sale_id", salesData?.map(s => s.id) || []);
+
+      const todaySales = itemsData?.reduce((sum, item) => sum + Number(item.quantity), 0) || 0;
+
+      // Get active cash register
+      const { data: activeCashRegister } = await supabase
+        .from("cash_registers")
+        .select("id, opening_amount, opened_at")
+        .eq("business_id", business.id)
+        .eq("status", "open")
+        .maybeSingle();
+
+      // Get low stock items
+      const { data: inventoryData } = await supabase
+        .from("inventory_items")
+        .select("id, name, current_stock, min_stock, unit")
+        .eq("business_id", business.id);
+
+      const lowStock = (inventoryData || []).filter(
+        item => Number(item.current_stock) <= Number(item.min_stock)
+      );
+
+      setStats({
+        todaySales,
+        todayOrders,
+        todayRevenue,
+        lowStockItems: lowStock.length,
+        activeShift: activeCashRegister ? {
+          id: activeCashRegister.id,
+          openingAmount: Number(activeCashRegister.opening_amount),
+          openedAt: activeCashRegister.opened_at,
+        } : null,
       });
 
-      if (error || !business) {
-        alert("Error al crear el negocio. Por favor intenta de nuevo.");
-        setSettingUpBusiness(false);
-        return;
-      }
+      // Get recent sales (last 5)
+      const recentSalesData = (salesData || []).slice(0, 5).map(sale => ({
+        id: sale.id,
+        total: Number(sale.total),
+        created_at: sale.created_at,
+        items_count: itemsData?.filter(item => item.sale_id === sale.id).length || 0,
+      }));
+      setRecentSales(recentSalesData);
 
-      // Create employee record
-      await supabase
-        .from("employees")
-        .insert({
-          business_id: business.id,
-          user_id: user.id,
-          role: "owner",
-          is_active: true
-        });
+      // Set low stock items (top 5)
+      setLowStockItems(lowStock.slice(0, 5).map(item => ({
+        id: item.id,
+        name: item.name,
+        current_stock: Number(item.current_stock),
+        min_stock: Number(item.min_stock),
+        unit: item.unit,
+      })));
 
-      // Create trial subscription
-      await subscriptionService.createTrialSubscription(business.id);
-
-      // Reload page
-      setNeedsBusinessSetup(false);
-      loadData();
     } catch (error) {
-      console.error("Error setting up business:", error);
-      alert("Error inesperado. Por favor intenta de nuevo.");
-      setSettingUpBusiness(false);
-    }
-  };
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [categoriesData, productsData] = await Promise.all([
-        categoryService.getCategories(DEMO_BUSINESS_ID),
-        productService.getProducts(DEMO_BUSINESS_ID),
-      ]);
-
-      setCategories(categoriesData);
-      setProducts(productsData);
-    } catch (error) {
-      console.error("Error loading data:", error);
+      console.error("Error loading dashboard data:", error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const filteredProducts = products.filter((product) => {
-    const matchesCategory = selectedCategory === "all" || product.category_id === selectedCategory;
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
-
-  const handleProductClick = (product: ProductWithDetails) => {
-    setSelectedProduct(product);
-    setModalOpen(true);
-  };
-
-  const handleAddToCart = (item: Omit<CartItem, "id">) => {
-    setCartItems((prev) => [...prev, { ...item, id: Date.now().toString() }]);
-  };
-
-  const handleUpdateQuantity = (itemId: string, quantity: number) => {
-    if (quantity <= 0) {
-      setCartItems((prev) => prev.filter((item) => item.id !== itemId));
-    } else {
-      setCartItems((prev) =>
-        prev.map((item) => (item.id === itemId ? { ...item, quantity } : item))
-      );
-    }
-  };
-
-  const handleRemoveItem = (itemId: string) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== itemId));
-  };
-
-  const handleCheckout = () => {
-    alert("🎉 Procesando pago...\n\nEsta funcionalidad se implementará en la siguiente fase.");
-    setCartItems([]);
-  };
+  }
 
   if (loading) {
     return <LoadingScreen />;
   }
 
-  if (needsBusinessSetup) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Configuración inicial</CardTitle>
-            <CardDescription>
-              Para empezar a usar el sistema POS, necesitas configurar tu negocio.
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={handleBusinessSetup}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="businessName">Nombre del negocio</Label>
-                <Input
-                  id="businessName"
-                  placeholder="Mi Cafetería"
-                  value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
-                  required
-                  disabled={settingUpBusiness}
-                />
-              </div>
-              <Button 
-                type="submit" 
-                className="w-full"
-                disabled={settingUpBusiness || !businessName.trim()}
-              >
-                {settingUpBusiness ? "Configurando..." : "Continuar"}
-              </Button>
-            </CardContent>
-          </form>
-        </Card>
-      </div>
-    );
-  }
+  const quickActions = [
+    {
+      title: "Punto de Venta",
+      description: "Registrar ventas y cobrar",
+      icon: ShoppingCart,
+      href: "/pos",
+      color: "bg-accent",
+    },
+    {
+      title: "Productos",
+      description: "Gestionar catálogo",
+      icon: Package,
+      href: "/products",
+      color: "bg-blue-500",
+    },
+    {
+      title: "Clientes",
+      description: "Ver clientes",
+      icon: Users,
+      href: "/customers",
+      color: "bg-purple-500",
+    },
+    {
+      title: "Corte de Caja",
+      description: "Abrir/cerrar turno",
+      icon: DollarSign,
+      href: "/cash-register",
+      color: "bg-amber-500",
+    },
+  ];
 
   return (
-    <div className="flex h-screen flex-col bg-background">
-      <Header businessName="Café Demo" userName="Admin" />
+    <>
+      <Head>
+        <title>Inicio - {businessName}</title>
+      </Head>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex min-h-screen bg-background">
         <Sidebar />
+        <div className="flex-1 flex flex-col">
+          <Header 
+            businessName={businessName}
+            userName={userName}
+            userEmail={userEmail}
+            planName={planName}
+          />
 
-        <main className="flex flex-1 flex-col overflow-hidden">
-          <div className="border-b border-border bg-card p-4">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar productos..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={loadData}
-                  title="Recargar productos"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
-              </div>
+          <main className="flex-1 p-8 space-y-8">
+            {/* Welcome Section */}
+            <div>
+              <h1 className="text-4xl font-bold text-foreground mb-2">
+                ¡Bienvenido, {userName}! 👋
+              </h1>
+              <p className="text-muted-foreground">
+                Aquí está el resumen de tu negocio para hoy
+              </p>
+            </div>
 
-              <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full lg:w-auto">
-                <TabsList className="grid w-full grid-cols-auto lg:w-auto">
-                  <TabsTrigger value="all" className="text-xs lg:text-sm">
-                    Todas
-                  </TabsTrigger>
-                  {categories.map((category) => (
-                    <TabsTrigger key={category.id} value={category.id} className="text-xs lg:text-sm">
-                      {category.icon} {category.name}
-                    </TabsTrigger>
+            {/* Cash Register Status Alert */}
+            {stats.activeShift ? (
+              <Card className="border-accent bg-accent/5">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-full bg-accent/20">
+                      <CheckCircle className="h-6 w-6 text-accent" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-foreground">Turno de caja activo</p>
+                      <p className="text-sm text-muted-foreground">
+                        Apertura: ${stats.activeShift.openingAmount.toFixed(2)} • Abierto desde{" "}
+                        {new Date(stats.activeShift.openedAt).toLocaleTimeString("es-MX", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                    <Link href="/cash-register">
+                      <Button variant="outline" size="sm">
+                        Ver Detalles
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-destructive bg-destructive/5">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-full bg-destructive/20">
+                      <XCircle className="h-6 w-6 text-destructive" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-foreground">No hay turno de caja activo</p>
+                      <p className="text-sm text-muted-foreground">
+                        Abre un turno para empezar a registrar ventas en el POS
+                      </p>
+                    </div>
+                    <Link href="/cash-register">
+                      <Button size="sm">
+                        Abrir Turno
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Today's Stats */}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Ventas del día</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">${stats.todayRevenue.toFixed(2)}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stats.todayOrders} órdenes completadas
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Productos vendidos</CardTitle>
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.todaySales}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Unidades en total
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Órdenes</CardTitle>
+                  <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.todayOrders}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Ventas hoy
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Bajo stock</CardTitle>
+                  <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.lowStockItems}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Items requieren atención
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Quick Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Accesos Rápidos</CardTitle>
+                  <CardDescription>
+                    Accede rápidamente a las funciones principales
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-4">
+                  {quickActions.map((action) => (
+                    <Link key={action.href} href={action.href}>
+                      <div className="flex items-center gap-4 p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
+                        <div className={`p-3 rounded-lg ${action.color}`}>
+                          <action.icon className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold">{action.title}</p>
+                          <p className="text-sm text-muted-foreground">{action.description}</p>
+                        </div>
+                        <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    </Link>
                   ))}
-                </TabsList>
-              </Tabs>
-            </div>
-          </div>
+                </CardContent>
+              </Card>
 
-          <div className="flex flex-1 overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                {filteredProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    id={product.id}
-                    name={product.name}
-                    price={Number(product.base_price)}
-                    category={product.category?.name || "Sin categoría"}
-                    image={product.image_url || undefined}
-                    onClick={() => handleProductClick(product)}
-                  />
-                ))}
-              </div>
-
-              {filteredProducts.length === 0 && (
-                <div className="flex h-64 flex-col items-center justify-center text-muted-foreground">
-                  <Search className="h-12 w-12 mb-4 opacity-50" />
-                  <p className="text-lg font-medium">No se encontraron productos</p>
-                  <p className="text-sm">Intenta con otra búsqueda o categoría</p>
-                </div>
-              )}
+              {/* Recent Sales */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Ventas Recientes</CardTitle>
+                      <CardDescription>Últimas 5 transacciones</CardDescription>
+                    </div>
+                    <Link href="/dashboard">
+                      <Button variant="ghost" size="sm">
+                        Ver todas
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {recentSales.length > 0 ? (
+                    <div className="space-y-3">
+                      {recentSales.map((sale) => (
+                        <div
+                          key={sale.id}
+                          className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-full bg-accent/20">
+                              <ShoppingCart className="h-4 w-4 text-accent" />
+                            </div>
+                            <div>
+                              <p className="font-medium">${sale.total.toFixed(2)}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {sale.items_count} productos
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              {new Date(sale.created_at).toLocaleTimeString("es-MX", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <ShoppingCart className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p>No hay ventas registradas hoy</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
 
-            <div className="w-96 border-l border-border bg-card">
-              <Cart
-                items={cartItems}
-                onUpdateQuantity={handleUpdateQuantity}
-                onRemoveItem={handleRemoveItem}
-                onCheckout={handleCheckout}
-              />
-            </div>
-          </div>
-        </main>
+            {/* Low Stock Alert */}
+            {lowStockItems.length > 0 && (
+              <Card className="border-amber-500 bg-amber-50 dark:bg-amber-950">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-amber-600" />
+                      <CardTitle>Productos con Bajo Stock</CardTitle>
+                    </div>
+                    <Link href="/inventory">
+                      <Button variant="outline" size="sm">
+                        Ver Inventario
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                  <CardDescription>
+                    Estos insumos necesitan reabastecimiento pronto
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {lowStockItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between p-3 rounded-lg bg-white dark:bg-background border"
+                      >
+                        <div>
+                          <p className="font-medium">{item.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Mínimo: {item.min_stock} {item.unit}
+                          </p>
+                        </div>
+                        <Badge variant="destructive">
+                          {item.current_stock} {item.unit}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </main>
+        </div>
       </div>
-
-      <ProductModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        product={selectedProduct ? {
-          id: selectedProduct.id,
-          name: selectedProduct.name,
-          basePrice: Number(selectedProduct.base_price),
-          image: selectedProduct.image_url || undefined,
-          variants: selectedProduct.variants?.map(v => ({
-            id: v.id,
-            name: v.name,
-            priceModifier: Number(v.price_modifier),
-          })),
-          extras: selectedProduct.extras?.map(e => ({
-            id: e.id,
-            name: e.name,
-            price: Number(e.price),
-          })),
-        } : null}
-        onAddToCart={handleAddToCart}
-      />
-    </div>
+    </>
   );
 }
