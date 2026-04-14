@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -522,12 +522,14 @@ export type Database = {
           category_id: string | null
           created_at: string | null
           description: string | null
+          generates_points: boolean | null
           has_extras: boolean | null
           has_variants: boolean | null
           id: string
           image_url: string | null
           is_active: boolean | null
           name: string
+          points_value: number | null
           updated_at: string | null
         }
         Insert: {
@@ -536,12 +538,14 @@ export type Database = {
           category_id?: string | null
           created_at?: string | null
           description?: string | null
+          generates_points?: boolean | null
           has_extras?: boolean | null
           has_variants?: boolean | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
           name: string
+          points_value?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -550,12 +554,14 @@ export type Database = {
           category_id?: string | null
           created_at?: string | null
           description?: string | null
+          generates_points?: boolean | null
           has_extras?: boolean | null
           has_variants?: boolean | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
           name?: string
+          points_value?: number | null
           updated_at?: string | null
         }
         Relationships: [
