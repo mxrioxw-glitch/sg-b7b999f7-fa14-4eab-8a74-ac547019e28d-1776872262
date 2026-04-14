@@ -6,10 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import Header from "@/components/Header";
-import Sidebar from "@/components/Sidebar";
+import { Header } from "@/components/Header";
+import { Sidebar } from "@/components/Sidebar";
 import { getDashboardMetrics, type DashboardMetrics } from "@/services/dashboardService";
-import { getBusinessByUserId } from "@/services/businessService";
+import { businessService } from "@/services/businessService";
 import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
 
@@ -262,11 +262,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   const authResult = await requireAuth(context);
   if ("redirect" in authResult) return authResult;
 
-  const subscriptionResult = await requireActiveSubscription(context, authResult.props.userId);
+  const subscriptionResult = await requireActiveSubscription(context);
   if ("redirect" in subscriptionResult) return subscriptionResult;
 
   try {
-    const business = await getBusinessByUserId(authResult.props.userId);
+    const business = await businessService.getBusinessByOwnerId(authResult.props.user.id);
     if (!business) {
       return { redirect: { destination: "/", permanent: false } };
     }
