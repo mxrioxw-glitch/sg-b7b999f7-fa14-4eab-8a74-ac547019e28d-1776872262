@@ -18,7 +18,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { getCashRegisters, getActiveCashRegister, openCashRegister, closeCashRegister, getCashRegisterReport } from "@/services/cashRegisterService";
 import { DollarSign, FileText, Calendar, User, AlertCircle, CheckCircle, XCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { cashRegisterService } from "@/services/cashRegisterService";
 import { requireAuth } from "@/middleware/auth";
 
 export default function CashRegisterPage() {
