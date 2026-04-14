@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Edit, Trash2, Image } from "lucide-react";
 import { productService } from "@/services/productService";
 import { categoryService } from "@/services/categoryService";
@@ -41,9 +42,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ProductForm } from "@/components/ProductForm";
+import { CategoryManager } from "@/components/CategoryManager";
 import { useToast } from "@/hooks/use-toast";
-import { requireAuth } from "@/middleware/auth";
-import { requireActiveSubscription } from "@/middleware/subscription";
 
 export default function ProductsPage() {
   const router = useRouter();
@@ -55,6 +55,7 @@ export default function ProductsPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [businessId, setBusinessId] = useState<string>("");
 
   useEffect(() => {
     loadData();
@@ -67,6 +68,8 @@ export default function ProductsPage() {
         router.push("/auth/login");
         return;
       }
+
+      setBusinessId(business.id);
 
       const [productsData, categoriesData] = await Promise.all([
         productService.getProducts(business.id),
@@ -138,164 +141,192 @@ export default function ProductsPage() {
               Productos
             </h1>
             <p className="text-muted">
-              Gestiona tu catálogo de productos, variantes y extras
+              Gestiona tu catálogo de productos, categorías y configuración
             </p>
           </div>
 
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Catálogo de Productos</CardTitle>
-                  <CardDescription>
-                    {filteredProducts.length} productos encontrados
-                  </CardDescription>
-                </div>
-                <Button onClick={() => setIsModalOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nuevo Producto
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-4 mb-6">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                  <Input
-                    placeholder="Buscar productos..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Categoría" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las categorías</SelectItem>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          <Tabs defaultValue="products" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="products">Productos</TabsTrigger>
+              <TabsTrigger value="categories">Categorías</TabsTrigger>
+            </TabsList>
 
-              {loading ? (
-                <div className="text-center py-12">
-                  <p className="text-muted">Cargando productos...</p>
-                </div>
-              ) : filteredProducts.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-muted mb-4">No hay productos disponibles</p>
-                  <Button onClick={() => setIsModalOpen(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Crear primer producto
-                  </Button>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[80px]">Imagen</TableHead>
-                      <TableHead>Nombre</TableHead>
-                      <TableHead>Categoría</TableHead>
-                      <TableHead>Precio Base</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Variantes</TableHead>
-                      <TableHead>Extras</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredProducts.map((product) => (
-                      <TableRow key={product.id}>
-                        <TableCell>
-                          {product.image_url ? (
-                            <img
-                              src={product.image_url}
-                              alt={product.name}
-                              className="w-12 h-12 object-cover rounded"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
-                              <Image className="w-6 h-6 text-muted" />
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {product.name}
-                        </TableCell>
-                        <TableCell>
-                          {categories.find((c) => c.id === product.category_id)
-                            ?.name || "-"}
-                        </TableCell>
-                        <TableCell>${Number(product.base_price).toFixed(2)}</TableCell>
-                        <TableCell>
-                          {product.is_active ? (
-                            <Badge className="bg-accent text-white">Activo</Badge>
-                          ) : (
-                            <Badge variant="secondary">Inactivo</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {product.has_variants ? (
-                            <Badge variant="outline">Sí</Badge>
-                          ) : (
-                            <span className="text-muted">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {product.has_extras ? (
-                            <Badge variant="outline">Sí</Badge>
-                          ) : (
-                            <span className="text-muted">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleEdit(product)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleDelete(product.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+            <TabsContent value="products">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Catálogo de Productos</CardTitle>
+                      <CardDescription>
+                        {filteredProducts.length} productos encontrados
+                      </CardDescription>
+                    </div>
+                    <Button onClick={() => setIsModalOpen(true)}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Nuevo Producto
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-4 mb-6">
+                    <div className="flex-1 relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                      <Input
+                        placeholder="Buscar productos..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    <Select
+                      value={categoryFilter}
+                      onValueChange={setCategoryFilter}
+                    >
+                      <SelectTrigger className="w-[200px]">
+                        <SelectValue placeholder="Categoría" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas las categorías</SelectItem>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {loading ? (
+                    <div className="text-center py-12">
+                      <p className="text-muted">Cargando productos...</p>
+                    </div>
+                  ) : filteredProducts.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-muted mb-4">
+                        No hay productos disponibles
+                      </p>
+                      <Button onClick={() => setIsModalOpen(true)}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Crear primer producto
+                      </Button>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[80px]">Imagen</TableHead>
+                          <TableHead>Nombre</TableHead>
+                          <TableHead>Categoría</TableHead>
+                          <TableHead>Precio Base</TableHead>
+                          <TableHead>Estado</TableHead>
+                          <TableHead>Variantes</TableHead>
+                          <TableHead>Extras</TableHead>
+                          <TableHead className="text-right">Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredProducts.map((product) => (
+                          <TableRow key={product.id}>
+                            <TableCell>
+                              {product.image_url ? (
+                                <img
+                                  src={product.image_url}
+                                  alt={product.name}
+                                  className="w-12 h-12 object-cover rounded"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
+                                  <Image className="w-6 h-6 text-muted" />
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {product.name}
+                            </TableCell>
+                            <TableCell>
+                              {categories.find((c) => c.id === product.category_id)
+                                ?.name || "-"}
+                            </TableCell>
+                            <TableCell>
+                              ${Number(product.base_price).toFixed(2)}
+                            </TableCell>
+                            <TableCell>
+                              {product.is_active ? (
+                                <Badge className="bg-accent text-white">
+                                  Activo
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary">Inactivo</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {product.has_variants ? (
+                                <Badge variant="outline">Sí</Badge>
+                              ) : (
+                                <span className="text-muted">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {product.has_extras ? (
+                                <Badge variant="outline">Sí</Badge>
+                              ) : (
+                                <span className="text-muted">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleEdit(product)}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleDelete(product.id)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="categories">
+              <CategoryManager
+                businessId={businessId}
+                categories={categories}
+                onRefresh={loadData}
+              />
+            </TabsContent>
+          </Tabs>
         </main>
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingProduct ? "Editar Producto" : "Nuevo Producto"}
             </DialogTitle>
             <DialogDescription>
-              Configura los detalles del producto, variantes y extras
+              Configura los detalles del producto, variantes, extras e insumos
             </DialogDescription>
           </DialogHeader>
           <ProductForm
             product={editingProduct}
             categories={categories}
+            businessId={businessId}
             onClose={handleModalClose}
+            onCategoryCreated={loadData}
           />
         </DialogContent>
       </Dialog>

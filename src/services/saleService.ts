@@ -1,6 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { deductInventoryForSale } from "./inventoryService";
 
 export type Sale = Tables<"sales">;
 export type SaleItem = Tables<"sale_items">;
@@ -201,9 +200,6 @@ export async function createSale(data: {
 }): Promise<{ sale: Sale | null; error: string | null }> {
   try {
     // 1. Create sale
-    // Note: If payment_method_id doesn't exist in the database schema yet,
-    // we need to add it or store it in metadata/notes.
-    // For now, let's omit it if it's causing type errors and we'll add it to DB later.
     const saleInsertData: any = {
       business_id: data.businessId,
       employee_id: data.employeeId,
@@ -214,7 +210,6 @@ export async function createSale(data: {
       status: "completed",
     };
     
-    // Solo agregar payment_method_id si existe en el esquema, por ahora lo ponemos como any para bypass
     if (data.paymentMethodId) {
       saleInsertData.payment_method_id = data.paymentMethodId;
     }
@@ -230,7 +225,7 @@ export async function createSale(data: {
       return { sale: null, error: saleError.message };
     }
 
-    // Create sale items
+    // 2. Create sale items
     for (const item of data.items) {
       const { data: saleItem, error: itemError } = await supabase
         .from("sale_items")
@@ -252,42 +247,68 @@ export async function createSale(data: {
         continue;
       }
 
-      // Create sale item extras
+      // 2.1. Create extras for this sale item
       if (item.extras && item.extras.length > 0) {
-        const extrasToInsert = item.extras.map((extra) => ({
-          sale_item_id: saleItem.id,
-          extra_name: extra.extraName,
-          price: extra.price,
-        }));
-
-        const { error: extrasError } = await supabase
-          .from("sale_item_extras")
-          .insert(extrasToInsert);
-
-        if (extrasError) {
-          console.error("Error creating sale item extras:", extrasError);
+        for (const extra of item.extras) {
+          await supabase.from("sale_item_extras").insert({
+            sale_item_id: saleItem.id,
+            extra_name: extra.extraName,
+            price: extra.price,
+          });
         }
       }
-    }
 
-    // Auto-deduct inventory
-    try {
-      await deductInventoryForSale(
-        data.businessId,
-        sale.id,
-        data.items.map((item) => ({
-          product_id: item.productId,
-          quantity: item.quantity,
-        }))
-      );
-    } catch (invError) {
-      console.error("Error deducting inventory:", invError);
-      // Don't fail the sale if inventory deduction fails
+      // 2.2. Deduct inventory for this product
+      const { data: inventoryLinks, error: linksError } = await supabase
+        .from("product_inventory_items")
+        .select("inventory_item_id, quantity_per_unit")
+        .eq("product_id", item.productId);
+
+      if (linksError) {
+        console.error("Error fetching inventory links:", linksError);
+        continue;
+      }
+
+      // Deduct each linked inventory item
+      for (const link of inventoryLinks || []) {
+        const quantityToDeduct = Number(link.quantity_per_unit) * item.quantity;
+
+        // Get current stock
+        const { data: inventoryItem, error: fetchError } = await supabase
+          .from("inventory_items")
+          .select("current_stock")
+          .eq("id", link.inventory_item_id)
+          .single();
+
+        if (fetchError || !inventoryItem) {
+          console.error("Error fetching inventory item:", fetchError);
+          continue;
+        }
+
+        const newStock = Number(inventoryItem.current_stock) - quantityToDeduct;
+
+        // Update stock
+        await supabase
+          .from("inventory_items")
+          .update({ current_stock: newStock })
+          .eq("id", link.inventory_item_id);
+
+        // Record inventory movement
+        await supabase.from("inventory_movements").insert({
+          business_id: data.businessId,
+          inventory_item_id: link.inventory_item_id,
+          movement_type: "out",
+          quantity: quantityToDeduct,
+          reference_type: "sale",
+          reference_id: sale.id,
+          notes: `Venta de ${item.quantity}x ${item.productName}`,
+        });
+      }
     }
 
     return { sale, error: null };
   } catch (error) {
-    console.error("Unexpected error creating sale:", error);
-    return { sale: null, error: "Error inesperado al crear la venta" };
+    console.error("Error in createSale:", error);
+    return { sale: null, error: "Error creating sale" };
   }
 }
