@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { CustomerForm } from "@/components/CustomerForm";
 import { useToast } from "@/hooks/use-toast";
+import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
 import { businessService } from "@/services/businessService";
 import { supabase } from "@/integrations/supabase/client";
@@ -359,4 +360,12 @@ export default function Customers() {
   );
 }
 
-export const getServerSideProps = requireActiveSubscription;
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const authResult = await requireAuth(context);
+  if ("redirect" in authResult) return authResult;
+
+  const subscriptionResult = await requireActiveSubscription(context);
+  if ("redirect" in subscriptionResult) return subscriptionResult;
+
+  return { props: {} };
+};

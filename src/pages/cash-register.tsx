@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import { Header } from "@/components/Header";
@@ -17,6 +18,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { getCashRegisters, getActiveCashRegister, openCashRegister, closeCashRegister, getCashRegisterReport } from "@/services/cashRegisterService";
 import { DollarSign, FileText, Calendar, User, AlertCircle, CheckCircle, XCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cashRegisterService } from "@/services/cashRegisterService";
+import { requireAuth } from "@/middleware/auth";
 
 export default function CashRegisterPage() {
   const router = useRouter();
@@ -585,4 +588,12 @@ export default function CashRegisterPage() {
   );
 }
 
-export const getServerSideProps = requireActiveSubscription;
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const authResult = await requireAuth(context);
+  if ("redirect" in authResult) return authResult;
+
+  const subscriptionResult = await requireActiveSubscription(context);
+  if ("redirect" in subscriptionResult) return subscriptionResult;
+
+  return { props: {} };
+};

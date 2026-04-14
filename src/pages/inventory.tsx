@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
@@ -44,6 +45,18 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
+import { requireAuth } from "@/middleware/auth";
+import { requireActiveSubscription } from "@/middleware/subscription";
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const authResult = await requireAuth(context);
+  if ("redirect" in authResult) return authResult;
+
+  const subscriptionResult = await requireActiveSubscription(context);
+  if ("redirect" in subscriptionResult) return subscriptionResult;
+
+  return { props: {} };
+};
 
 export default function InventoryPage() {
   const router = useRouter();

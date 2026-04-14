@@ -21,6 +21,8 @@ import { Header } from "@/components/Header";
 import { Building2, Receipt, Users, CreditCard, Palette, Save, Trash2, Plus, Mail } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import type { EmployeeWithUser } from "@/services/employeeService";
+import { requireAuth } from "@/middleware/auth";
+import { requireActiveSubscription } from "@/middleware/subscription";
 
 type Employee = Database["public"]["Tables"]["employees"]["Row"] & {
   user: {
@@ -759,10 +761,11 @@ export default function Settings() {
 }
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-  const { req } = context;
-  const cookies = req.headers.cookie || "";
-  
-  return {
-    props: {}
-  };
+  const authResult = await requireAuth(context);
+  if ("redirect" in authResult) return authResult;
+
+  const subscriptionResult = await requireActiveSubscription(context);
+  if ("redirect" in subscriptionResult) return subscriptionResult;
+
+  return { props: {} };
 };

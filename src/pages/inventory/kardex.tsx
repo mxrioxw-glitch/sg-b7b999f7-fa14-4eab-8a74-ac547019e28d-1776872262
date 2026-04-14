@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
@@ -35,6 +36,19 @@ import { businessService } from "@/services/businessService";
 import type { InventoryItem, InventoryMovement } from "@/services/inventoryService";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
+import { inventoryService } from "@/services/inventoryService";
+import { requireAuth } from "@/middleware/auth";
+import { requireActiveSubscription } from "@/middleware/subscription";
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const authResult = await requireAuth(context);
+  if ("redirect" in authResult) return authResult;
+
+  const subscriptionResult = await requireActiveSubscription(context);
+  if ("redirect" in subscriptionResult) return subscriptionResult;
+
+  return { props: {} };
+};
 
 export default function KardexPage() {
   const router = useRouter();
