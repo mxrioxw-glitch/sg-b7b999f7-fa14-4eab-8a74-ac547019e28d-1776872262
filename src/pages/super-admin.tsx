@@ -88,7 +88,18 @@ export default function SuperAdminPage() {
 
       const loadedBusinesses = businessesData.data as BusinessWithSubscription[];
       setBusinesses(loadedBusinesses);
-      setPlans(plansData.data || []);
+      
+      const loadedPlans: SubscriptionPlan[] = (plansData.data || []).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        price_monthly: Number(p.price_monthly),
+        price_yearly: Number(p.price_yearly),
+        features: Array.isArray(p.features) ? p.features.map(String) : [],
+        max_branches: p.max_branches,
+        max_products: p.max_products,
+        max_employees: p.max_employees
+      }));
+      setPlans(loadedPlans);
 
       const totalBusinesses = loadedBusinesses.length;
       const activeBusinesses = loadedBusinesses.filter(b => 
