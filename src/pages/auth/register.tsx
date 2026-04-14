@@ -107,8 +107,8 @@ export default function RegisterPage() {
       // 4. Create trial subscription
       await subscriptionService.createTrialSubscription(businessData.id);
 
-      // Success! Redirect to POS
-      router.push("/pos");
+      // Success! Redirect to verify email page
+      router.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}`);
     } catch (err) {
       console.error("Registration error:", err);
       setError("Error inesperado. Por favor intenta de nuevo.");

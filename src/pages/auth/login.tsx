@@ -16,17 +16,26 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setNeedsConfirmation(false);
     setLoading(true);
 
     try {
       const { error: signInError } = await authService.signIn(email, password);
       
       if (signInError) {
-        setError(signInError.message);
+        // Check if error is about email confirmation
+        if (signInError.message.toLowerCase().includes("email not confirmed") || 
+            signInError.message.toLowerCase().includes("email confirmation")) {
+          setNeedsConfirmation(true);
+          setError("Tu cuenta aún no está verificada. Revisa tu email para confirmarla.");
+        } else {
+          setError(signInError.message);
+        }
         setLoading(false);
         return;
       }
@@ -75,6 +84,19 @@ export default function LoginPage() {
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
+                )}
+
+                {needsConfirmation && (
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    className="w-full"
+                    asChild
+                  >
+                    <Link href={`/auth/verify-email?email=${encodeURIComponent(email)}`}>
+                      Reenviar email de confirmación
+                    </Link>
+                  </Button>
                 )}
 
                 <div className="space-y-2">
