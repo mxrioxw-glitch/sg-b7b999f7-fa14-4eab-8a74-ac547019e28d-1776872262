@@ -10,19 +10,18 @@ import { PaymentModal } from "@/components/PaymentModal";
 import { CustomerIdentificationModal } from "@/components/CustomerIdentificationModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { authService } from "@/services/authService";
-import { businessService } from "@/services/businessService";
+import { businessService, type Business } from "@/services/businessService";
 import { productService, type ProductWithDetails } from "@/services/productService";
 import { categoryService, type Category } from "@/services/categoryService";
 import { saleService } from "@/services/saleService";
-import { paymentMethodService, type PaymentMethod } from "@/services/paymentMethodService";
-import { supabase } from "@/integrations/supabase/client";
-import { Search, AlertCircle, DollarSign, ShoppingCart, ChevronLeft, Package } from "lucide-react";
+import { customerService } from "@/services/customerService";
+import { subscriptionService } from "@/services/subscriptionService";
+import { cashRegisterService, type CashRegister } from "@/services/cashRegisterService";
+import { Search, Package, ShoppingCart, ChevronLeft } from "lucide-react";
 import { useIsMobileOrTablet } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 interface CartItem {
   id: string;
@@ -50,15 +49,26 @@ export default function POSPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [products, setProducts] = useState<ProductWithDetails[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
+  
   const [showPayment, setShowPayment] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
+  
   const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<ProductWithDetails | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  
   const [cashRegister, setCashRegister] = useState<CashRegister | null>(null);
+  
+  const [showTicket, setShowTicket] = useState(false);
+  const [ticketData, setTicketData] = useState<any>(null);
+
   const isMobileOrTablet = useIsMobileOrTablet();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileView, setMobileView] = useState<"products" | "cart">("products");
 
   useEffect(() => {
     checkSubscriptionAndBusiness();
@@ -83,6 +93,7 @@ export default function POSPage() {
         loadCategories(currentBusiness.id),
         loadProducts(currentBusiness.id),
         loadActiveCashRegister(currentBusiness.id),
+        loadCustomers(currentBusiness.id)
       ]);
     } catch (error) {
       console.error("Error loading POS:", error);
@@ -114,6 +125,13 @@ export default function POSPage() {
     setProducts(prods);
   }
 
+  async function loadCustomers(businessId: string) {
+    try {
+      const data = await customerService.getCustomers(businessId);
+      setCustomers(data.map(c => ({ id: c.id, name: c.name, points: c.points || 0 })));
+    } catch (e) {}
+  }
+
   const handleCategoryClick = (categoryId: string | null) => {
     setSelectedCategory(categoryId);
     if (business) {
@@ -128,63 +146,112 @@ export default function POSPage() {
     } else {
       addToCart({
         id: crypto.randomUUID(),
-        product,
-        variant: null,
-        extras: [],
+        productId: product.id,
+        name: product.name,
+        price: Number(product.base_price),
         quantity: 1,
-        unitPrice: Number(product.base_price),
-        subtotal: Number(product.base_price),
-        notes: "",
       });
     }
   };
 
   const addToCart = (item: CartItem) => {
-    setCart([...cart, item]);
+    const existingIndex = cart.findIndex(c => 
+      c.productId === item.productId && 
+      c.variant === item.variant && 
+      JSON.stringify(c.extras) === JSON.stringify(item.extras) &&
+      c.notes === item.notes
+    );
+    
+    if (existingIndex >= 0) {
+      const newCart = [...cart];
+      newCart[existingIndex].quantity += item.quantity;
+      setCart(newCart);
+    } else {
+      setCart([...cart, item]);
+    }
     setShowProductModal(false);
   };
 
-  const updateCartItem = (itemId: string, updates: Partial<CartItem>) => {
-    setCart(cart.map(item => item.id === itemId ? { ...item, ...updates } : item));
+  const updateQuantity = (itemId: string, quantity: number) => {
+    setCart(cart.map(item => item.id === itemId ? { ...item, quantity } : item));
   };
 
   const removeFromCart = (itemId: string) => {
     setCart(cart.filter(item => item.id !== itemId));
   };
 
-  const clearCart = () => {
-    setCart([]);
-    setSelectedCustomer(null);
-  };
+  const cartSubtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const taxRate = business?.tax_rate || 16;
+  const cartTax = cartSubtotal * (taxRate / 100);
+  const cartTotal = cartSubtotal + cartTax;
 
-  const handleCheckout = () => {
-    if (cart.length === 0) {
-      toast({
-        title: "Carrito vacío",
-        description: "Agrega productos antes de proceder al pago",
-        variant: "destructive",
+  const handlePaymentConfirm = async (payments: any[], change: number) => {
+    if (!business || !cashRegister) return;
+    
+    setProcessingPayment(true);
+    try {
+      const sale = await saleService.createSale({
+        business_id: business.id,
+        cash_register_id: cashRegister.id,
+        customer_id: selectedCustomer?.id || null,
+        subtotal: cartSubtotal,
+        tax: cartTax,
+        total: cartTotal,
+        payment_methods: payments.map(p => ({
+          method: p.type,
+          amount: p.amount
+        })),
+        items: cart.map(item => ({
+          product_id: item.productId,
+          product_name: item.name,
+          quantity: item.quantity,
+          unit_price: item.price,
+          total_price: item.price * item.quantity,
+          variant: item.variant,
+          extras: item.extras,
+          notes: item.notes
+        }))
       });
-      return;
-    }
 
-    if (!cashRegister) {
       toast({
-        title: "Corte de caja requerido",
-        description: "Debes abrir un corte de caja antes de realizar ventas",
-        variant: "destructive",
+        title: "Venta completada",
+        description: "La venta se ha registrado correctamente",
       });
-      router.push("/cash-register");
-      return;
-    }
 
-    setShowPayment(true);
+      // Clear cart
+      setCart([]);
+      setShowPayment(false);
+      setSelectedCustomer(null);
+      setTicketData({
+         businessName: business.name,
+         date: new Date().toLocaleString(),
+         items: cart,
+         subtotal: cartSubtotal,
+         tax: cartTax,
+         total: cartTotal,
+         payments,
+         change,
+         saleId: sale.id.substring(0, 8)
+      });
+      setShowTicket(true);
+      if (isMobileOrTablet) {
+        setMobileView("products");
+      }
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Hubo un error al procesar la venta",
+        variant: "destructive"
+      });
+    } finally {
+      setProcessingPayment(false);
+    }
   };
 
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const cartTotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
 
   if (loading) {
     return (
@@ -212,12 +279,12 @@ export default function POSPage() {
           onMenuClick={() => setSidebarOpen(true)}
         />
 
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-hidden relative">
           <div className="h-full flex flex-col lg:flex-row">
-            {/* Products Section - Full width on mobile, left side on desktop */}
+            {/* Products Section */}
             <div className={cn(
               "flex-1 flex flex-col overflow-hidden",
-              isMobileOrTablet && cart.length > 0 ? "hidden" : "flex"
+              isMobileOrTablet && mobileView === "cart" ? "hidden" : "flex"
             )}>
               {/* Categories & Search */}
               <div className="border-b border-border bg-card p-3 md:p-4 space-y-3">
@@ -232,9 +299,9 @@ export default function POSPage() {
                   />
                 </div>
 
-                {/* Categories - Horizontal scroll on mobile */}
-                <div className="overflow-x-auto -mx-3 md:mx-0 px-3 md:px-0">
-                  <div className="flex gap-2 min-w-max md:min-w-0 md:flex-wrap">
+                {/* Categories */}
+                <div className="overflow-x-auto -mx-3 md:mx-0 px-3 md:px-0 scrollbar-hide">
+                  <div className="flex gap-2 min-w-max md:min-w-0 md:flex-wrap pb-1">
                     <Button
                       variant={selectedCategory === null ? "default" : "outline"}
                       onClick={() => handleCategoryClick(null)}
@@ -259,69 +326,72 @@ export default function POSPage() {
               </div>
 
               {/* Products Grid */}
-              <div className="flex-1 overflow-y-auto p-3 md:p-6">
+              <div className="flex-1 overflow-y-auto p-3 md:p-6 pb-24 md:pb-6">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
                   {filteredProducts.map((product) => (
                     <ProductCard
                       key={product.id}
-                      product={product}
+                      id={product.id}
+                      name={product.name}
+                      price={Number(product.base_price)}
+                      category={product.category?.name || "Sin categoría"}
+                      image={product.image_url || undefined}
                       onClick={() => handleProductClick(product)}
                     />
                   ))}
                 </div>
                 {filteredProducts.length === 0 && (
                   <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-                    <Package className="h-12 w-12 mb-2" />
+                    <Package className="h-12 w-12 mb-2 opacity-50" />
                     <p>No se encontraron productos</p>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Cart Section - Full width on mobile when has items, right side on desktop */}
+            {/* Cart Section */}
             <div className={cn(
               "lg:w-96 xl:w-[420px] border-l border-border bg-card flex flex-col",
-              isMobileOrTablet ? "w-full" : "",
-              isMobileOrTablet && cart.length === 0 ? "hidden" : "flex"
+              isMobileOrTablet && mobileView === "products" ? "hidden" : "flex",
+              isMobileOrTablet ? "w-full h-full absolute inset-0 z-30 bg-card" : ""
             )}>
-              {/* Mobile: Back button */}
-              {isMobileOrTablet && cart.length > 0 && (
-                <div className="border-b border-border p-3 flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setCart([])}
-                  >
+              {isMobileOrTablet && (
+                <div className="border-b border-border bg-card p-3 flex items-center gap-2">
+                  <Button variant="ghost" size="icon" onClick={() => setMobileView("products")}>
                     <ChevronLeft className="h-5 w-5" />
                   </Button>
-                  <h2 className="text-lg font-semibold">Carrito ({cart.length})</h2>
+                  <h2 className="text-lg font-semibold">Carrito ({cart.reduce((sum, item) => sum + item.quantity, 0)})</h2>
                 </div>
               )}
-
               <Cart
                 items={cart}
-                onUpdateItem={updateCartItem}
+                taxRate={taxRate}
+                onUpdateQuantity={updateQuantity}
                 onRemoveItem={removeFromCart}
-                onClearCart={clearCart}
-                onCheckout={handleCheckout}
-                selectedCustomer={selectedCustomer}
-                onCustomerClick={() => setShowCustomerModal(true)}
+                onCheckout={() => {
+                  if (cart.length === 0) return;
+                  if (!cashRegister) {
+                    toast({ title: "Corte de caja requerido", description: "Abre caja primero", variant: "destructive" });
+                    router.push("/cash-register");
+                    return;
+                  }
+                  setShowPayment(true);
+                }}
+                className="flex-1 border-none shadow-none rounded-none"
               />
             </div>
           </div>
 
           {/* Mobile: Floating Cart Button */}
-          {isMobileOrTablet && cart.length > 0 && (
-            <div className="fixed bottom-4 right-4 left-4 z-40 lg:hidden">
+          {isMobileOrTablet && mobileView === "products" && cart.length > 0 && (
+            <div className="absolute bottom-4 right-4 left-4 z-20 lg:hidden">
               <Button
                 className="w-full h-14 text-lg shadow-lg"
                 size="lg"
-                onClick={() => {
-                  // Show cart section
-                }}
+                onClick={() => setMobileView("cart")}
               >
                 <ShoppingCart className="h-5 w-5 mr-2" />
-                Ver Carrito ({cart.length}) - ${cartTotal.toFixed(2)}
+                Ver Carrito ({cart.reduce((sum, item) => sum + item.quantity, 0)}) - ${cartTotal.toFixed(2)}
               </Button>
             </div>
           )}
@@ -331,39 +401,61 @@ export default function POSPage() {
       {/* Modals */}
       {showProductModal && selectedProduct && (
         <ProductModal
+          open={showProductModal}
+          onOpenChange={setShowProductModal}
           product={selectedProduct}
-          onClose={() => setShowProductModal(false)}
           onAddToCart={addToCart}
         />
       )}
 
       {showPayment && business && cashRegister && (
         <PaymentModal
-          items={cart}
-          businessId={business.id}
-          cashRegisterId={cashRegister.id}
-          customer={selectedCustomer}
-          onClose={() => setShowPayment(false)}
-          onComplete={() => {
-            clearCart();
-            setShowPayment(false);
-            toast({
-              title: "Venta completada",
-              description: "La venta se registró correctamente",
-            });
+          open={showPayment}
+          onOpenChange={setShowPayment}
+          total={cartTotal}
+          subtotal={cartSubtotal}
+          taxAmount={cartTax}
+          taxRate={taxRate}
+          customers={customers}
+          onConfirm={handlePaymentConfirm}
+          processing={processingPayment}
+        />
+      )}
+
+      {showCustomerModal && (
+        <CustomerIdentificationModal
+          open={showCustomerModal}
+          onOpenChange={setShowCustomerModal}
+          customers={customers}
+          onContinue={(customerId) => {
+            if (customerId) {
+              const c = customers.find(x => x.id === customerId);
+              if (c) setSelectedCustomer(c);
+            }
+            setShowCustomerModal(false);
           }}
         />
       )}
 
-      {showCustomerModal && business && (
-        <CustomerIdentificationModal
-          businessId={business.id}
-          onClose={() => setShowCustomerModal(false)}
-          onCustomerSelected={(customer) => {
-            setSelectedCustomer(customer);
-            setShowCustomerModal(false);
-          }}
-        />
+      {showTicket && ticketData && (
+        <Dialog open={showTicket} onOpenChange={setShowTicket}>
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Venta Exitosa</DialogTitle>
+              <DialogDescription>
+                Ticket de compra generado
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-center py-4 bg-muted/30 rounded-lg">
+              <TicketPreview data={ticketData} />
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setShowTicket(false)} className="w-full">
+                Nueva Venta
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
