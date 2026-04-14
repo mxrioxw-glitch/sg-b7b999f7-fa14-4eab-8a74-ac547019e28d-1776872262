@@ -1,6 +1,6 @@
 ---
 title: Dashboard & Reports
-status: in_progress
+status: done
 priority: medium
 type: feature
 tags:
@@ -25,4 +25,3 @@ Dashboard principal con métricas clave de ventas, gráficas simples, productos 
 - [x] Filtros por rango de fechas
 - [x] Exportar reportes a PDF
 - [x] Gráficas interactivas (opcional con recharts)
----TASK:done
