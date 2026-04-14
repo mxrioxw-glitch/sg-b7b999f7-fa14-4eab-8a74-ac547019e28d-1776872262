@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
 import { useState } from "react";
-import { resetPassword } from "@/services/authService";
+import { authService } from "@/services/authService";
 import { Coffee, AlertCircle, CheckCircle2, ArrowLeft } from "lucide-react";
 
 export default function RecoveryPage() {
@@ -22,7 +22,7 @@ export default function RecoveryPage() {
     setLoading(true);
 
     try {
-      const { error: resetError } = await resetPassword(email);
+      const { error: resetError } = await authService.resetPassword(email);
       
       if (resetError) {
         setError(resetError.message);

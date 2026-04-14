@@ -1,14 +1,14 @@
 import { GetServerSidePropsContext } from "next";
-import { getCurrentSession } from "@/services/authService";
-import { getBusinessByOwnerId } from "@/services/businessService";
-import { getActiveSubscription } from "@/services/subscriptionService";
+import { authService } from "@/services/authService";
+import { businessService } from "@/services/businessService";
+import { subscriptionService } from "@/services/subscriptionService";
 
 export async function requireActiveSubscription(context: GetServerSidePropsContext) {
   try {
     // Check auth first
-    const { data: session, error: authError } = await getCurrentSession();
+    const session = await authService.getCurrentSession();
 
-    if (authError || !session?.user) {
+    if (!session?.user) {
       return {
         redirect: {
           destination: "/auth/login",
@@ -18,9 +18,9 @@ export async function requireActiveSubscription(context: GetServerSidePropsConte
     }
 
     // Get user's business
-    const { data: business, error: businessError } = await getBusinessByOwnerId(session.user.id);
+    const business = await businessService.getBusinessByOwnerId(session.user.id);
 
-    if (businessError || !business) {
+    if (!business) {
       return {
         redirect: {
           destination: "/setup",
@@ -40,9 +40,9 @@ export async function requireActiveSubscription(context: GetServerSidePropsConte
     }
 
     // Get active subscription
-    const { data: subscription, error: subscriptionError } = await getActiveSubscription(business.id);
+    const subscription = await subscriptionService.getActiveSubscription(business.id);
 
-    if (subscriptionError || !subscription) {
+    if (!subscription) {
       return {
         redirect: {
           destination: "/subscription/expired",
@@ -62,8 +62,8 @@ export async function requireActiveSubscription(context: GetServerSidePropsConte
     }
 
     // Check if trial has expired
-    if (subscription.status === "trialing" && subscription.trial_ends_at) {
-      const trialEndsAt = new Date(subscription.trial_ends_at);
+    if (subscription.status === "trialing" && subscription.trial_end) {
+      const trialEndsAt = new Date(subscription.trial_end);
       const now = new Date();
 
       if (now > trialEndsAt) {

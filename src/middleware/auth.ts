@@ -1,11 +1,11 @@
 import { GetServerSidePropsContext } from "next";
-import { getCurrentSession } from "@/services/authService";
+import { authService } from "@/services/authService";
 
 export async function requireAuth(context: GetServerSidePropsContext) {
   try {
-    const { data: session, error } = await getCurrentSession();
+    const session = await authService.getCurrentSession();
 
-    if (error || !session?.user) {
+    if (!session?.user) {
       return {
         redirect: {
           destination: "/auth/login",
@@ -31,9 +31,9 @@ export async function requireAuth(context: GetServerSidePropsContext) {
 
 export async function requireSuperAdmin(context: GetServerSidePropsContext) {
   try {
-    const { data: session, error } = await getCurrentSession();
+    const session = await authService.getCurrentSession();
 
-    if (error || !session?.user) {
+    if (!session?.user) {
       return {
         redirect: {
           destination: "/auth/login",

@@ -24,6 +24,23 @@ export const PLAN_LIMITS = {
 };
 
 export const subscriptionService = {
+  async getActiveSubscription(businessId: string): Promise<Subscription | null> {
+    const { data, error } = await supabase
+      .from("subscriptions")
+      .select("*")
+      .eq("business_id", businessId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error("Error fetching subscription:", error);
+      return null;
+    }
+
+    return data || null;
+  },
+
   async getCurrentSubscription(): Promise<Subscription | null> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;

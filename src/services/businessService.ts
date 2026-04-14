@@ -5,6 +5,21 @@ export type Business = Tables<"businesses">;
 export type Employee = Tables<"employees">;
 
 export const businessService = {
+  async getBusinessByOwnerId(ownerId: string): Promise<Business | null> {
+    const { data, error } = await supabase
+      .from("businesses")
+      .select("*")
+      .eq("owner_id", ownerId)
+      .single();
+
+    if (error) {
+      console.error("Error fetching business:", error);
+      return null;
+    }
+
+    return data;
+  },
+
   async getCurrentBusiness(): Promise<Business | null> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
@@ -25,6 +40,7 @@ export const businessService = {
 
   async createBusiness(businessData: {
     name: string;
+    email?: string;
     address?: string;
     phone?: string;
     tax_rate?: number;
@@ -40,6 +56,7 @@ export const businessService = {
         owner_id: user.id,
         name: businessData.name,
         slug,
+        email: businessData.email,
         address: businessData.address,
         phone: businessData.phone,
         tax_rate: businessData.tax_rate || 16,

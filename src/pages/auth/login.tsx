@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState } from "react";
-import { signInWithEmail } from "@/services/authService";
+import { authService } from "@/services/authService";
 import { Coffee, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
@@ -23,7 +23,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const { error: signInError } = await signInWithEmail(email, password);
+      const { error: signInError } = await authService.signIn(email, password);
       
       if (signInError) {
         setError(signInError.message);

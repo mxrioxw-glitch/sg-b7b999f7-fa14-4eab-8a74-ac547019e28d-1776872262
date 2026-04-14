@@ -7,9 +7,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState } from "react";
-import { signUpWithEmail } from "@/services/authService";
-import { createBusiness } from "@/services/businessService";
-import { createSubscription, getFreePlan } from "@/services/subscriptionService";
+import { authService } from "@/services/authService";
+import { businessService } from "@/services/businessService";
+import { subscriptionService } from "@/services/subscriptionService";
 import { Coffee, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function RegisterPage() {
@@ -50,22 +50,21 @@ export default function RegisterPage() {
 
     try {
       // 1. Create user account
-      const { data: authData, error: signUpError } = await signUpWithEmail(
+      const { user, error: signUpError } = await authService.signUp(
         formData.email, 
         formData.password
       );
 
-      if (signUpError || !authData.user) {
+      if (signUpError || !user) {
         setError(signUpError?.message || "Error al crear la cuenta");
         setLoading(false);
         return;
       }
 
-      const userId = authData.user.id;
+      const userId = user.id;
 
       // 2. Create business
-      const { data: businessData, error: businessError } = await createBusiness({
-        owner_id: userId,
+      const { business: businessData, error: businessError } = await businessService.createBusiness({
         name: formData.businessName,
         email: formData.email
       });
@@ -76,31 +75,8 @@ export default function RegisterPage() {
         return;
       }
 
-      // 3. Get free trial plan
-      const { data: freePlan, error: planError } = await getFreePlan();
-
-      if (planError || !freePlan) {
-        setError("Error al activar el plan gratuito");
-        setLoading(false);
-        return;
-      }
-
-      // 4. Create subscription with 7-day trial
-      const trialEndsAt = new Date();
-      trialEndsAt.setDate(trialEndsAt.getDate() + 7);
-
-      const { error: subscriptionError } = await createSubscription({
-        business_id: businessData.id,
-        plan_id: freePlan.id,
-        status: "trialing",
-        trial_ends_at: trialEndsAt.toISOString()
-      });
-
-      if (subscriptionError) {
-        setError("Error al activar la prueba gratuita");
-        setLoading(false);
-        return;
-      }
+      // 3. Create trial subscription
+      await subscriptionService.createTrialSubscription(businessData.id);
 
       // Success! Redirect to dashboard
       router.push("/");

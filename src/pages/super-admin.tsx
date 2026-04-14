@@ -6,25 +6,33 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { getCurrentSession } from "@/services/authService";
+import { authService } from "@/services/authService";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { PLAN_LIMITS } from "@/services/subscriptionService";
 import { Shield, Users, DollarSign, TrendingUp, Coffee, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
 
 type BusinessWithSubscription = Tables<"businesses"> & {
-  subscriptions: (Tables<"subscriptions"> & {
-    subscription_plans: Tables<"subscription_plans"> | null;
-  })[];
+  subscriptions: Tables<"subscriptions">[];
 };
 
-type SubscriptionPlan = Tables<"subscription_plans">;
+const HARDCODED_PLANS = [
+  { id: 'basic', name: 'Básico', price_monthly: 29, price_yearly: 290, features: PLAN_LIMITS.basic.features },
+  { id: 'professional', name: 'Profesional', price_monthly: 79, price_yearly: 790, features: PLAN_LIMITS.professional.features },
+  { id: 'premium', name: 'Premium', price_monthly: 149, price_yearly: 1490, features: PLAN_LIMITS.premium.features },
+];
+
+const PLAN_PRICES = {
+  basic: 29,
+  professional: 79,
+  premium: 149
+};
 
 export default function SuperAdminPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
   const [businesses, setBusinesses] = useState<BusinessWithSubscription[]>([]);
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [metrics, setMetrics] = useState({
     totalBusinesses: 0,
     activeBusinesses: 0,
@@ -38,9 +46,9 @@ export default function SuperAdminPage() {
 
   const checkAuthorization = async () => {
     try {
-      const { data: session, error } = await getCurrentSession();
+      const session = await authService.getCurrentSession();
       
-      if (error || !session?.user) {
+      if (!session?.user) {
         router.push("/auth/login");
         return;
       }
@@ -65,40 +73,29 @@ export default function SuperAdminPage() {
         .from("businesses")
         .select(`
           *,
-          subscriptions (
-            *,
-            subscription_plans (*)
-          )
+          subscriptions (*)
         `)
         .order("created_at", { ascending: false });
 
       if (businessesError) throw businessesError;
 
-      const businesses = businessesData as BusinessWithSubscription[];
-      setBusinesses(businesses);
-
-      // Load subscription plans
-      const { data: plansData, error: plansError } = await supabase
-        .from("subscription_plans")
-        .select("*")
-        .order("price_monthly");
-
-      if (plansError) throw plansError;
-      setPlans(plansData);
+      const loadedBusinesses = businessesData as BusinessWithSubscription[];
+      setBusinesses(loadedBusinesses);
 
       // Calculate metrics
-      const totalBusinesses = businesses.length;
-      const activeBusinesses = businesses.filter(b => 
+      const totalBusinesses = loadedBusinesses.length;
+      const activeBusinesses = loadedBusinesses.filter(b => 
         b.subscriptions[0]?.status === "active"
       ).length;
-      const trialingBusinesses = businesses.filter(b => 
+      const trialingBusinesses = loadedBusinesses.filter(b => 
         b.subscriptions[0]?.status === "trialing"
       ).length;
 
-      const mrr = businesses.reduce((sum, b) => {
+      const mrr = loadedBusinesses.reduce((sum, b) => {
         const subscription = b.subscriptions[0];
-        if (subscription?.status === "active" && subscription.subscription_plans) {
-          return sum + (subscription.subscription_plans.price_monthly || 0);
+        if (subscription?.status === "active" && subscription.plan) {
+          const price = PLAN_PRICES[subscription.plan as keyof typeof PLAN_PRICES] || 0;
+          return sum + price;
         }
         return sum;
       }, 0);
@@ -145,6 +142,12 @@ export default function SuperAdminPage() {
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
+  };
+
+  const getPlanName = (planId: string | null) => {
+    if (!planId) return "-";
+    const plan = HARDCODED_PLANS.find(p => p.id === planId);
+    return plan ? plan.name : planId;
   };
 
   if (loading) {
@@ -246,13 +249,13 @@ export default function SuperAdminPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {plans.map((plan) => (
+                  {HARDCODED_PLANS.map((plan) => (
                     <TableRow key={plan.id}>
                       <TableCell className="font-medium">{plan.name}</TableCell>
-                      <TableCell>${plan.price_monthly || 0}/mes</TableCell>
-                      <TableCell>${plan.price_yearly || 0}/año</TableCell>
+                      <TableCell>${plan.price_monthly}/mes</TableCell>
+                      <TableCell>${plan.price_yearly}/año</TableCell>
                       <TableCell className="text-sm text-muted max-w-md">
-                        {plan.features ? JSON.stringify(plan.features).substring(0, 100) + "..." : "-"}
+                        {plan.features.join(", ")}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -285,14 +288,14 @@ export default function SuperAdminPage() {
                     return (
                       <TableRow key={business.id}>
                         <TableCell className="font-medium">{business.name}</TableCell>
-                        <TableCell>{business.email}</TableCell>
-                        <TableCell>{subscription?.subscription_plans?.name || "-"}</TableCell>
+                        <TableCell>{business.email || "-"}</TableCell>
+                        <TableCell>{getPlanName(subscription?.plan || null)}</TableCell>
                         <TableCell>
                           {subscription ? getStatusBadge(subscription.status) : "-"}
                         </TableCell>
                         <TableCell>
-                          {subscription?.trial_ends_at 
-                            ? new Date(subscription.trial_ends_at).toLocaleDateString()
+                          {subscription?.trial_end 
+                            ? new Date(subscription.trial_end).toLocaleDateString()
                             : "-"}
                         </TableCell>
                         <TableCell>
