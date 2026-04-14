@@ -1,3 +1,5 @@
+
+<![CDATA[
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { deductInventoryForSale } from "./inventoryService";
@@ -23,6 +25,7 @@ export interface CreateSaleData {
   items: {
     productId?: string;
     productName: string;
+    variantId?: string;
     variantName?: string;
     quantity: number;
     unitPrice: number;
@@ -107,6 +110,7 @@ export const saleService = {
           sale.id,
           saleData.items.map((item) => ({
             product_id: item.productId,
+            variant_id: item.variantId,
             quantity: item.quantity,
           }))
         );
@@ -191,6 +195,7 @@ export async function createSale(data: {
   items: {
     productId: string;
     productName: string;
+    variantId?: string;
     variantName?: string;
     quantity: number;
     unitPrice: number;
@@ -226,7 +231,7 @@ export async function createSale(data: {
       return { sale: null, error: saleError.message };
     }
 
-    // 2. Create sale items
+    // 2. Create sale items and deduct inventory
     for (const item of data.items) {
       const { data: saleItem, error: itemError } = await supabase
         .from("sale_items")
@@ -259,51 +264,50 @@ export async function createSale(data: {
         }
       }
 
-      // 2.2. Deduct inventory for this product
-      const { data: inventoryLinks, error: linksError } = await supabase
+      // 2.2. Deduct inventory - support variant-specific inventory
+      let inventoryQuery = supabase
         .from("product_inventory_items")
         .select("inventory_item_id, quantity_per_unit")
         .eq("product_id", item.productId);
 
-      if (linksError) {
-        console.error("Error fetching inventory links:", linksError);
-        continue;
+      // If variant is specified, get variant-specific inventory links first
+      if (item.variantId) {
+        const { data: variantLinks } = await supabase
+          .from("product_inventory_items")
+          .select("inventory_item_id, quantity_per_unit")
+          .eq("product_id", item.productId)
+          .eq("variant_id", item.variantId);
+
+        if (variantLinks && variantLinks.length > 0) {
+          // Use variant-specific inventory
+          for (const link of variantLinks) {
+            await deductSingleInventoryItem(
+              data.businessId,
+              sale.id,
+              link.inventory_item_id,
+              Number(link.quantity_per_unit) * item.quantity,
+              `Venta de ${item.quantity}x ${item.productName} (${item.variantName})`
+            );
+          }
+        }
       }
 
-      // Deduct each linked inventory item
-      for (const link of inventoryLinks || []) {
-        const quantityToDeduct = Number(link.quantity_per_unit) * item.quantity;
+      // Get base product inventory (variant_id is null)
+      const { data: baseLinks } = await supabase
+        .from("product_inventory_items")
+        .select("inventory_item_id, quantity_per_unit")
+        .eq("product_id", item.productId)
+        .is("variant_id", null);
 
-        // Get current stock
-        const { data: inventoryItem, error: fetchError } = await supabase
-          .from("inventory_items")
-          .select("current_stock")
-          .eq("id", link.inventory_item_id)
-          .single();
-
-        if (fetchError || !inventoryItem) {
-          console.error("Error fetching inventory item:", fetchError);
-          continue;
-        }
-
-        const newStock = Number(inventoryItem.current_stock) - quantityToDeduct;
-
-        // Update stock
-        await supabase
-          .from("inventory_items")
-          .update({ current_stock: newStock })
-          .eq("id", link.inventory_item_id);
-
-        // Record inventory movement
-        await supabase.from("inventory_movements").insert({
-          business_id: data.businessId,
-          inventory_item_id: link.inventory_item_id,
-          movement_type: "out",
-          quantity: quantityToDeduct,
-          reference_type: "sale",
-          reference_id: sale.id,
-          notes: `Venta de ${item.quantity}x ${item.productName}`,
-        });
+      // Deduct base inventory items (common to all variants)
+      for (const link of baseLinks || []) {
+        await deductSingleInventoryItem(
+          data.businessId,
+          sale.id,
+          link.inventory_item_id,
+          Number(link.quantity_per_unit) * item.quantity,
+          `Venta de ${item.quantity}x ${item.productName}`
+        );
       }
     }
 
@@ -313,3 +317,48 @@ export async function createSale(data: {
     return { sale: null, error: "Error creating sale" };
   }
 }
+
+async function deductSingleInventoryItem(
+  businessId: string,
+  saleId: string,
+  inventoryItemId: string,
+  quantityToDeduct: number,
+  notes: string
+): Promise<void> {
+  try {
+    // Get current stock
+    const { data: inventoryItem, error: fetchError } = await supabase
+      .from("inventory_items")
+      .select("current_stock")
+      .eq("id", inventoryItemId)
+      .single();
+
+    if (fetchError || !inventoryItem) {
+      console.error("Error fetching inventory item:", fetchError);
+      return;
+    }
+
+    const newStock = Number(inventoryItem.current_stock) - quantityToDeduct;
+
+    // Update stock
+    await supabase
+      .from("inventory_items")
+      .update({ current_stock: newStock })
+      .eq("id", inventoryItemId);
+
+    // Record inventory movement
+    await supabase.from("inventory_movements").insert({
+      business_id: businessId,
+      inventory_item_id: inventoryItemId,
+      movement_type: "out",
+      quantity: quantityToDeduct,
+      reference_type: "sale",
+      reference_id: saleId,
+      notes: notes,
+    });
+  } catch (error) {
+    console.error("Error deducting single inventory item:", error);
+  }
+}
+]]>
+</![CDATA[>
