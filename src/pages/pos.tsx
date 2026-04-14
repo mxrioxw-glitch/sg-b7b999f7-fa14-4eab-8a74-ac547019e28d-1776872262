@@ -55,6 +55,7 @@ export default function POSPage() {
     address?: string;
     phone?: string;
     printerWidth?: "58mm" | "80mm";
+    logoUrl?: string;
   } | null>(null);
 
   const [products, setProducts] = useState<ProductWithDetails[]>([]);
@@ -109,6 +110,7 @@ export default function POSPage() {
         address: business.address || undefined,
         phone: business.phone || undefined,
         printerWidth: (business.printer_width as "58mm" | "80mm") || "80mm",
+        logoUrl: business.logo_url || undefined,
       });
 
       // Get employee record for this user
@@ -569,6 +571,7 @@ export default function POSPage() {
           businessName={businessData.name}
           businessAddress={businessData.address}
           businessPhone={businessData.phone}
+          businessLogo={businessData.logoUrl}
           printerWidth={businessData.printerWidth}
           saleId={completedSale.saleId}
           items={cartItems.map((item) => ({
