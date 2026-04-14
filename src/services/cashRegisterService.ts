@@ -3,7 +3,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 export type CashRegister = Tables<"cash_registers">;
 
-export async function getCashRegisters(businessId: string): Promise<CashRegister[]> {
+export async function getCashRegisters(businessId: string): Promise<any[]> {
   const { data, error } = await supabase
     .from("cash_registers")
     .select(`
@@ -29,7 +29,7 @@ export async function getCashRegisters(businessId: string): Promise<CashRegister
   return data || [];
 }
 
-export async function getActiveCashRegister(businessId: string, employeeId: string): Promise<CashRegister | null> {
+export async function getActiveCashRegister(businessId: string, employeeId: string): Promise<any | null> {
   const { data, error } = await supabase
     .from("cash_registers")
     .select("*")
@@ -53,7 +53,7 @@ export async function openCashRegister(data: {
   employeeId: string;
   openingAmount: number;
   notes?: string;
-}): Promise<CashRegister> {
+}): Promise<any> {
   // Check if there's already an open register for this employee
   const activeRegister = await getActiveCashRegister(data.businessId, data.employeeId);
   
@@ -85,7 +85,7 @@ export async function closeCashRegister(data: {
   registerId: string;
   closingAmount: number;
   notes?: string;
-}): Promise<CashRegister> {
+}): Promise<any> {
   // Get the register to calculate expected amount
   const { data: register, error: fetchError } = await supabase
     .from("cash_registers")

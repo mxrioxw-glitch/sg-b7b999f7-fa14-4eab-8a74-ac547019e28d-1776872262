@@ -9,9 +9,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { CustomerForm } from "@/components/CustomerForm";
 import { useToast } from "@/hooks/use-toast";
-import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
-import { getBusinessByOwnerId } from "@/services/businessService";
+import { businessService } from "@/services/businessService";
+import { supabase } from "@/integrations/supabase/client";
 import { getCustomers, createCustomer, updateCustomer, deleteCustomer, getCustomerPurchaseHistory, type Customer } from "@/services/customerService";
 import { Plus, Search, Mail, Phone, Star, Trash2, Eye } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -43,7 +43,10 @@ export default function Customers() {
 
   async function loadData() {
     try {
-      const business = await getBusinessByOwnerId();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const business = await businessService.getBusinessByOwnerId(user.id);
       if (!business) {
         router.push("/");
         return;
@@ -356,4 +359,4 @@ export default function Customers() {
   );
 }
 
-export const getServerSideProps = requireAuth(requireActiveSubscription());
+export const getServerSideProps = requireActiveSubscription;

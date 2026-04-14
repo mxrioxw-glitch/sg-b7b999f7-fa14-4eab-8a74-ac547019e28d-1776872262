@@ -11,11 +11,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
-import { getBusinessByOwnerId } from "@/services/businessService";
-import { getEmployeeByUserId } from "@/services/businessService";
-import { getCashRegisters, getActiveCashRegister, openCashRegister, closeCashRegister, getCashRegisterReport, type CashRegister } from "@/services/cashRegisterService";
+import { businessService } from "@/services/businessService";
+import { supabase } from "@/integrations/supabase/client";
+import { getCashRegisters, getActiveCashRegister, openCashRegister, closeCashRegister, getCashRegisterReport } from "@/services/cashRegisterService";
 import { DollarSign, FileText, Calendar, User, AlertCircle, CheckCircle, XCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -25,9 +24,9 @@ export default function CashRegisterPage() {
   const [loading, setLoading] = useState(true);
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [employeeId, setEmployeeId] = useState<string | null>(null);
-  const [activeRegister, setActiveRegister] = useState<CashRegister | null>(null);
-  const [registers, setRegisters] = useState<CashRegister[]>([]);
-  const [filteredRegisters, setFilteredRegisters] = useState<CashRegister[]>([]);
+  const [activeRegister, setActiveRegister] = useState<any | null>(null);
+  const [registers, setRegisters] = useState<any[]>([]);
+  const [filteredRegisters, setFilteredRegisters] = useState<any[]>([]);
   const [openDialogOpen, setOpenDialogOpen] = useState(false);
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
@@ -52,7 +51,10 @@ export default function CashRegisterPage() {
 
   async function loadData() {
     try {
-      const business = await getBusinessByOwnerId();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const business = await businessService.getBusinessByOwnerId(user.id);
       if (!business) {
         router.push("/");
         return;
@@ -60,7 +62,7 @@ export default function CashRegisterPage() {
 
       setBusinessId(business.id);
 
-      const employee = await getEmployeeByUserId();
+      const employee = await businessService.getEmployeeByUserId(user.id);
       if (!employee) {
         toast({
           title: "Error",
@@ -157,7 +159,7 @@ export default function CashRegisterPage() {
     }
   }
 
-  async function handleViewReport(register: CashRegister) {
+  async function handleViewReport(register: any) {
     try {
       const report = await getCashRegisterReport(register.id);
       setSelectedReport(report);
@@ -583,4 +585,4 @@ export default function CashRegisterPage() {
   );
 }
 
-export const getServerSideProps = requireAuth(requireActiveSubscription());
+export const getServerSideProps = requireActiveSubscription;

@@ -105,4 +105,19 @@ export const businessService = {
 
     return data || [];
   },
+
+  async getEmployeeByUserId(userId: string): Promise<Employee | null> {
+    const { data, error } = await supabase
+      .from("employees")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching employee:", error);
+      return null;
+    }
+
+    return data;
+  },
 };
