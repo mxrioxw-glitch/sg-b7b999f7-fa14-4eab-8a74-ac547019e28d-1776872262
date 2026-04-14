@@ -61,16 +61,22 @@ export async function getLowStockItems(businessId: string): Promise<InventoryIte
   const { data, error } = await supabase
     .from("inventory_items")
     .select("*")
-    .eq("business_id", businessId)
-    .filter("current_stock", "lte", "min_stock")
-    .order("current_stock");
+    .eq("business_id", businessId);
 
   if (error) {
     console.error("Error fetching low stock items:", error);
-    throw error;
+    return [];
   }
 
-  return data || [];
+  // Filter in JavaScript to compare current_stock with min_stock
+  const lowStockItems = (data || []).filter(
+    (item) => Number(item.current_stock) <= Number(item.min_stock)
+  );
+
+  // Sort by current stock (ascending)
+  return lowStockItems.sort(
+    (a, b) => Number(a.current_stock) - Number(b.current_stock)
+  );
 }
 
 // Get single inventory item
