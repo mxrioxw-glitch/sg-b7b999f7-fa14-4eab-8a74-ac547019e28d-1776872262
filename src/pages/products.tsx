@@ -42,7 +42,6 @@ import {
 } from "@/components/ui/dialog";
 import { ProductForm } from "@/components/ProductForm";
 import { useToast } from "@/hooks/use-toast";
-import { GetServerSideProps } from "next";
 import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
 
@@ -303,13 +302,3 @@ export default function ProductsPage() {
     </div>
   );
 }
-
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const authResult = await requireAuth(context);
-  if ("redirect" in authResult) return authResult;
-
-  const subscriptionResult = await requireActiveSubscription(context);
-  if ("redirect" in subscriptionResult) return subscriptionResult;
-
-  return { props: {} };
-};

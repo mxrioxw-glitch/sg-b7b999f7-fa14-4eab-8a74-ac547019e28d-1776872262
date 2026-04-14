@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import type { GetServerSideProps } from "next";
 import { supabase } from "@/integrations/supabase/client";
 import { authService } from "@/services/authService";
 import { businessService } from "@/services/businessService";
@@ -759,13 +758,3 @@ export default function Settings() {
     </div>
   );
 }
-
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const authResult = await requireAuth(context);
-  if ("redirect" in authResult) return authResult;
-
-  const subscriptionResult = await requireActiveSubscription(context);
-  if ("redirect" in subscriptionResult) return subscriptionResult;
-
-  return { props: {} };
-};
