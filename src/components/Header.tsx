@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -9,15 +10,43 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Bell, Settings, LogOut, User, CreditCard } from "lucide-react";
+import { authService } from "@/services/authService";
+import { useToast } from "@/hooks/use-toast";
 
 interface HeaderProps {
   businessName?: string;
   userName?: string;
-  onLogout?: () => void;
+  userEmail?: string;
+  planName?: string;
 }
 
-export function Header({ businessName = "Mi Negocio", userName = "Usuario", onLogout }: HeaderProps) {
+export function Header({ 
+  businessName = "Mi Negocio", 
+  userName = "Usuario",
+  userEmail,
+  planName = "Plan Básico"
+}: HeaderProps) {
+  const router = useRouter();
+  const { toast } = useToast();
   const userInitials = userName.split(" ").map(n => n[0]).join("").toUpperCase();
+
+  const handleLogout = async () => {
+    try {
+      await authService.signOut();
+      toast({
+        title: "Sesión cerrada",
+        description: "Has cerrado sesión correctamente",
+      });
+      router.push("/auth/login");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo cerrar la sesión",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card shadow-sm">
@@ -52,29 +81,30 @@ export function Header({ businessName = "Mi Negocio", userName = "Usuario", onLo
             <DropdownMenuContent align="end" className="w-56">
               <div className="px-2 py-1.5">
                 <p className="text-sm font-medium">{userName}</p>
-                <p className="text-xs text-muted-foreground">Plan Premium</p>
+                {userEmail && <p className="text-xs text-muted-foreground">{userEmail}</p>}
+                <p className="text-xs text-muted-foreground mt-1">{planName}</p>
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/profile" className="flex items-center gap-2">
+                <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
                   <User className="h-4 w-4" />
                   Perfil
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/subscription" className="flex items-center gap-2">
+                <Link href="/subscription" className="flex items-center gap-2 cursor-pointer">
                   <CreditCard className="h-4 w-4" />
                   Suscripción
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/settings" className="flex items-center gap-2">
+                <Link href="/settings" className="flex items-center gap-2 cursor-pointer">
                   <Settings className="h-4 w-4" />
                   Configuración
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={onLogout} className="text-destructive">
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">
                 <LogOut className="h-4 w-4 mr-2" />
                 Cerrar sesión
               </DropdownMenuItem>
