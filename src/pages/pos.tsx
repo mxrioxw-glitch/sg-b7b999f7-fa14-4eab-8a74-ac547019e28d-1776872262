@@ -298,10 +298,7 @@ export default function POSPage() {
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
-      <div className={cn(
-        "flex flex-1 flex-col overflow-hidden transition-all duration-300",
-        isMobileOrTablet ? "ml-16" : ""
-      )}>
+      <div className="flex flex-1 flex-col overflow-hidden">
         <Header
           businessName={business.name}
           userName={business.name}

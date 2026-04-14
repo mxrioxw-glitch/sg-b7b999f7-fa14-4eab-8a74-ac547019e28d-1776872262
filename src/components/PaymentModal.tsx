@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, CreditCard, Banknote, Coins, User } from "lucide-react";
+import { DollarSign, CreditCard, Banknote, Coins, User, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useIsMobileOrTablet } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 interface PaymentMethod {
   type: "cash_mxn" | "cash_usd" | "card" | "points";
@@ -40,23 +42,17 @@ export function PaymentModal({
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [activeTab, setActiveTab] = useState<"cash_mxn" | "cash_usd" | "card" | "points">("cash_mxn");
   
-  // Cash MXN
   const [cashMxnAmount, setCashMxnAmount] = useState<string>("");
-  
-  // Cash USD
   const [cashUsdAmount, setCashUsdAmount] = useState<string>("");
   const [exchangeRate, setExchangeRate] = useState<string>("17.00");
-  
-  // Card
   const [cardAmount, setCardAmount] = useState<string>("");
-  
-  // Points
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
   const [pointsToUse, setPointsToUse] = useState<string>("");
-  const pointValue = 1; // 1 punto = $1 MXN
+  
+  const isMobileOrTablet = useIsMobileOrTablet();
+  const pointValue = 1;
 
   useEffect(() => {
-    // Reset when dialog closes
     if (!open) {
       setPaymentMethods([]);
       setCashMxnAmount("");
@@ -123,27 +119,19 @@ export function PaymentModal({
 
   const getPaymentIcon = (type: PaymentMethod["type"]) => {
     switch (type) {
-      case "cash_mxn":
-        return <Banknote className="h-4 w-4" />;
-      case "cash_usd":
-        return <DollarSign className="h-4 w-4" />;
-      case "card":
-        return <CreditCard className="h-4 w-4" />;
-      case "points":
-        return <Coins className="h-4 w-4" />;
+      case "cash_mxn": return <Banknote className="h-4 w-4" />;
+      case "cash_usd": return <DollarSign className="h-4 w-4" />;
+      case "card": return <CreditCard className="h-4 w-4" />;
+      case "points": return <Coins className="h-4 w-4" />;
     }
   };
 
   const getPaymentLabel = (type: PaymentMethod["type"]) => {
     switch (type) {
-      case "cash_mxn":
-        return "Efectivo MXN";
-      case "cash_usd":
-        return "Efectivo USD";
-      case "card":
-        return "Tarjeta";
-      case "points":
-        return "Puntos";
+      case "cash_mxn": return "Efectivo MXN";
+      case "cash_usd": return "Efectivo USD";
+      case "card": return "Tarjeta";
+      case "points": return "Puntos";
     }
   };
 
@@ -152,146 +140,136 @@ export function PaymentModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-2xl">
-            <DollarSign className="h-6 w-6 text-accent" />
+      <DialogContent className={cn(
+        "overflow-y-auto",
+        isMobileOrTablet ? "max-w-[95vw] max-h-[95vh] p-0" : "max-w-4xl max-h-[90vh]"
+      )}>
+        <DialogHeader className={cn(isMobileOrTablet && "p-4 border-b border-border sticky top-0 bg-card z-10")}>
+          <DialogTitle className="flex items-center gap-2 text-lg md:text-2xl">
+            <DollarSign className="h-5 w-5 md:h-6 md:w-6 text-accent" />
             Procesar Pago
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-6">
-          {/* Left Column - Payment Methods */}
+        <div className={cn(
+          "grid gap-4 md:gap-6",
+          isMobileOrTablet ? "grid-cols-1 p-4" : "grid-cols-2"
+        )}>
+          {/* Payment Methods Section */}
           <div className="space-y-4">
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="cash_mxn" className="text-xs">
-                  <Banknote className="h-4 w-4 mr-1" />
-                  MXN
+              <TabsList className="grid w-full grid-cols-4 h-auto">
+                <TabsTrigger value="cash_mxn" className="text-[10px] sm:text-xs px-1 py-2">
+                  <Banknote className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" />
+                  <span className="hidden sm:inline">MXN</span>
                 </TabsTrigger>
-                <TabsTrigger value="cash_usd" className="text-xs">
-                  <DollarSign className="h-4 w-4 mr-1" />
-                  USD
+                <TabsTrigger value="cash_usd" className="text-[10px] sm:text-xs px-1 py-2">
+                  <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" />
+                  <span className="hidden sm:inline">USD</span>
                 </TabsTrigger>
-                <TabsTrigger value="card" className="text-xs">
-                  <CreditCard className="h-4 w-4 mr-1" />
-                  Tarjeta
+                <TabsTrigger value="card" className="text-[10px] sm:text-xs px-1 py-2">
+                  <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" />
+                  <span className="hidden sm:inline">Tarjeta</span>
                 </TabsTrigger>
-                <TabsTrigger value="points" className="text-xs">
-                  <Coins className="h-4 w-4 mr-1" />
-                  Puntos
+                <TabsTrigger value="points" className="text-[10px] sm:text-xs px-1 py-2">
+                  <Coins className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" />
+                  <span className="hidden sm:inline">Puntos</span>
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="cash_mxn" className="space-y-4">
+              <TabsContent value="cash_mxn" className="space-y-3 md:space-y-4">
                 <div className="space-y-2">
-                  <Label>Efectivo recibido (MXN)</Label>
+                  <Label className="text-sm">Efectivo recibido (MXN)</Label>
                   <Input
                     type="number"
                     step="0.01"
                     value={cashMxnAmount}
                     onChange={(e) => setCashMxnAmount(e.target.value)}
                     placeholder="0.00"
-                    className="text-lg"
+                    className="text-base md:text-lg h-12 md:h-auto"
                     autoFocus
                   />
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleQuickCash(100)}
-                  >
-                    $100
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleQuickCash(200)}
-                  >
-                    $200
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleQuickCash(500)}
-                  >
-                    $500
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleQuickCash(1000)}
-                  >
-                    $1,000
-                  </Button>
+                  {[100, 200, 500, 1000].map((amount) => (
+                    <Button
+                      key={amount}
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleQuickCash(amount)}
+                      className={cn("h-10 text-sm", amount === 1000 && "col-span-3")}
+                    >
+                      ${amount.toLocaleString()}
+                    </Button>
+                  ))}
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setCashMxnAmount(remaining.toFixed(2))}
-                    className="col-span-2"
+                    className="col-span-3 h-10 text-sm"
                   >
                     Exacto (${remaining.toFixed(2)})
                   </Button>
                 </div>
               </TabsContent>
 
-              <TabsContent value="cash_usd" className="space-y-4">
+              <TabsContent value="cash_usd" className="space-y-3 md:space-y-4">
                 <div className="space-y-2">
-                  <Label>Tipo de cambio USD → MXN</Label>
+                  <Label className="text-sm">Tipo de cambio USD → MXN</Label>
                   <Input
                     type="number"
                     step="0.01"
                     value={exchangeRate}
                     onChange={(e) => setExchangeRate(e.target.value)}
                     placeholder="17.00"
+                    className="h-12 md:h-auto"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Efectivo recibido (USD)</Label>
+                  <Label className="text-sm">Efectivo recibido (USD)</Label>
                   <Input
                     type="number"
                     step="0.01"
                     value={cashUsdAmount}
                     onChange={(e) => setCashUsdAmount(e.target.value)}
                     placeholder="0.00"
-                    className="text-lg"
+                    className="text-base md:text-lg h-12 md:h-auto"
                   />
                   {cashUsdAmount && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs md:text-sm text-muted-foreground">
                       = ${(parseFloat(cashUsdAmount) * parseFloat(exchangeRate)).toFixed(2)} MXN
                     </p>
                   )}
                 </div>
               </TabsContent>
 
-              <TabsContent value="card" className="space-y-4">
+              <TabsContent value="card" className="space-y-3 md:space-y-4">
                 <div className="space-y-2">
-                  <Label>Monto con tarjeta (MXN)</Label>
+                  <Label className="text-sm">Monto con tarjeta (MXN)</Label>
                   <Input
                     type="number"
                     step="0.01"
                     value={cardAmount}
                     onChange={(e) => setCardAmount(e.target.value)}
                     placeholder="0.00"
-                    className="text-lg"
+                    className="text-base md:text-lg h-12 md:h-auto"
                   />
                 </div>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setCardAmount(remaining.toFixed(2))}
-                  className="w-full"
+                  className="w-full h-10"
                 >
                   Pagar restante (${remaining.toFixed(2)})
                 </Button>
               </TabsContent>
 
-              <TabsContent value="points" className="space-y-4">
+              <TabsContent value="points" className="space-y-3 md:space-y-4">
                 <div className="space-y-2">
-                  <Label>Seleccionar cliente</Label>
+                  <Label className="text-sm">Seleccionar cliente</Label>
                   <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-12 md:h-auto">
                       <SelectValue placeholder="Buscar cliente..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -299,7 +277,7 @@ export function PaymentModal({
                         <SelectItem key={customer.id} value={customer.id}>
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4" />
-                            <span>{customer.name}</span>
+                            <span className="text-sm">{customer.name}</span>
                             <span className="text-xs text-muted-foreground">
                               ({customer.points} pts)
                             </span>
@@ -312,21 +290,19 @@ export function PaymentModal({
                 {selectedCustomer && (
                   <>
                     <div className="rounded-lg bg-muted/50 p-3 text-sm">
-                      <p className="text-muted-foreground">Puntos disponibles:</p>
-                      <p className="text-2xl font-bold">{selectedCustomerData?.points || 0}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        1 punto = $1.00 MXN
-                      </p>
+                      <p className="text-muted-foreground text-xs">Puntos disponibles:</p>
+                      <p className="text-xl md:text-2xl font-bold">{selectedCustomerData?.points || 0}</p>
+                      <p className="text-xs text-muted-foreground mt-1">1 punto = $1.00 MXN</p>
                     </div>
                     <div className="space-y-2">
-                      <Label>Puntos a usar</Label>
+                      <Label className="text-sm">Puntos a usar</Label>
                       <Input
                         type="number"
                         value={pointsToUse}
                         onChange={(e) => setPointsToUse(e.target.value)}
                         placeholder="0"
                         max={maxPoints}
-                        className="text-lg"
+                        className="text-base md:text-lg h-12 md:h-auto"
                       />
                       <p className="text-xs text-muted-foreground">
                         Máximo: {maxPoints} puntos (${maxPoints.toFixed(2)})
@@ -336,7 +312,7 @@ export function PaymentModal({
                       type="button"
                       variant="outline"
                       onClick={() => setPointsToUse(Math.min(maxPoints, remaining).toString())}
-                      className="w-full"
+                      className="w-full h-10"
                       disabled={maxPoints === 0}
                     >
                       Usar máximo disponible
@@ -349,7 +325,7 @@ export function PaymentModal({
             <Button
               type="button"
               onClick={addPaymentMethod}
-              className="w-full"
+              className="w-full h-12 md:h-10"
               disabled={
                 (activeTab === "cash_mxn" && !cashMxnAmount) ||
                 (activeTab === "cash_usd" && !cashUsdAmount) ||
@@ -361,22 +337,22 @@ export function PaymentModal({
             </Button>
           </div>
 
-          {/* Right Column - Summary */}
-          <div className="space-y-4">
+          {/* Summary Section */}
+          <div className="space-y-3 md:space-y-4">
             {/* Total Summary */}
             <Card className="bg-muted/50">
-              <CardContent className="pt-6 space-y-3">
-                <div className="flex justify-between text-sm">
+              <CardContent className="pt-4 md:pt-6 space-y-2 md:space-y-3">
+                <div className="flex justify-between text-xs md:text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
                   <span className="font-medium">${subtotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs md:text-sm">
                   <span className="text-muted-foreground">IVA ({taxRate}%)</span>
                   <span className="font-medium">${taxAmount.toFixed(2)}</span>
                 </div>
-                <div className="border-t border-border pt-3 flex justify-between">
-                  <span className="text-lg font-bold">Total a Pagar</span>
-                  <span className="text-2xl font-bold text-primary">
+                <div className="border-t border-border pt-2 md:pt-3 flex justify-between">
+                  <span className="text-base md:text-lg font-bold">Total a Pagar</span>
+                  <span className="text-xl md:text-2xl font-bold text-primary">
                     ${total.toFixed(2)}
                   </span>
                 </div>
@@ -386,8 +362,8 @@ export function PaymentModal({
             {/* Payments Applied */}
             {paymentMethods.length > 0 && (
               <Card>
-                <CardContent className="pt-6">
-                  <h4 className="font-semibold mb-3 text-sm">Pagos Aplicados</h4>
+                <CardContent className="pt-4 md:pt-6">
+                  <h4 className="font-semibold mb-2 md:mb-3 text-xs md:text-sm">Pagos Aplicados</h4>
                   <div className="space-y-2">
                     {paymentMethods.map((pm, index) => (
                       <div
@@ -396,14 +372,14 @@ export function PaymentModal({
                       >
                         <div className="flex items-center gap-2">
                           {getPaymentIcon(pm.type)}
-                          <span className="text-sm">{getPaymentLabel(pm.type)}</span>
+                          <span className="text-xs md:text-sm">{getPaymentLabel(pm.type)}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium">
+                          <span className="font-medium text-xs md:text-sm">
                             {pm.type === "cash_usd" ? (
                               <>
                                 ${pm.amount.toFixed(2)} USD
-                                <span className="text-xs text-muted-foreground ml-1">
+                                <span className="text-[10px] md:text-xs text-muted-foreground ml-1">
                                   (${(pm.amount * parseFloat(exchangeRate)).toFixed(2)} MXN)
                                 </span>
                               </>
@@ -418,8 +394,9 @@ export function PaymentModal({
                             variant="ghost"
                             size="sm"
                             onClick={() => removePaymentMethod(index)}
+                            className="h-6 w-6 p-0"
                           >
-                            ×
+                            <X className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
@@ -437,25 +414,25 @@ export function PaymentModal({
                 ? "border-orange-500 bg-orange-50"
                 : "border-border"
             }`}>
-              <CardContent className="pt-6 space-y-3">
+              <CardContent className="pt-4 md:pt-6 space-y-2 md:space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-muted-foreground">Total Pagado</span>
-                  <span className="text-xl font-bold text-primary">
+                  <span className="text-xs md:text-sm font-medium text-muted-foreground">Total Pagado</span>
+                  <span className="text-lg md:text-xl font-bold text-primary">
                     ${totalPaid.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-muted-foreground">Restante</span>
-                  <span className={`text-xl font-bold ${
+                  <span className="text-xs md:text-sm font-medium text-muted-foreground">Restante</span>
+                  <span className={`text-lg md:text-xl font-bold ${
                     remaining > 0 ? "text-orange-600" : "text-accent"
                   }`}>
                     ${remaining.toFixed(2)}
                   </span>
                 </div>
                 {change > 0 && (
-                  <div className="border-t border-border pt-3 flex justify-between items-center">
-                    <span className="text-base font-semibold">Cambio</span>
-                    <span className="text-3xl font-bold text-accent">
+                  <div className="border-t border-border pt-2 md:pt-3 flex justify-between items-center">
+                    <span className="text-sm md:text-base font-semibold">Cambio</span>
+                    <span className="text-2xl md:text-3xl font-bold text-accent">
                       ${change.toFixed(2)}
                     </span>
                   </div>
@@ -467,7 +444,7 @@ export function PaymentModal({
             <Button
               onClick={handleConfirm}
               disabled={remaining > 0 || totalPaid === 0 || processing}
-              className="w-full h-14 text-lg"
+              className="w-full h-12 md:h-14 text-base md:text-lg"
               size="lg"
             >
               {processing

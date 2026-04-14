@@ -3,6 +3,12 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -30,7 +36,7 @@ interface SidebarProps {
 export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const router = useRouter();
   const isMobileOrTablet = useIsMobileOrTablet();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   // Load saved state from localStorage (only for desktop)
   useEffect(() => {
@@ -38,20 +44,15 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       const saved = localStorage.getItem("sidebar-expanded");
       if (saved !== null) {
         setIsExpanded(saved === "true");
-      } else {
-        setIsExpanded(true); // Default expanded on desktop
       }
-    } else {
-      // Mobile/tablet: always collapsed by default
-      setIsExpanded(false);
     }
   }, [isMobileOrTablet]);
 
   // Save state to localStorage (only for desktop)
   const toggleSidebar = () => {
-    const newState = !isExpanded;
-    setIsExpanded(newState);
     if (!isMobileOrTablet) {
+      const newState = !isExpanded;
+      setIsExpanded(newState);
       localStorage.setItem("sidebar-expanded", String(newState));
     }
   };
@@ -74,12 +75,94 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     return router.pathname.startsWith(href);
   };
 
+  const handleLinkClick = () => {
+    if (isMobileOrTablet && onClose) {
+      onClose();
+    }
+  };
+
+  const NavigationContent = () => (
+    <nav className="p-2 md:p-4">
+      <TooltipProvider delayDuration={0}>
+        <ul className="space-y-1 md:space-y-2">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.href);
+            
+            const linkContent = (
+              <Link
+                href={item.href}
+                onClick={handleLinkClick}
+                className={cn(
+                  "flex items-center rounded-lg transition-all duration-200 group w-full",
+                  active 
+                    ? "bg-primary text-primary-foreground shadow-sm" 
+                    : "hover:bg-muted",
+                  isExpanded || isMobileOrTablet
+                    ? "gap-3 px-3 md:px-4 py-2 md:py-3" 
+                    : "justify-center px-2 py-2 md:py-3"
+                )}
+              >
+                <Icon className={cn(
+                  "h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110",
+                  active && "drop-shadow-sm"
+                )} />
+                <span className={cn(
+                  "font-medium whitespace-nowrap transition-all duration-200 text-sm md:text-base",
+                  isExpanded || isMobileOrTablet ? "opacity-100 w-auto" : "opacity-0 w-0 overflow-hidden"
+                )}>
+                  {item.label}
+                </span>
+              </Link>
+            );
+
+            return (
+              <li key={item.href}>
+                {isExpanded || isMobileOrTablet ? (
+                  linkContent
+                ) : (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      {linkContent}
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="font-medium">
+                      {item.label}
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </TooltipProvider>
+    </nav>
+  );
+
+  // Mobile/Tablet: Sheet (drawer) - COMPLETAMENTE OCULTO
+  if (isMobileOrTablet) {
+    return (
+      <Sheet open={isOpen} onOpenChange={onClose}>
+        <SheetContent side="left" className="p-0 w-64 sm:w-72">
+          <SheetHeader className="p-4 md:p-6 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary flex-shrink-0">
+                <span className="text-lg font-bold text-primary-foreground">☕</span>
+              </div>
+              <SheetTitle className="text-xl font-bold text-primary">POS SaaS</SheetTitle>
+            </div>
+          </SheetHeader>
+          <NavigationContent />
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  // Desktop: Fixed sidebar
   return (
     <aside 
       className={cn(
-        "relative bg-card border-r border-border flex-shrink-0 transition-all duration-300 ease-in-out z-40",
-        isExpanded ? "w-64" : "w-16",
-        isMobileOrTablet && "fixed left-0 top-0 bottom-0"
+        "relative bg-card border-r border-border flex-shrink-0 transition-all duration-300 ease-in-out",
+        isExpanded ? "w-64" : "w-16"
       )}
     >
       {/* Header with logo and toggle */}
@@ -121,60 +204,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         </Button>
       </div>
 
-      {/* Navigation */}
-      <nav className="p-2 md:p-4">
-        <TooltipProvider delayDuration={0}>
-          <ul className="space-y-1 md:space-y-2">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.href);
-              
-              const linkContent = (
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "flex items-center rounded-lg transition-all duration-200 group w-full",
-                    active 
-                      ? "bg-primary text-primary-foreground shadow-sm" 
-                      : "hover:bg-muted",
-                    isExpanded 
-                      ? "gap-3 px-3 md:px-4 py-2 md:py-3" 
-                      : "justify-center px-2 py-2 md:py-3"
-                  )}
-                >
-                  <Icon className={cn(
-                    "h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110",
-                    active && "drop-shadow-sm"
-                  )} />
-                  <span className={cn(
-                    "font-medium whitespace-nowrap transition-all duration-200 text-sm md:text-base",
-                    isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0 overflow-hidden"
-                  )}>
-                    {item.label}
-                  </span>
-                </Link>
-              );
-
-              return (
-                <li key={item.href}>
-                  {!isExpanded ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        {linkContent}
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="font-medium">
-                        {item.label}
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    linkContent
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </TooltipProvider>
-      </nav>
+      <NavigationContent />
 
       {/* Footer indicator for collapsed state */}
       {!isExpanded && (
