@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -30,6 +30,7 @@ export type Database = {
           phone: string | null
           pos_name: string | null
           primary_color: string | null
+          printer_width: string | null
           secondary_color: string | null
           slug: string
           tax_included: boolean | null
@@ -51,6 +52,7 @@ export type Database = {
           phone?: string | null
           pos_name?: string | null
           primary_color?: string | null
+          printer_width?: string | null
           secondary_color?: string | null
           slug: string
           tax_included?: boolean | null
@@ -72,6 +74,7 @@ export type Database = {
           phone?: string | null
           pos_name?: string | null
           primary_color?: string | null
+          printer_width?: string | null
           secondary_color?: string | null
           slug?: string
           tax_included?: boolean | null
