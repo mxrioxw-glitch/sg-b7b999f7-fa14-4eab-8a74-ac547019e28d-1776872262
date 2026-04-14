@@ -71,6 +71,8 @@ export function ProductForm({
   const [isActive, setIsActive] = useState(product?.is_active ?? true);
   const [hasVariants, setHasVariants] = useState(product?.has_variants || false);
   const [hasExtras, setHasExtras] = useState(product?.has_extras || false);
+  const [generatesPoints, setGeneratesPoints] = useState(product?.generates_points || false);
+  const [pointsValue, setPointsValue] = useState(product?.points_value || 0);
 
   const [variants, setVariants] = useState<VariantForm[]>([]);
   const [extras, setExtras] = useState<ExtraForm[]>([]);
@@ -271,6 +273,8 @@ export function ProductForm({
         image_url: imageUrl || undefined,
         has_variants: hasVariants,
         has_extras: hasExtras,
+        generates_points: generatesPoints,
+        points_value: generatesPoints ? pointsValue : 0,
       };
 
       let savedProduct: Product;
@@ -522,6 +526,36 @@ export function ProductForm({
           <div className="flex items-center space-x-2">
             <Switch checked={hasExtras} onCheckedChange={setHasExtras} />
             <Label>Tiene extras/modificadores</Label>
+          </div>
+
+          <div className="border-t pt-4 mt-4">
+            <h4 className="font-semibold mb-3 text-sm">Programa de Lealtad</h4>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={generatesPoints}
+                  onCheckedChange={setGeneratesPoints}
+                />
+                <Label>Genera puntos de lealtad</Label>
+              </div>
+
+              {generatesPoints && (
+                <div className="ml-8 space-y-2">
+                  <Label htmlFor="points_value">Puntos por venta</Label>
+                  <Input
+                    id="points_value"
+                    type="number"
+                    min="0"
+                    value={pointsValue}
+                    onChange={(e) => setPointsValue(Number(e.target.value))}
+                    placeholder="0"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Cantidad de puntos que gana el cliente al comprar este producto
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </TabsContent>
 

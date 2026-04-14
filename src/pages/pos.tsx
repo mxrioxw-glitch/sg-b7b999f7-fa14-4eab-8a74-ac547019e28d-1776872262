@@ -7,6 +7,7 @@ import { Cart } from "@/components/Cart";
 import { ProductModal } from "@/components/ProductModal";
 import { TicketPreview } from "@/components/TicketPreview";
 import { PaymentModal } from "@/components/PaymentModal";
+import { CustomerIdentificationModal } from "@/components/CustomerIdentificationModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -64,6 +65,9 @@ export default function POSPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<ProductWithDetails | null>(null);
   const [productModalOpen, setProductModalOpen] = useState(false);
+
+  const [customerIdentificationOpen, setCustomerIdentificationOpen] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
@@ -254,6 +258,12 @@ export default function POSPage() {
       return;
     }
     if (cartItems.length === 0) return;
+    setCustomerIdentificationOpen(true);
+  };
+
+  const handleCustomerIdentified = (customerId: string | null) => {
+    setSelectedCustomerId(customerId);
+    setCustomerIdentificationOpen(false);
     setPaymentModalOpen(true);
   };
 
@@ -265,6 +275,15 @@ export default function POSPage() {
       const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
       const taxAmount = subtotal * (taxRate / 100);
       const total = subtotal + taxAmount;
+
+      // Calculate loyalty points from products
+      let totalPoints = 0;
+      for (const item of cartItems) {
+        const product = products.find((p) => p.id === item.productId);
+        if (product && product.generates_points && product.points_value) {
+          totalPoints += Number(product.points_value) * item.quantity;
+        }
+      }
 
       // For now, use first payment method or create a default one
       // In production, you'd handle multiple payments properly
@@ -281,6 +300,7 @@ export default function POSPage() {
         employeeId,
         cashRegisterId,
         paymentMethodId,
+        customerId: selectedCustomerId || undefined,
         subtotal,
         taxAmount,
         total,
@@ -316,6 +336,25 @@ export default function POSPage() {
         return;
       }
 
+      // Award loyalty points if customer was identified
+      if (selectedCustomerId && totalPoints > 0) {
+        const { error: pointsError } = await supabase
+          .from("customers")
+          .update({
+            loyalty_points: supabase.raw(`loyalty_points + ${totalPoints}`)
+          })
+          .eq("id", selectedCustomerId);
+
+        if (pointsError) {
+          console.error("Error updating loyalty points:", pointsError);
+        } else {
+          toast({
+            title: "¡Puntos ganados!",
+            description: `El cliente ganó ${totalPoints} puntos de lealtad`,
+          });
+        }
+      }
+
       setCompletedSale({
         saleId: sale!.id,
         date: new Date(),
@@ -337,6 +376,7 @@ export default function POSPage() {
   const handleConfirmSale = () => {
     setCartItems([]);
     setCompletedSale(null);
+    setSelectedCustomerId(null);
     setTicketPreviewOpen(false);
     
     toast({
@@ -488,6 +528,14 @@ export default function POSPage() {
             : null
         }
         onAddToCart={handleAddToCart}
+      />
+
+      {/* Customer Identification Modal */}
+      <CustomerIdentificationModal
+        open={customerIdentificationOpen}
+        onOpenChange={setCustomerIdentificationOpen}
+        customers={customers}
+        onContinue={handleCustomerIdentified}
       />
 
       {/* Payment Modal */}
