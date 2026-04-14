@@ -94,11 +94,13 @@ export function Sidebar() {
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group",
+                    "flex items-center rounded-lg transition-all duration-200 group",
                     active 
                       ? "bg-primary text-primary-foreground shadow-sm" 
                       : "hover:bg-muted",
-                    !isExpanded && "justify-center px-2"
+                    isExpanded 
+                      ? "gap-3 px-4 py-3" 
+                      : "justify-center px-3 py-3"
                   )}
                 >
                   <Icon className={cn(
