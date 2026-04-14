@@ -23,6 +23,6 @@ Dashboard principal con métricas clave de ventas, gráficas simples, productos 
 - [x] Ingresos totales del mes
 - [x] Comparativa con mes anterior
 - [x] Filtros por rango de fechas
-- [ ] Exportar reportes a PDF
-- [ ] Gráficas interactivas (opcional con recharts)
----TASK:ta
+- [x] Exportar reportes a PDF
+- [x] Gráficas interactivas (opcional con recharts)
+---TASK:done

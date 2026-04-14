@@ -137,3 +137,17 @@
     @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5;
   }
 }
+
+@media print {
+  body {
+    background-color: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  @page {
+    size: A4 landscape;
+    margin: 1cm;
+  }
+}

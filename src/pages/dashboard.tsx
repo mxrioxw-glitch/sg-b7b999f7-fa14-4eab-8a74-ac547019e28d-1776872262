@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
-import { Calendar, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Package } from "lucide-react";
+import { Calendar, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Package, Download } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +59,10 @@ export default function Dashboard({ initialMetrics, businessId }: Props) {
     setMetrics(initialMetrics);
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   const percentageChange =
     metrics.previousMonthSales > 0
       ? ((metrics.monthSales - metrics.previousMonthSales) / metrics.previousMonthSales) * 100
@@ -64,13 +77,17 @@ export default function Dashboard({ initialMetrics, businessId }: Props) {
       </Head>
 
       <div className="flex h-screen bg-background">
-        <Sidebar />
+        <div className="print:hidden">
+          <Sidebar />
+        </div>
         <div className="flex-1 flex flex-col overflow-hidden">
-          <Header title="Dashboard" />
+          <div className="print:hidden">
+            <Header />
+          </div>
 
-          <main className="flex-1 overflow-y-auto p-6">
+          <main className="flex-1 overflow-y-auto p-6 print:p-0 print:overflow-visible">
             {/* Filters */}
-            <Card className="mb-6">
+            <Card className="mb-6 print:hidden">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Calendar className="h-5 w-5" />
@@ -102,6 +119,10 @@ export default function Dashboard({ initialMetrics, businessId }: Props) {
                   </Button>
                   <Button variant="outline" onClick={handleReset} disabled={loading}>
                     Resetear
+                  </Button>
+                  <Button variant="secondary" onClick={handlePrint} className="ml-auto flex items-center gap-2">
+                    <Download className="h-4 w-4" />
+                    Exportar PDF
                   </Button>
                 </div>
               </CardContent>
@@ -171,7 +192,7 @@ export default function Dashboard({ initialMetrics, businessId }: Props) {
               </Card>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-6 lg:grid-cols-2 print:grid-cols-2 print:gap-4 print:break-inside-avoid">
               {/* Sales by Hour Chart */}
               <Card>
                 <CardHeader>
@@ -179,26 +200,44 @@ export default function Dashboard({ initialMetrics, businessId }: Props) {
                 </CardHeader>
                 <CardContent>
                   {metrics.salesByHour.length > 0 ? (
-                    <div className="space-y-2">
-                      {metrics.salesByHour.map((item) => {
-                        const percentage = (item.total / maxHourSales) * 100;
-                        return (
-                          <div key={item.hour} className="space-y-1">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="font-medium">{item.hour}</span>
-                              <span className="text-muted-foreground">
-                                ${item.total.toFixed(2)}
-                              </span>
-                            </div>
-                            <div className="h-2 bg-muted rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-accent transition-all"
-                                style={{ width: `${percentage}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
+                    <div className="h-[300px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={metrics.salesByHour} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                          <XAxis 
+                            dataKey="hour" 
+                            fontSize={12} 
+                            tickLine={false} 
+                            axisLine={false} 
+                            stroke="hsl(var(--muted-foreground))"
+                          />
+                          <YAxis 
+                            fontSize={12} 
+                            tickLine={false} 
+                            axisLine={false} 
+                            stroke="hsl(var(--muted-foreground))"
+                            tickFormatter={(value) => `$${value}`}
+                          />
+                          <RechartsTooltip 
+                            formatter={(value: number) => [`$${value.toFixed(2)}`, "Ventas"]}
+                            labelFormatter={(label) => `Hora: ${label}`}
+                            contentStyle={{ 
+                              backgroundColor: "hsl(var(--card))", 
+                              borderColor: "hsl(var(--border))",
+                              borderRadius: "8px",
+                              color: "hsl(var(--foreground))"
+                            }}
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="total" 
+                            stroke="hsl(var(--accent))" 
+                            strokeWidth={3}
+                            dot={{ r: 4, fill: "hsl(var(--background))", strokeWidth: 2 }}
+                            activeDot={{ r: 6, strokeWidth: 0 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
                     </div>
                   ) : (
                     <div className="text-center py-12 text-muted-foreground">
