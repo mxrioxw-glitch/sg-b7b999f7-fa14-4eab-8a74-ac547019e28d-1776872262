@@ -3,9 +3,12 @@ title: Products & Inventory Management
 status: todo
 priority: medium
 type: feature
-tags: [products, inventory, crud]
+tags:
+- products
+- inventory
+- crud
 created_by: agent
-created_at: 2026-04-13T23:53:19Z
+created_at: 2026-04-13 23:53:19+00:00
 position: 5
 ---
 
@@ -23,3 +26,4 @@ Gestión completa de productos e inventario: CRUD de productos con configuració
 - [ ] Alertas de bajo stock (notificaciones)
 - [ ] Lógica de descuento automático al vender
 - [ ] Kardex básico (historial de movimientos)
+---TASK:task-6
