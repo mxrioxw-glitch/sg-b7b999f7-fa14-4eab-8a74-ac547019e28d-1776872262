@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
-type PaymentMethod = Database["public"]["Tables"]["payment_methods"]["Row"];
+export type PaymentMethod = Database["public"]["Tables"]["payment_methods"]["Row"];
 type PaymentMethodInsert = Database["public"]["Tables"]["payment_methods"]["Insert"];
 type PaymentMethodUpdate = Database["public"]["Tables"]["payment_methods"]["Update"];
 
