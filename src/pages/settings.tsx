@@ -65,6 +65,8 @@ export default function Settings() {
     accent_color: ""
   });
   
+  const [printerWidth, setPrinterWidth] = useState<"58mm" | "80mm">("80mm");
+  
   const [newEmployeeEmail, setNewEmployeeEmail] = useState("");
   const [newEmployeeRole, setNewEmployeeRole] = useState<"admin" | "cashier">("cashier");
   const [newPaymentMethod, setNewPaymentMethod] = useState("");
@@ -116,6 +118,7 @@ export default function Settings() {
         secondary_color: bizSettings.secondary_color,
         accent_color: bizSettings.accent_color
       });
+      setPrinterWidth((bizSettings.printer_width as "58mm" | "80mm") || "80mm");
       setEmployees(empData);
       setPaymentMethods(pmData);
       
@@ -191,6 +194,33 @@ export default function Settings() {
       toast({
         title: "Error",
         description: "Error al guardar",
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSavePrinterConfig() {
+    if (!businessId) return;
+    
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("businesses")
+        .update({ printer_width: printerWidth })
+        .eq("id", businessId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Guardado",
+        description: "Configuración de impresora actualizada"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al guardar configuración",
         variant: "destructive"
       });
     } finally {
@@ -373,7 +403,7 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="business" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-8">
+          <TabsList className="grid w-full grid-cols-6 mb-8">
             <TabsTrigger value="business" className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">Negocio</span>
@@ -389,6 +419,10 @@ export default function Settings() {
             <TabsTrigger value="payments" className="flex items-center gap-2">
               <CreditCard className="h-4 w-4" />
               <span className="hidden sm:inline">Pagos</span>
+            </TabsTrigger>
+            <TabsTrigger value="printer" className="flex items-center gap-2">
+              <Receipt className="h-4 w-4" />
+              <span className="hidden sm:inline">Impresora</span>
             </TabsTrigger>
             <TabsTrigger value="customization" className="flex items-center gap-2">
               <Palette className="h-4 w-4" />
@@ -648,6 +682,91 @@ export default function Settings() {
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="printer">
+            <Card>
+              <CardHeader>
+                <CardTitle>Configuración de Impresora</CardTitle>
+                <CardDescription>Configura tu impresora térmica de tickets</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="printer_width">Ancho de Papel de Impresora</Label>
+                  <Select value={printerWidth} onValueChange={(value: "58mm" | "80mm") => setPrinterWidth(value)}>
+                    <SelectTrigger id="printer_width">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="58mm">58mm (2 pulgadas) - Compacta</SelectItem>
+                      <SelectItem value="80mm">80mm (3 pulgadas) - Estándar</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    Selecciona el ancho de papel de tu impresora térmica. 
+                    El formato del ticket se ajustará automáticamente.
+                  </p>
+                </div>
+
+                <div className="border rounded-lg p-4 bg-muted/50">
+                  <h4 className="font-medium mb-2">Vista Previa del Ticket</h4>
+                  <div 
+                    className="bg-white border-2 border-dashed border-border mx-auto p-4 font-mono text-xs"
+                    style={{ width: printerWidth === "58mm" ? "200px" : "280px" }}
+                  >
+                    <div className="text-center mb-2">
+                      <p className="font-bold">Mi Negocio</p>
+                      <p className="text-[10px]">Calle Principal #123</p>
+                      <p className="text-[10px]">Tel: 123-456-7890</p>
+                    </div>
+                    <div className="border-t border-dashed border-gray-400 my-2"></div>
+                    <div className="text-[10px] space-y-1">
+                      <p>Ticket: #ABC12345</p>
+                      <p>Fecha: 14/04/2026 12:30</p>
+                    </div>
+                    <div className="border-t border-dashed border-gray-400 my-2"></div>
+                    <div className="space-y-2">
+                      <div>
+                        <div className="flex justify-between font-semibold">
+                          <span>1x Café Latte</span>
+                          <span>$55.00</span>
+                        </div>
+                        <div className="text-[10px] text-gray-600 ml-2">$55.00 c/u</div>
+                      </div>
+                    </div>
+                    <div className="border-t border-dashed border-gray-400 my-2"></div>
+                    <div className="space-y-1 text-[11px]">
+                      <div className="flex justify-between">
+                        <span>Subtotal</span>
+                        <span>$55.00</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>IVA (16%)</span>
+                        <span>$8.80</span>
+                      </div>
+                      <div className="flex justify-between font-bold text-sm mt-1">
+                        <span>TOTAL</span>
+                        <span>$63.80</span>
+                      </div>
+                    </div>
+                    <div className="border-t border-dashed border-gray-400 my-2"></div>
+                    <div className="text-center text-[10px]">
+                      <p>¡Gracias por su compra!</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    Ancho: {printerWidth === "58mm" ? "~200px (58mm)" : "~280px (80mm)"}
+                  </p>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button onClick={handleSavePrinterConfig} disabled={saving}>
+                    <Save className="mr-2 h-4 w-4" />
+                    {saving ? "Guardando..." : "Guardar Configuración"}
+                  </Button>
                 </div>
               </CardContent>
             </Card>

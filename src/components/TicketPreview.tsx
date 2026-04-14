@@ -27,6 +27,7 @@ interface TicketPreviewProps {
   total: number;
   paymentMethod: string;
   date: Date;
+  printerWidth?: "58mm" | "80mm";
   onPrint?: () => void;
   onConfirm?: () => void;
 }
@@ -45,6 +46,7 @@ export function TicketPreview({
   total,
   paymentMethod,
   date,
+  printerWidth = "80mm",
   onPrint,
   onConfirm,
 }: TicketPreviewProps) {
@@ -63,17 +65,26 @@ export function TicketPreview({
     const printWindow = window.open("", "", "width=400,height=600");
     if (!printWindow) return;
 
+    const ticketWidth = printerWidth === "58mm" ? "200px" : "280px";
+    const fontSize = printerWidth === "58mm" ? "10px" : "12px";
+    const headerFontSize = printerWidth === "58mm" ? "14px" : "16px";
+
     printWindow.document.write(`
       <html>
         <head>
           <title>Ticket - ${saleId || "Venta"}</title>
           <style>
+            @page {
+              size: ${printerWidth};
+              margin: 0;
+            }
             body {
-              font-family: monospace;
-              font-size: 12px;
-              max-width: 300px;
+              font-family: 'Courier New', monospace;
+              font-size: ${fontSize};
+              max-width: ${ticketWidth};
               margin: 0 auto;
               padding: 10px;
+              line-height: 1.4;
             }
             .header {
               text-align: center;
@@ -81,30 +92,37 @@ export function TicketPreview({
             }
             .header h2 {
               margin: 0 0 5px 0;
-              font-size: 16px;
+              font-size: ${headerFontSize};
+              font-weight: bold;
             }
             .header p {
               margin: 2px 0;
-              font-size: 10px;
+              font-size: ${printerWidth === "58mm" ? "9px" : "10px"};
             }
             .separator {
               border-top: 1px dashed #000;
-              margin: 10px 0;
+              margin: 8px 0;
+            }
+            .info {
+              font-size: ${printerWidth === "58mm" ? "9px" : "10px"};
+              margin-bottom: 8px;
+            }
+            .info p {
+              margin: 2px 0;
             }
             .item {
               margin: 8px 0;
             }
             .item-name {
               font-weight: bold;
-            }
-            .item-details {
-              font-size: 10px;
-              color: #666;
-              margin-left: 10px;
-            }
-            .item-line {
               display: flex;
               justify-content: space-between;
+            }
+            .item-details {
+              font-size: ${printerWidth === "58mm" ? "9px" : "10px"};
+              color: #333;
+              margin-left: 10px;
+              margin-top: 2px;
             }
             .totals {
               margin-top: 10px;
@@ -112,20 +130,28 @@ export function TicketPreview({
             .total-line {
               display: flex;
               justify-content: space-between;
-              margin: 5px 0;
+              margin: 4px 0;
             }
             .total-line.grand {
               font-weight: bold;
-              font-size: 14px;
-              margin-top: 10px;
+              font-size: ${printerWidth === "58mm" ? "12px" : "14px"};
+              margin-top: 8px;
+              border-top: 2px solid #000;
+              padding-top: 4px;
             }
             .footer {
               text-align: center;
               margin-top: 15px;
-              font-size: 10px;
+              font-size: ${printerWidth === "58mm" ? "9px" : "10px"};
+            }
+            .footer p {
+              margin: 3px 0;
             }
             @media print {
-              body { margin: 0; }
+              body { 
+                margin: 0;
+                padding: 5px;
+              }
             }
           </style>
         </head>
@@ -137,10 +163,13 @@ export function TicketPreview({
 
     printWindow.document.close();
     printWindow.focus();
-    printWindow.print();
-    printWindow.close();
-
-    onPrint?.();
+    
+    // Wait for content to load before printing
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+      onPrint?.();
+    }, 250);
   };
 
   return (
@@ -150,52 +179,89 @@ export function TicketPreview({
           <DialogTitle>Vista Previa del Ticket</DialogTitle>
         </DialogHeader>
 
-        <div id="ticket-content" className="rounded-lg border border-border bg-card p-6 font-mono text-xs">
+        <div 
+          id="ticket-content" 
+          className="rounded-lg border border-border bg-white p-4 font-mono"
+          style={{ 
+            maxWidth: printerWidth === "58mm" ? "200px" : "280px",
+            fontSize: printerWidth === "58mm" ? "10px" : "12px",
+            margin: "0 auto"
+          }}
+        >
           {/* Header */}
-          <div className="text-center">
-            <h2 className="text-lg font-bold">{businessName}</h2>
-            {businessAddress && <p className="text-muted-foreground">{businessAddress}</p>}
-            {businessPhone && <p className="text-muted-foreground">{businessPhone}</p>}
+          <div className="text-center mb-3">
+            <h2 
+              className="font-bold mb-1"
+              style={{ fontSize: printerWidth === "58mm" ? "14px" : "16px" }}
+            >
+              {businessName}
+            </h2>
+            {businessAddress && (
+              <p className="text-muted-foreground" style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}>
+                {businessAddress}
+              </p>
+            )}
+            {businessPhone && (
+              <p className="text-muted-foreground" style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}>
+                {businessPhone}
+              </p>
+            )}
           </div>
 
-          <Separator className="my-4" />
+          <div className="border-t border-dashed border-border my-2" />
 
           {/* Sale Info */}
-          <div className="space-y-1 text-muted-foreground">
+          <div className="space-y-1 mb-3" style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}>
             {saleId && <p>Ticket: #{saleId.slice(-8).toUpperCase()}</p>}
             <p>Fecha: {formattedDate}</p>
             <p>Método: {paymentMethod}</p>
           </div>
 
-          <Separator className="my-4" />
+          <div className="border-t border-dashed border-border my-2" />
 
           {/* Items */}
           <div className="space-y-3">
             {items.map((item, index) => (
               <div key={index}>
-                <div className="flex justify-between">
-                  <span className="font-semibold">
-                    {item.quantity}x {item.name}
-                  </span>
-                  <span className="font-semibold">${item.total.toFixed(2)}</span>
+                <div className="flex justify-between font-semibold">
+                  <span>{item.quantity}x {item.name}</span>
+                  <span>${item.total.toFixed(2)}</span>
                 </div>
                 {item.variant && (
-                  <div className="ml-4 text-muted-foreground">• {item.variant}</div>
+                  <div 
+                    className="ml-3 text-muted-foreground"
+                    style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}
+                  >
+                    • {item.variant}
+                  </div>
                 )}
                 {item.extras && item.extras.length > 0 && (
-                  <div className="ml-4 text-muted-foreground">• {item.extras.join(", ")}</div>
+                  <div 
+                    className="ml-3 text-muted-foreground"
+                    style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}
+                  >
+                    • {item.extras.join(", ")}
+                  </div>
                 )}
                 {item.notes && (
-                  <div className="ml-4 italic text-muted-foreground">Nota: {item.notes}</div>
+                  <div 
+                    className="ml-3 italic text-muted-foreground"
+                    style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}
+                  >
+                    Nota: {item.notes}
+                  </div>
                 )}
-                <div className="ml-4 text-muted-foreground">
+                <div 
+                  className="ml-3 text-muted-foreground"
+                  style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}
+                >
                   ${item.unitPrice.toFixed(2)} c/u
                 </div>
               </div>
             ))}
           </div>
 
-          <Separator className="my-4" />
+          <div className="border-t border-dashed border-border my-2" />
 
           {/* Totals */}
           <div className="space-y-2">
@@ -207,17 +273,23 @@ export function TicketPreview({
               <span>IVA ({taxRate}%)</span>
               <span>${taxAmount.toFixed(2)}</span>
             </div>
-            <Separator className="my-2" />
-            <div className="flex justify-between text-lg font-bold">
+            <div className="border-t-2 border-border my-2" />
+            <div 
+              className="flex justify-between font-bold"
+              style={{ fontSize: printerWidth === "58mm" ? "12px" : "14px" }}
+            >
               <span>TOTAL</span>
               <span>${total.toFixed(2)}</span>
             </div>
           </div>
 
-          <Separator className="my-4" />
+          <div className="border-t border-dashed border-border my-2" />
 
           {/* Footer */}
-          <div className="text-center text-muted-foreground">
+          <div 
+            className="text-center text-muted-foreground"
+            style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}
+          >
             <p>¡Gracias por su compra!</p>
             <p className="mt-2">Powered by POS SaaS</p>
           </div>
