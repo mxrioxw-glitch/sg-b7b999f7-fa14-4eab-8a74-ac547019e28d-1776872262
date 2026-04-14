@@ -9,25 +9,29 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Bell, Settings, LogOut, User, CreditCard } from "lucide-react";
+import { Bell, Settings, LogOut, User, CreditCard, Menu } from "lucide-react";
 import { authService } from "@/services/authService";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobileOrTablet } from "@/hooks/use-mobile";
 
 interface HeaderProps {
   businessName?: string;
   userName?: string;
   userEmail?: string;
   planName?: string;
+  onMenuClick?: () => void;
 }
 
 export function Header({ 
   businessName = "Mi Negocio", 
   userName = "Usuario",
   userEmail,
-  planName = "Plan Básico"
+  planName = "Plan Básico",
+  onMenuClick
 }: HeaderProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const isMobileOrTablet = useIsMobileOrTablet();
   const userInitials = userName.split(" ").map(n => n[0]).join("").toUpperCase();
 
   const handleLogout = async () => {
@@ -50,32 +54,45 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card shadow-sm">
-      <div className="flex h-16 items-center justify-between px-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-            <span className="text-lg font-bold text-primary-foreground">☕</span>
+      <div className="flex h-14 md:h-16 items-center justify-between px-3 md:px-6">
+        <div className="flex items-center gap-2 md:gap-3">
+          {isMobileOrTablet && onMenuClick && (
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={onMenuClick}
+              className="md:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          )}
+          
+          <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-lg bg-primary flex-shrink-0">
+            <span className="text-base md:text-lg font-bold text-primary-foreground">☕</span>
           </div>
           <div>
-            <h1 className="text-lg font-bold text-foreground">{businessName}</h1>
-            <p className="text-xs text-muted-foreground">Sistema POS</p>
+            <h1 className="text-sm md:text-lg font-bold text-foreground">{businessName}</h1>
+            <p className="text-[10px] md:text-xs text-muted-foreground hidden sm:block">Sistema POS</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-accent" />
-          </Button>
+        <div className="flex items-center gap-1 md:gap-3">
+          {!isMobileOrTablet && (
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="h-5 w-5" />
+              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-accent" />
+            </Button>
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-secondary text-secondary-foreground">
+              <Button variant="ghost" className="flex items-center gap-1 md:gap-2 h-9 md:h-10 px-2 md:px-3">
+                <Avatar className="h-7 w-7 md:h-8 md:w-8">
+                  <AvatarFallback className="bg-secondary text-secondary-foreground text-xs md:text-sm">
                     {userInitials}
                   </AvatarFallback>
                 </Avatar>
-                <span className="hidden md:inline text-sm font-medium">{userName}</span>
+                <span className="hidden lg:inline text-sm font-medium">{userName}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">

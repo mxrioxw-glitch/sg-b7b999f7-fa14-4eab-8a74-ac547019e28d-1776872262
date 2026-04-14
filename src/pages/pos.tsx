@@ -21,7 +21,8 @@ import { categoryService, type Category } from "@/services/categoryService";
 import { saleService } from "@/services/saleService";
 import { paymentMethodService, type PaymentMethod } from "@/services/paymentMethodService";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, AlertCircle, DollarSign } from "lucide-react";
+import { Search, AlertCircle, DollarSign, ShoppingCart, ChevronLeft, Package } from "lucide-react";
+import { useIsMobileOrTablet } from "@/hooks/use-mobile";
 
 interface CartItem {
   id: string;
@@ -43,553 +44,325 @@ interface Customer {
 export default function POSPage() {
   const router = useRouter();
   const { toast } = useToast();
-
   const [loading, setLoading] = useState(true);
-  const [businessId, setBusinessId] = useState<string | null>(null);
-  const [employeeId, setEmployeeId] = useState<string | null>(null);
-  const [cashRegisterId, setCashRegisterId] = useState<string | null>(null);
-  const [noCashRegisterDialog, setNoCashRegisterDialog] = useState(false);
-  const [taxRate, setTaxRate] = useState(16);
-  const [businessData, setBusinessData] = useState<{
-    name: string;
-    address?: string;
-    phone?: string;
-    printerWidth?: "58mm" | "80mm";
-    logoUrl?: string;
-  } | null>(null);
-
-  const [products, setProducts] = useState<ProductWithDetails[]>([]);
+  const [business, setBusiness] = useState<Business | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [products, setProducts] = useState<ProductWithDetails[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [showPayment, setShowPayment] = useState(false);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<ProductWithDetails | null>(null);
-  const [productModalOpen, setProductModalOpen] = useState(false);
-
-  const [customerIdentificationOpen, setCustomerIdentificationOpen] = useState(false);
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
-
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [processingPayment, setProcessingPayment] = useState(false);
-
-  const [ticketPreviewOpen, setTicketPreviewOpen] = useState(false);
-  const [completedSale, setCompletedSale] = useState<{
-    saleId: string;
-    date: Date;
-  } | null>(null);
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [cashRegister, setCashRegister] = useState<CashRegister | null>(null);
+  const isMobileOrTablet = useIsMobileOrTablet();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    initializePOS();
+    checkSubscriptionAndBusiness();
   }, []);
 
-  const initializePOS = async () => {
+  async function checkSubscriptionAndBusiness() {
     try {
-      const session = await authService.getCurrentSession();
-      if (!session) {
-        router.push("/auth/login");
+      const isActive = await subscriptionService.checkSubscriptionStatus();
+      if (!isActive) {
+        router.push("/subscription");
         return;
       }
 
-      const business = await businessService.getBusinessByOwnerId(session.user.id);
-      if (!business) {
-        toast({
-          title: "No hay negocios",
-          description: "Necesitas crear un negocio primero",
-          variant: "destructive",
-        });
+      const currentBusiness = await businessService.getCurrentBusiness();
+      if (!currentBusiness) {
         router.push("/");
         return;
       }
 
-      setBusinessId(business.id);
-      setTaxRate(Number(business.tax_rate) || 16);
-      setBusinessData({
-        name: business.name,
-        address: business.address || undefined,
-        phone: business.phone || undefined,
-        printerWidth: (business.printer_width as "58mm" | "80mm") || "80mm",
-        logoUrl: business.logo_url || undefined,
-      });
-
-      // Get employee record for this user
-      const employee = await businessService.getEmployeeByUserId(session.user.id);
-      if (!employee) {
-        // If no employee record exists, create one
-        const { data: newEmployee, error: empError } = await supabase
-          .from("employees")
-          .insert({
-            business_id: business.id,
-            user_id: session.user.id,
-            role: "owner",
-            is_active: true
-          })
-          .select()
-          .single();
-
-        if (empError) {
-          console.error("Error creating employee:", empError);
-          toast({
-            title: "Error",
-            description: "Error al configurar el empleado",
-            variant: "destructive",
-          });
-          return;
-        }
-        setEmployeeId(newEmployee.id);
-      } else {
-        setEmployeeId(employee.id);
-      }
-
-      // Get active cash register for this employee
-      const { data: activeCashRegister, error: cashRegError } = await supabase
-        .from("cash_registers")
-        .select("id")
-        .eq("business_id", business.id)
-        .eq("employee_id", employee?.id || session.user.id)
-        .eq("status", "open")
-        .maybeSingle();
-
-      if (cashRegError) {
-        console.error("Error fetching active cash register:", cashRegError);
-      }
-
-      if (activeCashRegister) {
-        setCashRegisterId(activeCashRegister.id);
-      } else {
-        // No active cash register - show blocking dialog
-        setNoCashRegisterDialog(true);
-      }
-
-      const [categoriesData, productsData, customersData] = await Promise.all([
-        categoryService.getCategories(business.id),
-        productService.getProducts(business.id),
-        loadCustomers(business.id),
+      setBusiness(currentBusiness);
+      await Promise.all([
+        loadCategories(currentBusiness.id),
+        loadProducts(currentBusiness.id),
+        loadActiveCashRegister(currentBusiness.id),
       ]);
-
-      setCategories(categoriesData);
-      setProducts(productsData);
-      setCustomers(customersData);
     } catch (error) {
-      console.error("Error initializing POS:", error);
+      console.error("Error loading POS:", error);
       toast({
         title: "Error",
-        description: "Error al inicializar el punto de venta",
+        description: "No se pudo cargar el punto de venta",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const loadCustomers = async (businessId: string): Promise<Customer[]> => {
-    const { data, error } = await supabase
-      .from("customers")
-      .select("id, name, loyalty_points")
-      .eq("business_id", businessId)
-      .order("name");
+  async function loadActiveCashRegister(businessId: string) {
+    const registers = await cashRegisterService.getCashRegisters(businessId);
+    const active = registers.find(r => r.status === "open");
+    setCashRegister(active || null);
+  }
 
-    if (error) {
-      console.error("Error loading customers:", error);
-      return [];
+  async function loadCategories(businessId: string) {
+    const cats = await categoryService.getCategories(businessId);
+    setCategories(cats);
+  }
+
+  async function loadProducts(businessId: string, categoryId?: string) {
+    const prods = categoryId
+      ? await productService.getProductsByCategory(businessId, categoryId)
+      : await productService.getProducts(businessId);
+    setProducts(prods);
+  }
+
+  const handleCategoryClick = (categoryId: string | null) => {
+    setSelectedCategory(categoryId);
+    if (business) {
+      loadProducts(business.id, categoryId || undefined);
     }
-
-    return (data || []).map(c => ({
-      id: c.id,
-      name: c.name,
-      points: c.loyalty_points || 0,
-    }));
   };
-
-  const filteredProducts = products.filter((product) => {
-    const matchesCategory = selectedCategory === "all" || product.category_id === selectedCategory;
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
 
   const handleProductClick = (product: ProductWithDetails) => {
-    if (!cashRegisterId) {
-      toast({
-        title: "Sin turno activo",
-        description: "Necesitas abrir un turno de caja primero",
-        variant: "destructive",
+    if (product.has_variants || product.has_extras) {
+      setSelectedProduct(product);
+      setShowProductModal(true);
+    } else {
+      addToCart({
+        id: crypto.randomUUID(),
+        product,
+        variant: null,
+        extras: [],
+        quantity: 1,
+        unitPrice: Number(product.base_price),
+        subtotal: Number(product.base_price),
+        notes: "",
       });
-      return;
     }
-    setSelectedProduct(product);
-    setProductModalOpen(true);
   };
 
-  const handleAddToCart = (item: {
-    productId: string;
-    name: string;
-    price: number;
-    quantity: number;
-    variant?: string;
-    extras?: string[];
-    notes?: string;
-  }) => {
-    const newItem: CartItem = {
-      id: Date.now().toString(),
-      ...item,
-    };
-    setCartItems((prev) => [...prev, newItem]);
-    toast({
-      title: "Agregado al carrito",
-      description: `${item.name} x${item.quantity}`,
-    });
+  const addToCart = (item: CartItem) => {
+    setCart([...cart, item]);
+    setShowProductModal(false);
   };
 
-  const handleUpdateQuantity = (itemId: string, quantity: number) => {
-    if (quantity < 1) return;
-    setCartItems((prev) =>
-      prev.map((item) => (item.id === itemId ? { ...item, quantity } : item))
-    );
+  const updateCartItem = (itemId: string, updates: Partial<CartItem>) => {
+    setCart(cart.map(item => item.id === itemId ? { ...item, ...updates } : item));
   };
 
-  const handleRemoveItem = (itemId: string) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== itemId));
-    toast({
-      title: "Eliminado",
-      description: "Producto eliminado del carrito",
-    });
+  const removeFromCart = (itemId: string) => {
+    setCart(cart.filter(item => item.id !== itemId));
+  };
+
+  const clearCart = () => {
+    setCart([]);
+    setSelectedCustomer(null);
   };
 
   const handleCheckout = () => {
-    if (!cashRegisterId) {
-      setNoCashRegisterDialog(true);
-      return;
-    }
-    if (cartItems.length === 0) return;
-    setCustomerIdentificationOpen(true);
-  };
-
-  const handleCustomerIdentified = (customerId: string | null) => {
-    setSelectedCustomerId(customerId);
-    setCustomerIdentificationOpen(false);
-    setPaymentModalOpen(true);
-  };
-
-  const handleProcessPayment = async (payments: any[], change: number) => {
-    if (!businessId || !employeeId || !cashRegisterId) return;
-
-    setProcessingPayment(true);
-    try {
-      const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-      const taxAmount = subtotal * (taxRate / 100);
-      const total = subtotal + taxAmount;
-
-      // Calculate loyalty points from products
-      let totalPoints = 0;
-      for (const item of cartItems) {
-        const product = products.find((p) => p.id === item.productId);
-        if (product && product.generates_points && product.points_value) {
-          totalPoints += Number(product.points_value) * item.quantity;
-        }
-      }
-
-      // For now, use first payment method or create a default one
-      // In production, you'd handle multiple payments properly
-      const { data: paymentMethods } = await supabase
-        .from("payment_methods")
-        .select("id")
-        .eq("business_id", businessId)
-        .limit(1);
-
-      const paymentMethodId = paymentMethods?.[0]?.id;
-
-      const { sale, error } = await saleService.createSale({
-        businessId,
-        employeeId,
-        cashRegisterId,
-        paymentMethodId,
-        customerId: selectedCustomerId || undefined,
-        subtotal,
-        taxAmount,
-        total,
-        items: cartItems.map((item) => {
-          const product = products.find((p) => p.id === item.productId);
-          const extrasData = item.extras?.map((extraName) => {
-            const extra = product?.extras?.find((e) => e.name === extraName);
-            return {
-              extraName,
-              price: extra?.price || 0,
-            };
-          }) || [];
-
-          return {
-            productId: item.productId,
-            productName: item.name,
-            variantName: item.variant,
-            quantity: item.quantity,
-            unitPrice: item.price,
-            subtotal: item.price * item.quantity,
-            notes: item.notes,
-            extras: extrasData,
-          };
-        }),
-      });
-
-      if (error) {
-        toast({
-          title: "Error",
-          description: error,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Award loyalty points if customer was identified
-      if (selectedCustomerId && totalPoints > 0) {
-        const customer = customers.find(c => c.id === selectedCustomerId);
-        const newPoints = (customer?.points || 0) + totalPoints;
-
-        const { error: pointsError } = await supabase
-          .from("customers")
-          .update({
-            loyalty_points: newPoints
-          })
-          .eq("id", selectedCustomerId);
-
-        if (pointsError) {
-          console.error("Error updating loyalty points:", pointsError);
-        } else {
-          // Update local state to reflect new points immediately
-          setCustomers(prev => prev.map(c => 
-            c.id === selectedCustomerId ? { ...c, points: newPoints } : c
-          ));
-
-          toast({
-            title: "¡Puntos ganados!",
-            description: `El cliente ganó ${totalPoints} puntos de lealtad`,
-          });
-        }
-      }
-
-      setCompletedSale({
-        saleId: sale!.id,
-        date: new Date(),
-      });
-      setPaymentModalOpen(false);
-      setTicketPreviewOpen(true);
-    } catch (error) {
-      console.error("Error processing payment:", error);
+    if (cart.length === 0) {
       toast({
-        title: "Error",
-        description: "Error al procesar el pago",
+        title: "Carrito vacío",
+        description: "Agrega productos antes de proceder al pago",
         variant: "destructive",
       });
-    } finally {
-      setProcessingPayment(false);
+      return;
     }
+
+    if (!cashRegister) {
+      toast({
+        title: "Corte de caja requerido",
+        description: "Debes abrir un corte de caja antes de realizar ventas",
+        variant: "destructive",
+      });
+      router.push("/cash-register");
+      return;
+    }
+
+    setShowPayment(true);
   };
 
-  const handleConfirmSale = () => {
-    setCartItems([]);
-    setCompletedSale(null);
-    setSelectedCustomerId(null);
-    setTicketPreviewOpen(false);
-    
-    toast({
-      title: "¡Venta completada!",
-      description: "Ticket generado exitosamente",
-    });
-  };
+  const filteredProducts = products.filter(p =>
+    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const cartTotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <p className="mt-4 text-muted-foreground">Cargando POS...</p>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
+          <p className="text-muted-foreground">Cargando punto de venta...</p>
         </div>
       </div>
     );
   }
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const taxAmount = subtotal * (taxRate / 100);
-  const total = subtotal + taxAmount;
+  if (!business) {
+    return null;
+  }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Header />
+    <div className="flex h-screen overflow-hidden bg-background">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        
-        <main className="flex-1 overflow-y-auto">
-          {!cashRegisterId && (
-            <Alert variant="destructive" className="m-6">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Sin turno de caja activo</AlertTitle>
-              <AlertDescription>
-                No puedes realizar ventas sin un turno abierto. Ve a "Corte de Caja" para abrir tu turno.
-              </AlertDescription>
-            </Alert>
-          )}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <Header
+          businessName={business.name}
+          userName={business.name}
+          onMenuClick={() => setSidebarOpen(true)}
+        />
 
-          <div className="container mx-auto flex gap-6 p-6">
-            <div className="flex-1">
-              <div className="mb-6">
+        <main className="flex-1 overflow-hidden">
+          <div className="h-full flex flex-col lg:flex-row">
+            {/* Products Section - Full width on mobile, left side on desktop */}
+            <div className={cn(
+              "flex-1 flex flex-col overflow-hidden",
+              isMobileOrTablet && cart.length > 0 ? "hidden" : "flex"
+            )}>
+              {/* Categories & Search */}
+              <div className="border-b border-border bg-card p-3 md:p-4 space-y-3">
+                {/* Search Bar */}
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Buscar productos..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="h-14 pl-10 text-base"
-                    disabled={!cashRegisterId}
+                    className="pl-10 h-10 md:h-11"
                   />
                 </div>
-              </div>
 
-              {categories.length > 0 && (
-                <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-6">
-                  <TabsList className="w-full justify-start">
-                    <TabsTrigger value="all" disabled={!cashRegisterId}>Todos</TabsTrigger>
-                    {categories.map((category) => (
-                      <TabsTrigger key={category.id} value={category.id} disabled={!cashRegisterId}>
-                        {category.name}
-                      </TabsTrigger>
+                {/* Categories - Horizontal scroll on mobile */}
+                <div className="overflow-x-auto -mx-3 md:mx-0 px-3 md:px-0">
+                  <div className="flex gap-2 min-w-max md:min-w-0 md:flex-wrap">
+                    <Button
+                      variant={selectedCategory === null ? "default" : "outline"}
+                      onClick={() => handleCategoryClick(null)}
+                      size="sm"
+                      className="whitespace-nowrap"
+                    >
+                      Todos
+                    </Button>
+                    {categories.map((cat) => (
+                      <Button
+                        key={cat.id}
+                        variant={selectedCategory === cat.id ? "default" : "outline"}
+                        onClick={() => handleCategoryClick(cat.id)}
+                        size="sm"
+                        className="whitespace-nowrap"
+                      >
+                        {cat.icon} {cat.name}
+                      </Button>
                     ))}
-                  </TabsList>
-                </Tabs>
-              )}
-
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                {filteredProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    id={product.id}
-                    name={product.name}
-                    price={Number(product.base_price)}
-                    category={product.category?.name || "Sin categoría"}
-                    image={product.image_url || undefined}
-                    onClick={() => handleProductClick(product)}
-                  />
-                ))}
+                  </div>
+                </div>
               </div>
 
-              {filteredProducts.length === 0 && (
-                <div className="py-12 text-center">
-                  <p className="text-muted-foreground">No se encontraron productos</p>
+              {/* Products Grid */}
+              <div className="flex-1 overflow-y-auto p-3 md:p-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+                  {filteredProducts.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onClick={() => handleProductClick(product)}
+                    />
+                  ))}
                 </div>
-              )}
+                {filteredProducts.length === 0 && (
+                  <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+                    <Package className="h-12 w-12 mb-2" />
+                    <p>No se encontraron productos</p>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="w-96">
+            {/* Cart Section - Full width on mobile when has items, right side on desktop */}
+            <div className={cn(
+              "lg:w-96 xl:w-[420px] border-l border-border bg-card flex flex-col",
+              isMobileOrTablet ? "w-full" : "",
+              isMobileOrTablet && cart.length === 0 ? "hidden" : "flex"
+            )}>
+              {/* Mobile: Back button */}
+              {isMobileOrTablet && cart.length > 0 && (
+                <div className="border-b border-border p-3 flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setCart([])}
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  <h2 className="text-lg font-semibold">Carrito ({cart.length})</h2>
+                </div>
+              )}
+
               <Cart
-                items={cartItems}
-                taxRate={taxRate}
-                onUpdateQuantity={handleUpdateQuantity}
-                onRemoveItem={handleRemoveItem}
+                items={cart}
+                onUpdateItem={updateCartItem}
+                onRemoveItem={removeFromCart}
+                onClearCart={clearCart}
                 onCheckout={handleCheckout}
+                selectedCustomer={selectedCustomer}
+                onCustomerClick={() => setShowCustomerModal(true)}
               />
             </div>
           </div>
+
+          {/* Mobile: Floating Cart Button */}
+          {isMobileOrTablet && cart.length > 0 && (
+            <div className="fixed bottom-4 right-4 left-4 z-40 lg:hidden">
+              <Button
+                className="w-full h-14 text-lg shadow-lg"
+                size="lg"
+                onClick={() => {
+                  // Show cart section
+                }}
+              >
+                <ShoppingCart className="h-5 w-5 mr-2" />
+                Ver Carrito ({cart.length}) - ${cartTotal.toFixed(2)}
+              </Button>
+            </div>
+          )}
         </main>
       </div>
 
-      {/* No Cash Register Dialog */}
-      <Dialog open={noCashRegisterDialog} onOpenChange={setNoCashRegisterDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-destructive" />
-              Sin Turno de Caja Activo
-            </DialogTitle>
-            <DialogDescription>
-              No puedes realizar ventas sin un turno de caja abierto. Ve al módulo de "Corte de Caja" para abrir tu turno.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setNoCashRegisterDialog(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={() => router.push("/cash-register")}>
-              Ir a Corte de Caja
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Modals */}
+      {showProductModal && selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          onClose={() => setShowProductModal(false)}
+          onAddToCart={addToCart}
+        />
+      )}
 
-      {/* Product Configuration Modal */}
-      <ProductModal
-        open={productModalOpen}
-        onOpenChange={setProductModalOpen}
-        product={
-          selectedProduct
-            ? {
-                id: selectedProduct.id,
-                name: selectedProduct.name,
-                basePrice: Number(selectedProduct.base_price),
-                image: selectedProduct.image_url || undefined,
-                variants: selectedProduct.variants?.map((v) => ({
-                  id: v.id,
-                  name: v.name,
-                  priceModifier: Number(v.price_modifier),
-                })),
-                extras: selectedProduct.extras?.map((e) => ({
-                  id: e.id,
-                  name: e.name,
-                  price: Number(e.price),
-                })),
-              }
-            : null
-        }
-        onAddToCart={handleAddToCart}
-      />
+      {showPayment && business && cashRegister && (
+        <PaymentModal
+          items={cart}
+          businessId={business.id}
+          cashRegisterId={cashRegister.id}
+          customer={selectedCustomer}
+          onClose={() => setShowPayment(false)}
+          onComplete={() => {
+            clearCart();
+            setShowPayment(false);
+            toast({
+              title: "Venta completada",
+              description: "La venta se registró correctamente",
+            });
+          }}
+        />
+      )}
 
-      {/* Customer Identification Modal */}
-      <CustomerIdentificationModal
-        open={customerIdentificationOpen}
-        onOpenChange={setCustomerIdentificationOpen}
-        customers={customers}
-        onContinue={handleCustomerIdentified}
-      />
-
-      {/* Payment Modal */}
-      <PaymentModal
-        open={paymentModalOpen}
-        onOpenChange={setPaymentModalOpen}
-        total={total}
-        subtotal={subtotal}
-        taxAmount={taxAmount}
-        taxRate={taxRate}
-        customers={customers}
-        onConfirm={handleProcessPayment}
-        processing={processingPayment}
-      />
-
-      {/* Ticket Preview Modal */}
-      {completedSale && businessData && (
-        <TicketPreview
-          open={ticketPreviewOpen}
-          onOpenChange={setTicketPreviewOpen}
-          businessName={businessData.name}
-          businessAddress={businessData.address}
-          businessPhone={businessData.phone}
-          businessLogo={businessData.logoUrl}
-          printerWidth={businessData.printerWidth}
-          saleId={completedSale.saleId}
-          items={cartItems.map((item) => ({
-            name: item.name,
-            quantity: item.quantity,
-            unitPrice: item.price,
-            total: item.price * item.quantity,
-            variant: item.variant,
-            extras: item.extras,
-            notes: item.notes,
-          }))}
-          subtotal={subtotal}
-          taxRate={taxRate}
-          taxAmount={taxAmount}
-          total={total}
-          paymentMethod="Mixto"
-          date={completedSale.date}
-          onConfirm={handleConfirmSale}
+      {showCustomerModal && business && (
+        <CustomerIdentificationModal
+          businessId={business.id}
+          onClose={() => setShowCustomerModal(false)}
+          onCustomerSelected={(customer) => {
+            setSelectedCustomer(customer);
+            setShowCustomerModal(false);
+          }}
         />
       )}
     </div>
