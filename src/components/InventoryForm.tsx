@@ -6,7 +6,7 @@ import {
   createInventoryItem,
   updateInventoryItem,
 } from "@/services/inventoryService";
-import { getCurrentBusiness } from "@/services/businessService";
+import { businessService } from "@/services/businessService";
 import type { InventoryItem } from "@/services/inventoryService";
 import { useToast } from "@/hooks/use-toast";
 
@@ -35,7 +35,7 @@ export function InventoryForm({ item, onClose }: InventoryFormProps) {
     setLoading(true);
 
     try {
-      const business = await getCurrentBusiness();
+      const business = await businessService.getCurrentBusiness();
       if (!business) throw new Error("No business found");
 
       const itemData = {

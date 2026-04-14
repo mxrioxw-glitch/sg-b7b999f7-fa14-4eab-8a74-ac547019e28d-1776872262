@@ -27,7 +27,7 @@ import {
   deleteInventoryItem,
   adjustInventoryStock,
 } from "@/services/inventoryService";
-import { getCurrentBusiness } from "@/services/businessService";
+import { businessService } from "@/services/businessService";
 import type { InventoryItem } from "@/services/inventoryService";
 import {
   Dialog,
@@ -63,7 +63,7 @@ export default function InventoryPage() {
 
   async function loadData() {
     try {
-      const business = await getCurrentBusiness();
+      const business = await businessService.getCurrentBusiness();
       if (!business) {
         router.push("/auth/login");
         return;

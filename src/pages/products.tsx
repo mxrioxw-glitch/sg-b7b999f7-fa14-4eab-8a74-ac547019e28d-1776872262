@@ -28,9 +28,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Search, Edit, Trash2, Image } from "lucide-react";
-import { getProducts, deleteProduct } from "@/services/productService";
-import { getCategories } from "@/services/categoryService";
-import { getCurrentBusiness } from "@/services/businessService";
+import { productService } from "@/services/productService";
+import { categoryService } from "@/services/categoryService";
+import { businessService } from "@/services/businessService";
 import type { Product } from "@/services/productService";
 import type { Category } from "@/services/categoryService";
 import {
@@ -60,15 +60,15 @@ export default function ProductsPage() {
 
   async function loadData() {
     try {
-      const business = await getCurrentBusiness();
+      const business = await businessService.getCurrentBusiness();
       if (!business) {
         router.push("/auth/login");
         return;
       }
 
       const [productsData, categoriesData] = await Promise.all([
-        getProducts(business.id),
-        getCategories(business.id),
+        productService.getProducts(business.id),
+        categoryService.getCategories(business.id),
       ]);
 
       setProducts(productsData);
@@ -89,7 +89,7 @@ export default function ProductsPage() {
     if (!confirm("¿Estás seguro de eliminar este producto?")) return;
 
     try {
-      await deleteProduct(productId);
+      await productService.deleteProduct(productId);
       toast({
         title: "Producto eliminado",
         description: "El producto se eliminó correctamente",

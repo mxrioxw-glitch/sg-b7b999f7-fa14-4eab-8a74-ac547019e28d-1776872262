@@ -14,19 +14,8 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Trash2 } from "lucide-react";
-import {
-  createProduct,
-  updateProduct,
-  getProductVariants,
-  createProductVariant,
-  updateProductVariant,
-  deleteProductVariant,
-  getProductExtras,
-  createProductExtra,
-  updateProductExtra,
-  deleteProductExtra,
-} from "@/services/productService";
-import { getCurrentBusiness } from "@/services/businessService";
+import { productService } from "@/services/productService";
+import { businessService } from "@/services/businessService";
 import type { Product, ProductVariant, ProductExtra } from "@/services/productService";
 import type { Category } from "@/services/categoryService";
 import { useToast } from "@/hooks/use-toast";
@@ -79,8 +68,8 @@ export function ProductForm({ product, categories, onClose }: ProductFormProps) 
 
     try {
       const [variantsData, extrasData] = await Promise.all([
-        getProductVariants(product.id),
-        getProductExtras(product.id),
+        productService.getProductVariants(product.id),
+        productService.getProductExtras(product.id),
       ]);
 
       setVariants(
@@ -149,43 +138,44 @@ export function ProductForm({ product, categories, onClose }: ProductFormProps) 
     setLoading(true);
 
     try {
-      const business = await getCurrentBusiness();
+      const business = await businessService.getCurrentBusiness();
       if (!business) throw new Error("No business found");
 
       const productData = {
-        business_id: business.id,
+        category_id: categoryId || undefined,
         name,
         description,
         base_price: basePrice,
-        category_id: categoryId || null,
-        image_url: imageUrl || null,
-        is_active: isActive,
+        image_url: imageUrl || undefined,
         has_variants: hasVariants,
         has_extras: hasExtras,
       };
 
       let savedProduct: Product;
       if (product) {
-        savedProduct = await updateProduct(product.id, productData);
+        const result = await productService.updateProduct(product.id, productData);
+        if (result.error || !result.product) throw new Error(result.error || "Error");
+        savedProduct = result.product;
       } else {
-        savedProduct = await createProduct(productData);
+        const result = await productService.createProduct(business.id, productData);
+        if (result.error || !result.product) throw new Error(result.error || "Error");
+        savedProduct = result.product;
       }
 
       // Save variants
       if (hasVariants) {
-        const existingVariants = await getProductVariants(savedProduct.id);
+        const existingVariants = await productService.getProductVariants(savedProduct.id);
         const existingIds = existingVariants.map((v) => v.id);
 
         for (const variant of variants) {
           if (variant.id && existingIds.includes(variant.id)) {
-            await updateProductVariant(variant.id, {
+            await productService.updateProductVariant(variant.id, {
               name: variant.name,
               price_modifier: variant.price_modifier,
               sort_order: variant.sort_order,
             });
           } else {
-            await createProductVariant({
-              product_id: savedProduct.id,
+            await productService.createVariant(savedProduct.id, {
               name: variant.name,
               price_modifier: variant.price_modifier,
               sort_order: variant.sort_order,
@@ -196,25 +186,24 @@ export function ProductForm({ product, categories, onClose }: ProductFormProps) 
         const variantIds = variants.filter((v) => v.id).map((v) => v.id);
         const toDelete = existingIds.filter((id) => !variantIds.includes(id));
         for (const id of toDelete) {
-          await deleteProductVariant(id);
+          await productService.deleteProductVariant(id);
         }
       }
 
       // Save extras
       if (hasExtras) {
-        const existingExtras = await getProductExtras(savedProduct.id);
+        const existingExtras = await productService.getProductExtras(savedProduct.id);
         const existingIds = existingExtras.map((e) => e.id);
 
         for (const extra of extras) {
           if (extra.id && existingIds.includes(extra.id)) {
-            await updateProductExtra(extra.id, {
+            await productService.updateProductExtra(extra.id, {
               name: extra.name,
               price: extra.price,
               sort_order: extra.sort_order,
             });
           } else {
-            await createProductExtra({
-              product_id: savedProduct.id,
+            await productService.createExtra(savedProduct.id, {
               name: extra.name,
               price: extra.price,
               sort_order: extra.sort_order,
@@ -225,7 +214,7 @@ export function ProductForm({ product, categories, onClose }: ProductFormProps) 
         const extraIds = extras.filter((e) => e.id).map((e) => e.id);
         const toDelete = existingIds.filter((id) => !extraIds.includes(id));
         for (const id of toDelete) {
-          await deleteProductExtra(id);
+          await productService.deleteProductExtra(id);
         }
       }
 

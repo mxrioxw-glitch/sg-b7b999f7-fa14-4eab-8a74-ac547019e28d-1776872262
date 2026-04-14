@@ -187,4 +187,88 @@ export const productService = {
 
     return { extra: data, error: null };
   },
+
+  async getProductVariants(productId: string): Promise<ProductVariant[]> {
+    const { data, error } = await supabase
+      .from("product_variants")
+      .select("*")
+      .eq("product_id", productId)
+      .order("sort_order", { ascending: true });
+    
+    if (error) {
+      console.error("Error fetching variants:", error);
+      return [];
+    }
+    return data || [];
+  },
+
+  async updateProductVariant(variantId: string, updates: Partial<ProductVariant>): Promise<{ variant: ProductVariant | null; error: string | null }> {
+    const { data, error } = await supabase
+      .from("product_variants")
+      .update(updates)
+      .eq("id", variantId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error updating variant:", error);
+      return { variant: null, error: error.message };
+    }
+    return { variant: data, error: null };
+  },
+
+  async deleteProductVariant(variantId: string): Promise<{ error: string | null }> {
+    const { error } = await supabase
+      .from("product_variants")
+      .delete()
+      .eq("id", variantId);
+    
+    if (error) {
+      console.error("Error deleting variant:", error);
+      return { error: error.message };
+    }
+    return { error: null };
+  },
+
+  async getProductExtras(productId: string): Promise<ProductExtra[]> {
+    const { data, error } = await supabase
+      .from("product_extras")
+      .select("*")
+      .eq("product_id", productId)
+      .order("sort_order", { ascending: true });
+    
+    if (error) {
+      console.error("Error fetching extras:", error);
+      return [];
+    }
+    return data || [];
+  },
+
+  async updateProductExtra(extraId: string, updates: Partial<ProductExtra>): Promise<{ extra: ProductExtra | null; error: string | null }> {
+    const { data, error } = await supabase
+      .from("product_extras")
+      .update(updates)
+      .eq("id", extraId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error updating extra:", error);
+      return { extra: null, error: error.message };
+    }
+    return { extra: data, error: null };
+  },
+
+  async deleteProductExtra(extraId: string): Promise<{ error: string | null }> {
+    const { error } = await supabase
+      .from("product_extras")
+      .delete()
+      .eq("id", extraId);
+    
+    if (error) {
+      console.error("Error deleting extra:", error);
+      return { error: error.message };
+    }
+    return { error: null };
+  },
 };
