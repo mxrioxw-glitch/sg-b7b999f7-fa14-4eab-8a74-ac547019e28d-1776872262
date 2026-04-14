@@ -41,6 +41,8 @@ export default function CashRegisterPage() {
     closingAmount: "",
     notes: "",
   });
+  const [shiftSales, setShiftSales] = useState<number>(0);
+  const [expectedAmount, setExpectedAmount] = useState<number>(0);
 
   useEffect(() => {
     loadData();
@@ -152,6 +154,8 @@ export default function CashRegisterPage() {
 
       setCloseDialogOpen(false);
       setCloseForm({ closingAmount: "", notes: "" });
+      setShiftSales(0);
+      setExpectedAmount(0);
       await loadData();
     } catch (error) {
       console.error("Error closing cash register:", error);
@@ -162,6 +166,35 @@ export default function CashRegisterPage() {
       });
     }
   }
+
+  async function loadShiftSales() {
+    if (!activeRegister) return;
+
+    try {
+      // Get all sales for this cash register
+      const { data, error } = await supabase
+        .from("sales")
+        .select("total")
+        .eq("cash_register_id", activeRegister.id);
+
+      if (error) {
+        console.error("Error loading shift sales:", error);
+        return;
+      }
+
+      const total = (data || []).reduce((sum, sale) => sum + Number(sale.total), 0);
+      setShiftSales(total);
+      setExpectedAmount(Number(activeRegister.opening_amount) + total);
+    } catch (error) {
+      console.error("Error calculating shift sales:", error);
+    }
+  }
+
+  useEffect(() => {
+    if (closeDialogOpen && activeRegister) {
+      loadShiftSales();
+    }
+  }, [closeDialogOpen, activeRegister]);
 
   async function handleViewReport(register: any) {
     try {
@@ -423,14 +456,38 @@ export default function CashRegisterPage() {
       </Dialog>
 
       <Dialog open={closeDialogOpen} onOpenChange={setCloseDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Close Cash Register</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-6">
+            {/* Summary of shift */}
+            <Card className="bg-muted/50">
+              <CardContent className="pt-6 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-muted-foreground">Opening Amount</span>
+                  <span className="text-lg font-semibold">
+                    ${Number(activeRegister?.opening_amount || 0).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-muted-foreground">Sales This Shift</span>
+                  <span className="text-lg font-semibold text-accent">
+                    +${shiftSales.toFixed(2)}
+                  </span>
+                </div>
+                <div className="border-t pt-3 flex justify-between items-center">
+                  <span className="text-base font-semibold">Expected Amount</span>
+                  <span className="text-2xl font-bold text-primary">
+                    ${expectedAmount.toFixed(2)}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="space-y-2">
-              <Label htmlFor="closingAmount">Closing Amount *</Label>
+              <Label htmlFor="closingAmount">Closing Amount (Cash Counted) *</Label>
               <Input
                 id="closingAmount"
                 type="number"
@@ -441,9 +498,43 @@ export default function CashRegisterPage() {
                 required
               />
               <p className="text-sm text-muted-foreground">
-                Count the cash in the register and enter the total amount
+                Count all the cash in the register and enter the total amount
               </p>
             </div>
+
+            {/* Show difference in real-time */}
+            {closeForm.closingAmount && (
+              <Card className={`border-2 ${
+                parseFloat(closeForm.closingAmount) === expectedAmount
+                  ? "border-accent bg-accent/5"
+                  : parseFloat(closeForm.closingAmount) > expectedAmount
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-destructive bg-destructive/5"
+              }`}>
+                <CardContent className="pt-6">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Difference</span>
+                    <span className={`text-2xl font-bold ${
+                      parseFloat(closeForm.closingAmount) === expectedAmount
+                        ? "text-accent"
+                        : parseFloat(closeForm.closingAmount) > expectedAmount
+                        ? "text-blue-600"
+                        : "text-destructive"
+                    }`}>
+                      {parseFloat(closeForm.closingAmount) > expectedAmount ? "+" : ""}
+                      ${(parseFloat(closeForm.closingAmount) - expectedAmount).toFixed(2)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {parseFloat(closeForm.closingAmount) === expectedAmount
+                      ? "✓ Perfect! No difference"
+                      : parseFloat(closeForm.closingAmount) > expectedAmount
+                      ? "↑ Surplus - More cash than expected"
+                      : "↓ Shortage - Less cash than expected"}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="closeNotes">Notes (Optional)</Label>
