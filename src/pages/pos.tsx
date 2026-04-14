@@ -18,6 +18,7 @@ import { productService, type ProductWithDetails } from "@/services/productServi
 import { categoryService, type Category } from "@/services/categoryService";
 import { saleService } from "@/services/saleService";
 import { paymentMethodService, type PaymentMethod } from "@/services/paymentMethodService";
+import { supabase } from "@/integrations/supabase/client";
 import { Search, DollarSign } from "lucide-react";
 
 interface CartItem {
@@ -96,9 +97,34 @@ export default function POSPage() {
         phone: business.phone || undefined,
       });
 
-      // TODO: Get employee_id from employees table based on user_id
-      // For now, we'll need to create an employee record or get it
-      setEmployeeId(session.user.id);
+      // Get employee record for this user
+      const employee = await businessService.getEmployeeByUserId(session.user.id);
+      if (!employee) {
+        // If no employee record exists, create one
+        const { data: newEmployee, error: empError } = await supabase
+          .from("employees")
+          .insert({
+            business_id: business.id,
+            user_id: session.user.id,
+            role: "owner",
+            is_active: true
+          })
+          .select()
+          .single();
+
+        if (empError) {
+          console.error("Error creating employee:", empError);
+          toast({
+            title: "Error",
+            description: "Error al configurar el empleado",
+            variant: "destructive",
+          });
+          return;
+        }
+        setEmployeeId(newEmployee.id);
+      } else {
+        setEmployeeId(employee.id);
+      }
 
       const [categoriesData, productsData, paymentMethodsData] = await Promise.all([
         categoryService.getCategories(business.id),
