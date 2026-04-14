@@ -6,12 +6,12 @@ import { ProductCard } from "@/components/ProductCard";
 import { Cart } from "@/components/Cart";
 import { ProductModal } from "@/components/ProductModal";
 import { TicketPreview } from "@/components/TicketPreview";
+import { PaymentModal } from "@/components/PaymentModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { authService } from "@/services/authService";
 import { businessService } from "@/services/businessService";
@@ -20,7 +20,7 @@ import { categoryService, type Category } from "@/services/categoryService";
 import { saleService } from "@/services/saleService";
 import { paymentMethodService, type PaymentMethod } from "@/services/paymentMethodService";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, DollarSign } from "lucide-react";
+import { Search, AlertCircle, DollarSign } from "lucide-react";
 
 interface CartItem {
   id: string;
@@ -33,6 +33,12 @@ interface CartItem {
   notes?: string;
 }
 
+interface Customer {
+  id: string;
+  name: string;
+  points: number;
+}
+
 export default function POSPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -41,6 +47,7 @@ export default function POSPage() {
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [cashRegisterId, setCashRegisterId] = useState<string | null>(null);
+  const [noCashRegisterDialog, setNoCashRegisterDialog] = useState(false);
   const [taxRate, setTaxRate] = useState(16);
   const [businessData, setBusinessData] = useState<{
     name: string;
@@ -50,6 +57,7 @@ export default function POSPage() {
 
   const [products, setProducts] = useState<ProductWithDetails[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -58,8 +66,6 @@ export default function POSPage() {
   const [productModalOpen, setProductModalOpen] = useState(false);
 
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
   const [processingPayment, setProcessingPayment] = useState(false);
 
   const [ticketPreviewOpen, setTicketPreviewOpen] = useState(false);
@@ -144,23 +150,19 @@ export default function POSPage() {
       if (activeCashRegister) {
         setCashRegisterId(activeCashRegister.id);
       } else {
-        // No active cash register - warn the user
-        toast({
-          title: "Sin turno de caja activo",
-          description: "Abre un turno en 'Corte de Caja' para vincular las ventas",
-          variant: "destructive",
-        });
+        // No active cash register - show blocking dialog
+        setNoCashRegisterDialog(true);
       }
 
-      const [categoriesData, productsData, paymentMethodsData] = await Promise.all([
+      const [categoriesData, productsData, customersData] = await Promise.all([
         categoryService.getCategories(business.id),
         productService.getProducts(business.id),
-        paymentMethodService.getPaymentMethods(business.id),
+        loadCustomers(business.id),
       ]);
 
       setCategories(categoriesData);
       setProducts(productsData);
-      setPaymentMethods(paymentMethodsData);
+      setCustomers(customersData);
     } catch (error) {
       console.error("Error initializing POS:", error);
       toast({
@@ -173,6 +175,25 @@ export default function POSPage() {
     }
   };
 
+  const loadCustomers = async (businessId: string): Promise<Customer[]> => {
+    const { data, error } = await supabase
+      .from("customers")
+      .select("id, name, loyalty_points")
+      .eq("business_id", businessId)
+      .order("name");
+
+    if (error) {
+      console.error("Error loading customers:", error);
+      return [];
+    }
+
+    return (data || []).map(c => ({
+      id: c.id,
+      name: c.name,
+      points: c.loyalty_points || 0,
+    }));
+  };
+
   const filteredProducts = products.filter((product) => {
     const matchesCategory = selectedCategory === "all" || product.category_id === selectedCategory;
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -180,6 +201,14 @@ export default function POSPage() {
   });
 
   const handleProductClick = (product: ProductWithDetails) => {
+    if (!cashRegisterId) {
+      toast({
+        title: "Sin turno activo",
+        description: "Necesitas abrir un turno de caja primero",
+        variant: "destructive",
+      });
+      return;
+    }
     setSelectedProduct(product);
     setProductModalOpen(true);
   };
@@ -220,21 +249,16 @@ export default function POSPage() {
   };
 
   const handleCheckout = () => {
-    if (cartItems.length === 0) return;
-    if (paymentMethods.length === 0) {
-      toast({
-        title: "Sin métodos de pago",
-        description: "Configura métodos de pago en ajustes",
-        variant: "destructive",
-      });
+    if (!cashRegisterId) {
+      setNoCashRegisterDialog(true);
       return;
     }
-    setSelectedPaymentMethod(paymentMethods[0].id);
+    if (cartItems.length === 0) return;
     setPaymentModalOpen(true);
   };
 
-  const handleProcessPayment = async () => {
-    if (!businessId || !employeeId || !selectedPaymentMethod) return;
+  const handleProcessPayment = async (payments: any[], change: number) => {
+    if (!businessId || !employeeId || !cashRegisterId) return;
 
     setProcessingPayment(true);
     try {
@@ -242,16 +266,25 @@ export default function POSPage() {
       const taxAmount = subtotal * (taxRate / 100);
       const total = subtotal + taxAmount;
 
+      // For now, use first payment method or create a default one
+      // In production, you'd handle multiple payments properly
+      const { data: paymentMethods } = await supabase
+        .from("payment_methods")
+        .select("id")
+        .eq("business_id", businessId)
+        .limit(1);
+
+      const paymentMethodId = paymentMethods?.[0]?.id;
+
       const { sale, error } = await saleService.createSale({
         businessId,
         employeeId,
-        cashRegisterId: cashRegisterId || undefined,
-        paymentMethodId: selectedPaymentMethod,
+        cashRegisterId,
+        paymentMethodId,
         subtotal,
         taxAmount,
         total,
         items: cartItems.map((item) => {
-          // Find the product to get extras prices
           const product = products.find((p) => p.id === item.productId);
           const extrasData = item.extras?.map((extraName) => {
             const extra = product?.extras?.find((e) => e.name === extraName);
@@ -283,7 +316,6 @@ export default function POSPage() {
         return;
       }
 
-      // Save completed sale data and show ticket preview
       setCompletedSale({
         saleId: sale!.id,
         date: new Date(),
@@ -303,7 +335,6 @@ export default function POSPage() {
   };
 
   const handleConfirmSale = () => {
-    // Clear cart and reset state
     setCartItems([]);
     setCompletedSale(null);
     setTicketPreviewOpen(false);
@@ -337,10 +368,18 @@ export default function POSPage() {
         <Sidebar />
         
         <main className="flex-1 overflow-y-auto">
+          {!cashRegisterId && (
+            <Alert variant="destructive" className="m-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Sin turno de caja activo</AlertTitle>
+              <AlertDescription>
+                No puedes realizar ventas sin un turno abierto. Ve a "Corte de Caja" para abrir tu turno.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="container mx-auto flex gap-6 p-6">
-            {/* Main Content - Products */}
             <div className="flex-1">
-              {/* Search Bar */}
               <div className="mb-6">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
@@ -349,17 +388,17 @@ export default function POSPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="h-14 pl-10 text-base"
+                    disabled={!cashRegisterId}
                   />
                 </div>
               </div>
 
-              {/* Categories Filter */}
               {categories.length > 0 && (
                 <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-6">
                   <TabsList className="w-full justify-start">
-                    <TabsTrigger value="all">Todos</TabsTrigger>
+                    <TabsTrigger value="all" disabled={!cashRegisterId}>Todos</TabsTrigger>
                     {categories.map((category) => (
-                      <TabsTrigger key={category.id} value={category.id}>
+                      <TabsTrigger key={category.id} value={category.id} disabled={!cashRegisterId}>
                         {category.name}
                       </TabsTrigger>
                     ))}
@@ -367,7 +406,6 @@ export default function POSPage() {
                 </Tabs>
               )}
 
-              {/* Products Grid */}
               <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                 {filteredProducts.map((product) => (
                   <ProductCard
@@ -389,7 +427,6 @@ export default function POSPage() {
               )}
             </div>
 
-            {/* Sidebar - Cart */}
             <div className="w-96">
               <Cart
                 items={cartItems}
@@ -402,6 +439,29 @@ export default function POSPage() {
           </div>
         </main>
       </div>
+
+      {/* No Cash Register Dialog */}
+      <Dialog open={noCashRegisterDialog} onOpenChange={setNoCashRegisterDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Sin Turno de Caja Activo
+            </DialogTitle>
+            <DialogDescription>
+              No puedes realizar ventas sin un turno de caja abierto. Ve al módulo de "Corte de Caja" para abrir tu turno.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNoCashRegisterDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => router.push("/cash-register")}>
+              Ir a Corte de Caja
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Product Configuration Modal */}
       <ProductModal
@@ -431,70 +491,17 @@ export default function POSPage() {
       />
 
       {/* Payment Modal */}
-      <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-accent" />
-              Procesar Pago
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-6">
-            {/* Payment Summary */}
-            <div className="rounded-lg bg-muted/50 p-4">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span className="font-medium">${subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">IVA ({taxRate}%)</span>
-                  <span className="font-medium">${taxAmount.toFixed(2)}</span>
-                </div>
-                <div className="border-t border-border pt-2">
-                  <div className="flex justify-between text-lg">
-                    <span className="font-bold">Total</span>
-                    <span className="font-bold text-primary">${total.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Payment Method Selection */}
-            <div>
-              <Label className="mb-3 block">Método de pago</Label>
-              <RadioGroup value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
-                {paymentMethods.map((method) => (
-                  <div key={method.id} className="flex items-center space-x-2">
-                    <RadioGroupItem value={method.id} id={method.id} />
-                    <Label htmlFor={method.id} className="flex-1 cursor-pointer">
-                      {method.name}
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setPaymentModalOpen(false)}
-              disabled={processingPayment}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleProcessPayment}
-              disabled={!selectedPaymentMethod || processingPayment}
-              className="min-w-32"
-            >
-              {processingPayment ? "Procesando..." : `Cobrar $${total.toFixed(2)}`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PaymentModal
+        open={paymentModalOpen}
+        onOpenChange={setPaymentModalOpen}
+        total={total}
+        subtotal={subtotal}
+        taxAmount={taxAmount}
+        taxRate={taxRate}
+        customers={customers}
+        onConfirm={handleProcessPayment}
+        processing={processingPayment}
+      />
 
       {/* Ticket Preview Modal */}
       {completedSale && businessData && (
@@ -518,9 +525,7 @@ export default function POSPage() {
           taxRate={taxRate}
           taxAmount={taxAmount}
           total={total}
-          paymentMethod={
-            paymentMethods.find((m) => m.id === selectedPaymentMethod)?.name || "Efectivo"
-          }
+          paymentMethod="Mixto"
           date={completedSale.date}
           onConfirm={handleConfirmSale}
         />
