@@ -19,6 +19,7 @@ interface TicketPreviewProps {
   businessName: string;
   businessAddress?: string;
   businessPhone?: string;
+  businessLogo?: string;
   saleId?: string;
   items: TicketItem[];
   subtotal: number;
@@ -38,6 +39,7 @@ export function TicketPreview({
   businessName,
   businessAddress,
   businessPhone,
+  businessLogo,
   saleId,
   items,
   subtotal,
@@ -68,6 +70,7 @@ export function TicketPreview({
     const ticketWidth = printerWidth === "58mm" ? "200px" : "280px";
     const fontSize = printerWidth === "58mm" ? "10px" : "12px";
     const headerFontSize = printerWidth === "58mm" ? "14px" : "16px";
+    const logoSize = printerWidth === "58mm" ? "60px" : "80px";
 
     printWindow.document.write(`
       <html>
@@ -89,6 +92,12 @@ export function TicketPreview({
             .header {
               text-align: center;
               margin-bottom: 10px;
+            }
+            .logo {
+              max-width: ${logoSize};
+              max-height: ${logoSize};
+              margin: 0 auto 8px;
+              display: block;
             }
             .header h2 {
               margin: 0 0 5px 0;
@@ -156,6 +165,13 @@ export function TicketPreview({
           </style>
         </head>
         <body>
+          <div class="header">
+            ${businessLogo ? `<img src="${businessLogo}" alt="Logo" class="logo" />` : ''}
+            <h2>${businessName}</h2>
+            ${businessAddress ? `<p>${businessAddress}</p>` : ''}
+            ${businessPhone ? `<p>${businessPhone}</p>` : ''}
+          </div>
+          <div class="separator"></div>
           ${printContent.innerHTML}
         </body>
       </html>
@@ -190,6 +206,17 @@ export function TicketPreview({
         >
           {/* Header */}
           <div className="text-center mb-3">
+            {businessLogo && (
+              <img
+                src={businessLogo}
+                alt="Logo"
+                className="mx-auto mb-2 object-contain"
+                style={{
+                  maxWidth: printerWidth === "58mm" ? "60px" : "80px",
+                  maxHeight: printerWidth === "58mm" ? "60px" : "80px"
+                }}
+              />
+            )}
             <h2 
               className="font-bold mb-1"
               style={{ fontSize: printerWidth === "58mm" ? "14px" : "16px" }}

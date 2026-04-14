@@ -53,6 +53,10 @@ export default function Settings() {
     phone: "",
     email: ""
   });
+
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   
   const [taxForm, setTaxForm] = useState({
     tax_rate: 0,
@@ -109,6 +113,7 @@ export default function Settings() {
         phone: bizSettings.phone || "",
         email: bizSettings.email || ""
       });
+      setLogoPreview(bizSettings.logo_url || "");
       setTaxForm({
         tax_rate: bizSettings.tax_rate,
         tax_included: bizSettings.tax_included
@@ -135,12 +140,83 @@ export default function Settings() {
     }
   }
 
+  async function handleLogoUpload(file: File) {
+    if (!businessId) return null;
+
+    setUploadingLogo(true);
+    try {
+      // Delete old logo if exists
+      if (logoPreview) {
+        const oldPath = logoPreview.split('/').pop();
+        if (oldPath) {
+          await supabase.storage
+            .from('business-logos')
+            .remove([`${businessId}/${oldPath}`]);
+        }
+      }
+
+      // Upload new logo
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${businessId}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('business-logos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('business-logos')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      toast({
+        title: "Error",
+        description: "Error al subir el logo",
+        variant: "destructive"
+      });
+      return null;
+    } finally {
+      setUploadingLogo(false);
+    }
+  }
+
   async function handleSaveBusinessInfo() {
     if (!businessId) return;
     
     setSaving(true);
     try {
-      await settingsService.updateBusinessInfo(businessId, businessForm);
+      let logoUrl = logoPreview;
+
+      // Upload logo if a new file was selected
+      if (logoFile) {
+        const uploadedUrl = await handleLogoUpload(logoFile);
+        if (uploadedUrl) {
+          logoUrl = uploadedUrl;
+        }
+      }
+
+      // Update business info including logo
+      const { error } = await supabase
+        .from('businesses')
+        .update({
+          name: businessForm.name,
+          address: businessForm.address || null,
+          phone: businessForm.phone || null,
+          email: businessForm.email || null,
+          logo_url: logoUrl || null
+        })
+        .eq('id', businessId);
+
+      if (error) throw error;
+
+      setLogoPreview(logoUrl);
+      setLogoFile(null);
+      
       toast({
         title: "Guardado",
         description: "Información del negocio actualizada"
@@ -486,11 +562,65 @@ export default function Settings() {
                         />
                       </div>
                     </div>
+
+                    <div className="border-t pt-4 mt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="logo">Logo del Negocio</Label>
+                        <div className="flex items-start gap-4">
+                          {logoPreview && (
+                            <div className="flex-shrink-0">
+                              <img
+                                src={logoPreview}
+                                alt="Logo actual"
+                                className="h-24 w-24 object-contain border rounded-lg bg-muted p-2"
+                              />
+                            </div>
+                          )}
+                          <div className="flex-1 space-y-2">
+                            <Input
+                              id="logo"
+                              type="file"
+                              accept="image/png,image/jpeg,image/jpg,image/webp"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setLogoFile(file);
+                                  // Create preview
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    setLogoPreview(reader.result as string);
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                              disabled={uploadingLogo}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              PNG, JPG o WebP. Máximo 2MB. Se mostrará en los tickets de venta.
+                            </p>
+                            {logoPreview && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setLogoPreview("");
+                                  setLogoFile(null);
+                                }}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Quitar Logo
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                     
                     <div className="flex justify-end">
-                      <Button onClick={handleSaveBusinessInfo} disabled={saving}>
+                      <Button onClick={handleSaveBusinessInfo} disabled={saving || uploadingLogo}>
                         <Save className="mr-2 h-4 w-4" />
-                        {saving ? "Guardando..." : "Guardar Cambios"}
+                        {uploadingLogo ? "Subiendo logo..." : saving ? "Guardando..." : "Guardar Cambios"}
                       </Button>
                     </div>
                   </CardContent>
