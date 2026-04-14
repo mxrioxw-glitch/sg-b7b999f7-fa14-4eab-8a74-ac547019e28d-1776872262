@@ -20,7 +20,6 @@ export default function ProfilePage() {
     id: "",
     email: "",
     fullName: "",
-    phone: "",
   });
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -54,7 +53,6 @@ export default function ProfilePage() {
         id: user.id,
         email: user.email || "",
         fullName: profile?.full_name || "",
-        phone: profile?.phone || "",
       });
     } catch (error) {
       console.error("Error:", error);
@@ -72,7 +70,6 @@ export default function ProfilePage() {
         .from("profiles")
         .update({
           full_name: userData.fullName,
-          phone: userData.phone,
         })
         .eq("id", userData.id);
 
@@ -191,7 +188,7 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSaveProfile} className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="fullName">Nombre Completo</Label>
                       <Input
@@ -199,16 +196,6 @@ export default function ProfilePage() {
                         value={userData.fullName}
                         onChange={(e) => setUserData({ ...userData, fullName: e.target.value })}
                         placeholder="Juan Pérez"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Teléfono</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        value={userData.phone}
-                        onChange={(e) => setUserData({ ...userData, phone: e.target.value })}
-                        placeholder="+52 123 456 7890"
                       />
                     </div>
                   </div>

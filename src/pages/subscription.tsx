@@ -94,8 +94,8 @@ export default function SubscriptionPage() {
       setCurrentSubscription(subscription);
 
       // Calculate days remaining
-      if (subscription.end_date) {
-        const endDate = new Date(subscription.end_date);
+      if (subscription.current_period_end) {
+        const endDate = new Date(subscription.current_period_end);
         const now = new Date();
         const diff = endDate.getTime() - now.getTime();
         const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
@@ -110,7 +110,7 @@ export default function SubscriptionPage() {
 
   const getCurrentPlan = () => {
     if (!currentSubscription) return null;
-    return PLANS.find(p => p.id === currentSubscription.plan_type) || PLANS[0];
+    return PLANS.find(p => p.id === currentSubscription.plan) || PLANS[0];
   };
 
   const handleUpgrade = (planId: string) => {
@@ -137,11 +137,11 @@ export default function SubscriptionPage() {
     switch (status) {
       case "active":
         return "Activa";
-      case "trial":
+      case "trialing":
         return "Prueba Gratis";
       case "expired":
         return "Expirada";
-      case "cancelled":
+      case "canceled":
         return "Cancelada";
       default:
         return status;
@@ -163,7 +163,7 @@ export default function SubscriptionPage() {
   }
 
   const currentPlan = getCurrentPlan();
-  const trialProgress = currentSubscription?.status === "trial" 
+  const trialProgress = currentSubscription?.status === "trialing" 
     ? ((7 - daysRemaining) / 7) * 100 
     : 100;
 
@@ -189,7 +189,7 @@ export default function SubscriptionPage() {
                       Plan {currentPlan?.name || "Básico"}
                     </CardTitle>
                     <CardDescription>
-                      {currentSubscription?.status === "trial" 
+                      {currentSubscription?.status === "trialing" 
                         ? "Estás en período de prueba gratuita"
                         : "Tu suscripción actual"}
                     </CardDescription>
@@ -200,7 +200,7 @@ export default function SubscriptionPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {currentSubscription?.status === "trial" && (
+                {currentSubscription?.status === "trialing" && (
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Días restantes de prueba</span>
@@ -229,8 +229,8 @@ export default function SubscriptionPage() {
                     <div>
                       <p className="text-sm text-muted-foreground">Fecha de renovación</p>
                       <p className="font-medium">
-                        {currentSubscription?.end_date 
-                          ? new Date(currentSubscription.end_date).toLocaleDateString("es-MX", {
+                        {currentSubscription?.current_period_end 
+                          ? new Date(currentSubscription.current_period_end).toLocaleDateString("es-MX", {
                               year: "numeric",
                               month: "long",
                               day: "numeric"
