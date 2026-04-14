@@ -70,15 +70,20 @@ export default function POSPage() {
   const [mobileView, setMobileView] = useState<"products" | "cart">("products");
 
   useEffect(() => {
-    checkSubscriptionAndBusiness();
+    loadPOSData();
   }, []);
 
-  async function checkSubscriptionAndBusiness() {
+  async function loadPOSData() {
     try {
+      // Check subscription but don't block - just warn
       const isActive = await subscriptionService.isSubscriptionActive();
       if (!isActive) {
-        router.push("/subscription");
-        return;
+        toast({
+          title: "Suscripción inactiva",
+          description: "Tu período de prueba ha expirado. Por favor, actualiza tu suscripción.",
+          variant: "destructive",
+        });
+        // Don't redirect, just warn
       }
 
       const currentBusiness = await businessService.getCurrentBusiness();
@@ -107,9 +112,20 @@ export default function POSPage() {
   }
 
   async function loadActiveCashRegister(businessId: string) {
-    const registers = await getCashRegisters(businessId);
-    const active = registers.find(r => r.status === "open");
-    setCashRegister(active || null);
+    try {
+      const registers = await getCashRegisters(businessId);
+      const active = registers.find(r => r.status === "open");
+      setCashRegister(active || null);
+      
+      if (!active) {
+        toast({
+          title: "Corte de caja no iniciado",
+          description: "Abre un corte de caja en la sección 'Corte de Caja' antes de realizar ventas",
+        });
+      }
+    } catch (e) {
+      console.error("Error loading cash register:", e);
+    }
   }
 
   async function loadCategories(businessId: string) {
@@ -185,14 +201,22 @@ export default function POSPage() {
   const cartTotal = cartSubtotal + cartTax;
 
   const handlePaymentConfirm = async (payments: any[], change: number) => {
-    if (!business || !cashRegister) return;
+    if (!business) return;
+    
+    // Warn if no cash register but allow sale
+    if (!cashRegister) {
+      toast({
+        title: "Advertencia",
+        description: "No hay un corte de caja abierto. La venta se registrará sin caja.",
+      });
+    }
     
     setProcessingPayment(true);
     try {
       const { sale, error } = await saleService.createSale({
         businessId: business.id,
-        employeeId: cashRegister.employee_id || "",
-        cashRegisterId: cashRegister.id,
+        employeeId: cashRegister?.employee_id || "",
+        cashRegisterId: cashRegister?.id || "",
         customerId: selectedCustomer?.id || undefined,
         subtotal: cartSubtotal,
         taxAmount: cartTax,
@@ -274,7 +298,10 @@ export default function POSPage() {
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className={cn(
+        "flex flex-1 flex-col overflow-hidden transition-all duration-300",
+        isMobileOrTablet ? "ml-16" : ""
+      )}>
         <Header
           businessName={business.name}
           userName={business.name}
@@ -372,11 +399,6 @@ export default function POSPage() {
                 onRemoveItem={removeFromCart}
                 onCheckout={() => {
                   if (cart.length === 0) return;
-                  if (!cashRegister) {
-                    toast({ title: "Corte de caja requerido", description: "Abre caja primero", variant: "destructive" });
-                    router.push("/cash-register");
-                    return;
-                  }
                   setShowPayment(true);
                 }}
                 className="flex-1 border-none shadow-none rounded-none"
@@ -417,7 +439,7 @@ export default function POSPage() {
         />
       )}
 
-      {showPayment && business && cashRegister && (
+      {showPayment && business && (
         <PaymentModal
           open={showPayment}
           onOpenChange={setShowPayment}
