@@ -20,7 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit, Trash2, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";
+import { Plus, Search, Edit, Trash2, AlertTriangle, TrendingUp, TrendingDown, History } from "lucide-react";
 import {
   getInventoryItems,
   getLowStockItems,
@@ -174,10 +174,16 @@ export default function InventoryPage() {
                     {filteredItems.length} insumos en inventario
                   </CardDescription>
                 </div>
-                <Button onClick={() => setIsModalOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nuevo Insumo
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => router.push("/inventory/kardex")}>
+                    <History className="w-4 h-4 mr-2" />
+                    Ver Kardex
+                  </Button>
+                  <Button onClick={() => setIsModalOpen(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nuevo Insumo
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>

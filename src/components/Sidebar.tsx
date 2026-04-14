@@ -2,14 +2,14 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { cn } from "@/lib/utils";
 import {
+  Home,
   ShoppingCart,
   Package,
+  Warehouse,
   Users,
-  BarChart3,
-  DollarSign,
   Settings,
-  Box,
-  Receipt,
+  BarChart3,
+  LogOut,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -17,13 +17,13 @@ interface SidebarProps {
 }
 
 const menuItems = [
-  { href: "/pos", icon: ShoppingCart, label: "Ventas", badge: null },
-  { href: "/products", icon: Package, label: "Productos", badge: null },
-  { href: "/inventory", icon: Box, label: "Inventario", badge: "3" },
-  { href: "/customers", icon: Users, label: "Clientes", badge: null },
-  { href: "/cash-register", icon: DollarSign, label: "Corte de Caja", badge: null },
-  { href: "/reports", icon: BarChart3, label: "Reportes", badge: null },
-  { href: "/settings", icon: Settings, label: "Configuración", badge: null },
+  { icon: Home, label: "Dashboard", path: "/dashboard" },
+  { icon: ShoppingCart, label: "Punto de Venta", path: "/pos" },
+  { icon: Package, label: "Productos", path: "/products" },
+  { icon: Warehouse, label: "Inventario", path: "/inventory" },
+  { icon: Users, label: "Clientes", path: "/customers" },
+  { icon: BarChart3, label: "Reportes", path: "/reports" },
+  { icon: Settings, label: "Configuración", path: "/settings" },
 ];
 
 export function Sidebar({ className }: SidebarProps) {
@@ -33,13 +33,13 @@ export function Sidebar({ className }: SidebarProps) {
     <aside className={cn("flex h-full w-64 flex-col border-r border-border bg-card", className)}>
       <nav className="flex-1 space-y-1 p-4">
         {menuItems.map((item) => {
-          const isActive = router.pathname === item.href;
+          const isActive = router.pathname === item.path;
           const Icon = item.icon;
 
           return (
             <Link
-              key={item.href}
-              href={item.href}
+              key={item.path}
+              href={item.path}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-all hover:bg-accent/50",
                 isActive
@@ -49,11 +49,6 @@ export function Sidebar({ className }: SidebarProps) {
             >
               <Icon className="h-5 w-5" />
               <span className="flex-1">{item.label}</span>
-              {item.badge && (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
-                  {item.badge}
-                </span>
-              )}
             </Link>
           );
         })}

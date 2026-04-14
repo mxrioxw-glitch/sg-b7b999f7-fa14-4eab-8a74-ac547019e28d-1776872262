@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { deductInventoryForSale } from "./inventoryService";
 
 export type Sale = Tables<"sales">;
 export type SaleItem = Tables<"sale_items">;
@@ -96,6 +97,21 @@ export const saleService = {
             console.error("Error creating sale item extras:", extrasError);
           }
         }
+      }
+
+      // Auto-deduct inventory
+      try {
+        await deductInventoryForSale(
+          saleData.businessId,
+          sale.id,
+          saleData.items.map((item) => ({
+            product_id: item.productId,
+            quantity: item.quantity,
+          }))
+        );
+      } catch (invError) {
+        console.error("Error deducting inventory:", invError);
+        // Don't fail the sale if inventory deduction fails
       }
 
       return { sale, error: null };
