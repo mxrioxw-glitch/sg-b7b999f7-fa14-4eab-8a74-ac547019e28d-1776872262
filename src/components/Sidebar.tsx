@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Home, ShoppingCart, Package, Users, DollarSign, Settings, BarChart3 } from "lucide-react";
 
-export default function Sidebar() {
+export function Sidebar() {
   const menuItems = [
     { href: "/", icon: Home, label: "Inicio" },
     { href: "/dashboard", icon: BarChart3, label: "Dashboard" },
