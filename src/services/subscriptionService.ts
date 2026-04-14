@@ -49,7 +49,7 @@ export const subscriptionService = {
       .from("businesses")
       .select("id")
       .eq("owner_id", user.id)
-      .single();
+      .maybeSingle();
 
     if (!business) return null;
 
@@ -57,7 +57,7 @@ export const subscriptionService = {
       .from("subscriptions")
       .select("*")
       .eq("business_id", business.id)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("Error fetching subscription:", error);

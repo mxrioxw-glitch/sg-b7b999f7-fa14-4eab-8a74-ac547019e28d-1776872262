@@ -84,10 +84,39 @@ export default function SubscriptionPage() {
         .from("subscriptions")
         .select("*")
         .eq("business_id", business.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error("Error loading subscription:", error);
+        return;
+      }
+
+      // If no subscription exists, create a trial subscription
+      if (!subscription) {
+        const trialEnd = new Date();
+        trialEnd.setDate(trialEnd.getDate() + 7); // 7 days trial
+
+        const { data: newSubscription, error: createError } = await supabase
+          .from("subscriptions")
+          .insert({
+            business_id: business.id,
+            plan: "premium", // Full access during trial
+            status: "trialing",
+            current_period_start: new Date().toISOString(),
+            current_period_end: trialEnd.toISOString(),
+            trial_start: new Date().toISOString(),
+            trial_end: trialEnd.toISOString(),
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error("Error creating trial subscription:", createError);
+          return;
+        }
+
+        setCurrentSubscription(newSubscription);
+        setDaysRemaining(7);
         return;
       }
 
