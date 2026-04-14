@@ -221,7 +221,7 @@ export async function getInventoryMovements(
     throw error;
   }
 
-  return data || [];
+  return (data || []) as unknown as InventoryMovement[];
 }
 
 // Deduct inventory for a sale (auto-deduct)
