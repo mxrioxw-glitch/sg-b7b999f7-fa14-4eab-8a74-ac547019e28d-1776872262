@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import { Header } from "@/components/Header";
@@ -54,7 +53,10 @@ export default function CashRegisterPage() {
   async function loadData() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        router.push("/auth/login");
+        return;
+      }
 
       const business = await businessService.getBusinessByOwnerId(user.id);
       if (!business) {
@@ -586,13 +588,3 @@ export default function CashRegisterPage() {
     </>
   );
 }
-
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const authResult = await requireAuth(context);
-  if ("redirect" in authResult) return authResult;
-
-  const subscriptionResult = await requireActiveSubscription(context);
-  if ("redirect" in subscriptionResult) return subscriptionResult;
-
-  return { props: {} };
-};

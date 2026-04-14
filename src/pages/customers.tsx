@@ -46,7 +46,10 @@ export default function Customers() {
   async function loadData() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        router.push("/auth/login");
+        return;
+      }
 
       const business = await businessService.getBusinessByOwnerId(user.id);
       if (!business) {
@@ -360,13 +363,3 @@ export default function Customers() {
     </>
   );
 }
-
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const authResult = await requireAuth(context);
-  if ("redirect" in authResult) return authResult;
-
-  const subscriptionResult = await requireActiveSubscription(context);
-  if ("redirect" in subscriptionResult) return subscriptionResult;
-
-  return { props: {} };
-};

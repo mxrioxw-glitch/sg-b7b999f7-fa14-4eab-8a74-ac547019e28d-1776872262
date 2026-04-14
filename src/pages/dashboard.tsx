@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { GetServerSideProps } from "next";
+import { useRouter } from "next/router";
 import Head from "next/head";
 import { Calendar, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Package, Download } from "lucide-react";
 import {
@@ -19,19 +19,44 @@ import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { getDashboardMetrics, type DashboardMetrics } from "@/services/dashboardService";
 import { businessService } from "@/services/businessService";
-import { requireAuth } from "@/middleware/auth";
-import { requireActiveSubscription } from "@/middleware/subscription";
+import { supabase } from "@/integrations/supabase/client";
 
-type Props = {
-  initialMetrics: DashboardMetrics;
-  businessId: string;
-};
-
-export default function Dashboard({ initialMetrics, businessId }: Props) {
-  const [metrics, setMetrics] = useState<DashboardMetrics>(initialMetrics);
-  const [loading, setLoading] = useState(false);
+export default function Dashboard() {
+  const router = useRouter();
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [businessId, setBusinessId] = useState<string>("");
+  const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  const loadInitialData = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/auth/login");
+        return;
+      }
+
+      const business = await businessService.getBusinessByOwnerId(user.id);
+      if (!business) {
+        router.push("/");
+        return;
+      }
+
+      setBusinessId(business.id);
+      const data = await getDashboardMetrics(business.id);
+      setMetrics(data);
+    } catch (error) {
+      console.error("Error loading initial data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadMetrics = async () => {
     setLoading(true);
@@ -48,7 +73,7 @@ export default function Dashboard({ initialMetrics, businessId }: Props) {
   };
 
   const handleFilter = () => {
-    if (startDate && endDate) {
+    if (startDate && endDate && businessId) {
       loadMetrics();
     }
   };
@@ -56,19 +81,33 @@ export default function Dashboard({ initialMetrics, businessId }: Props) {
   const handleReset = () => {
     setStartDate("");
     setEndDate("");
-    setMetrics(initialMetrics);
+    if (businessId) {
+      loadInitialData();
+    }
   };
 
   const handlePrint = () => {
     window.print();
   };
 
+  if (loading && !metrics) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Cargando dashboard...</p>
+      </div>
+    );
+  }
+
+  if (!metrics) return null;
+
   const percentageChange =
     metrics.previousMonthSales > 0
       ? ((metrics.monthSales - metrics.previousMonthSales) / metrics.previousMonthSales) * 100
       : 0;
 
-  const maxHourSales = Math.max(...metrics.salesByHour.map((h) => h.total), 1);
+  const maxHourSales = metrics.salesByHour.length > 0 
+    ? Math.max(...metrics.salesByHour.map((h) => h.total), 1) 
+    : 1;
 
   return (
     <>
@@ -296,30 +335,3 @@ export default function Dashboard({ initialMetrics, businessId }: Props) {
     </>
   );
 }
-
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const authResult = await requireAuth(context);
-  if ("redirect" in authResult) return authResult;
-
-  const subscriptionResult = await requireActiveSubscription(context);
-  if ("redirect" in subscriptionResult) return subscriptionResult;
-
-  try {
-    const business = await businessService.getBusinessByOwnerId(authResult.props.user.id);
-    if (!business) {
-      return { redirect: { destination: "/", permanent: false } };
-    }
-
-    const metrics = await getDashboardMetrics(business.id);
-
-    return {
-      props: {
-        initialMetrics: metrics,
-        businessId: business.id,
-      },
-    };
-  } catch (error) {
-    console.error("Dashboard error:", error);
-    return { redirect: { destination: "/", permanent: false } };
-  }
-};

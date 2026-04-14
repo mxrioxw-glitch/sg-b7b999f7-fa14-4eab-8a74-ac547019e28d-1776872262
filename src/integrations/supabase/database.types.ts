@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -697,6 +697,7 @@ export type Database = {
           employee_id: string
           id: string
           notes: string | null
+          payment_method_id: string | null
           status: Database["public"]["Enums"]["sale_status"]
           subtotal: number
           tax_amount: number | null
@@ -710,6 +711,7 @@ export type Database = {
           employee_id: string
           id?: string
           notes?: string | null
+          payment_method_id?: string | null
           status?: Database["public"]["Enums"]["sale_status"]
           subtotal: number
           tax_amount?: number | null
@@ -723,6 +725,7 @@ export type Database = {
           employee_id?: string
           id?: string
           notes?: string | null
+          payment_method_id?: string | null
           status?: Database["public"]["Enums"]["sale_status"]
           subtotal?: number
           tax_amount?: number | null
@@ -755,6 +758,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
             referencedColumns: ["id"]
           },
         ]
