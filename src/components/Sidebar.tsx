@@ -10,6 +10,7 @@ import {
   Settings,
   BarChart3,
   LogOut,
+  DollarSign,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -22,6 +23,7 @@ const menuItems = [
   { icon: Package, label: "Productos", path: "/products" },
   { icon: Warehouse, label: "Inventario", path: "/inventory" },
   { icon: Users, label: "Clientes", path: "/customers" },
+  { icon: DollarSign, label: "Caja", path: "/cash-register" },
   { icon: BarChart3, label: "Reportes", path: "/reports" },
   { icon: Settings, label: "Configuración", path: "/settings" },
 ];

@@ -1,6 +1,6 @@
 ---
 title: Customers & Cash Register
-status: in_progress
+status: done
 priority: medium
 type: feature
 tags:
@@ -20,10 +20,10 @@ Gestión de clientes con historial de compras y sistema de corte de caja por tur
 - [x] Modal crear/editar cliente (nombre, contacto, notas)
 - [x] Vista detalle cliente con historial de compras
 - [x] Sistema básico de fidelización (puntos o descuentos)
-- [ ] Crear página /cash-register (corte de caja)
-- [ ] Apertura de caja (monto inicial, turno)
-- [ ] Registro automático de ventas del turno
-- [ ] Cierre de caja (contar efectivo, diferencias)
-- [ ] Historial de cortes con filtros por fecha/empleado
-- [ ] Reporte de arqueo detallado
+- [x] Crear página /cash-register (corte de caja)
+- [x] Apertura de caja (monto inicial, turno)
+- [x] Registro automático de ventas del turno
+- [x] Cierre de caja (contar efectivo, diferencias)
+- [x] Historial de cortes con filtros por fecha/empleado
+- [x] Reporte de arqueo detallado
 ---TA
