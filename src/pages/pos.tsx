@@ -40,6 +40,7 @@ export default function POSPage() {
   const [loading, setLoading] = useState(true);
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [employeeId, setEmployeeId] = useState<string | null>(null);
+  const [cashRegisterId, setCashRegisterId] = useState<string | null>(null);
   const [taxRate, setTaxRate] = useState(16);
   const [businessData, setBusinessData] = useState<{
     name: string;
@@ -125,6 +126,30 @@ export default function POSPage() {
         setEmployeeId(newEmployee.id);
       } else {
         setEmployeeId(employee.id);
+      }
+
+      // Get active cash register for this employee
+      const { data: activeCashRegister, error: cashRegError } = await supabase
+        .from("cash_registers")
+        .select("id")
+        .eq("business_id", business.id)
+        .eq("employee_id", employee?.id || session.user.id)
+        .eq("status", "open")
+        .maybeSingle();
+
+      if (cashRegError) {
+        console.error("Error fetching active cash register:", cashRegError);
+      }
+
+      if (activeCashRegister) {
+        setCashRegisterId(activeCashRegister.id);
+      } else {
+        // No active cash register - warn the user
+        toast({
+          title: "Sin turno de caja activo",
+          description: "Abre un turno en 'Corte de Caja' para vincular las ventas",
+          variant: "destructive",
+        });
       }
 
       const [categoriesData, productsData, paymentMethodsData] = await Promise.all([
@@ -220,6 +245,7 @@ export default function POSPage() {
       const { sale, error } = await saleService.createSale({
         businessId,
         employeeId,
+        cashRegisterId: cashRegisterId || undefined,
         paymentMethodId: selectedPaymentMethod,
         subtotal,
         taxAmount,
