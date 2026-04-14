@@ -59,14 +59,14 @@ export default function POSPage() {
 
   const initializePOS = async () => {
     try {
-      const session = await authService.getSession();
+      const session = await authService.getCurrentSession();
       if (!session) {
         router.push("/auth/login");
         return;
       }
 
-      const businesses = await businessService.getBusinesses(session.user.id);
-      if (businesses.length === 0) {
+      const business = await businessService.getBusinessByOwnerId(session.user.id);
+      if (!business) {
         toast({
           title: "No hay negocios",
           description: "Necesitas crear un negocio primero",
@@ -76,7 +76,6 @@ export default function POSPage() {
         return;
       }
 
-      const business = businesses[0];
       setBusinessId(business.id);
       setTaxRate(Number(business.tax_rate) || 16);
 
