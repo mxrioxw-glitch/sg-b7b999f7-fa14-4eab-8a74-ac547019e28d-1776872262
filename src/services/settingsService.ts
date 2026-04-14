@@ -17,6 +17,7 @@ export interface BusinessSettings {
   primary_color: string;
   secondary_color: string;
   accent_color: string;
+  printer_width: string;
 }
 
 export const settingsService = {
@@ -44,7 +45,8 @@ export const settingsService = {
       pos_name: data.pos_name || "POS System",
       primary_color: data.primary_color || "#2A1810",
       secondary_color: data.secondary_color || "#4A3228",
-      accent_color: data.accent_color || "#4A9C64"
+      accent_color: data.accent_color || "#4A9C64",
+      printer_width: data.printer_width || "80mm"
     };
   },
 
