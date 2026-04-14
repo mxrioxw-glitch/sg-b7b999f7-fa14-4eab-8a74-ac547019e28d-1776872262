@@ -769,6 +769,51 @@ export type Database = {
           },
         ]
       }
+      subscription_plans: {
+        Row: {
+          created_at: string | null
+          features: Json
+          id: string
+          is_active: boolean
+          max_branches: number
+          max_employees: number
+          max_products: number
+          name: string
+          price_monthly: number
+          price_yearly: number
+          sort_order: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          features?: Json
+          id: string
+          is_active?: boolean
+          max_branches?: number
+          max_employees?: number
+          max_products?: number
+          name: string
+          price_monthly: number
+          price_yearly: number
+          sort_order?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          max_branches?: number
+          max_employees?: number
+          max_products?: number
+          name?: string
+          price_monthly?: number
+          price_yearly?: number
+          sort_order?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           business_id: string
