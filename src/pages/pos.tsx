@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Header } from "@/components/Header";
+import { Sidebar } from "@/components/Sidebar";
 import { ProductCard } from "@/components/ProductCard";
 import { Cart } from "@/components/Cart";
 import { ProductModal } from "@/components/ProductModal";
@@ -303,71 +304,77 @@ export default function POSPage() {
   const total = subtotal + taxAmount;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
       
-      <div className="container mx-auto flex gap-6 p-6">
-        {/* Main Content - Products */}
-        <div className="flex-1">
-          {/* Search Bar */}
-          <div className="mb-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar productos..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-14 pl-10 text-base"
-              />
-            </div>
-          </div>
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        
+        <main className="flex-1 overflow-y-auto">
+          <div className="container mx-auto flex gap-6 p-6">
+            {/* Main Content - Products */}
+            <div className="flex-1">
+              {/* Search Bar */}
+              <div className="mb-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar productos..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-14 pl-10 text-base"
+                  />
+                </div>
+              </div>
 
-          {/* Categories Filter */}
-          {categories.length > 0 && (
-            <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-6">
-              <TabsList className="w-full justify-start">
-                <TabsTrigger value="all">Todos</TabsTrigger>
-                {categories.map((category) => (
-                  <TabsTrigger key={category.id} value={category.id}>
-                    {category.name}
-                  </TabsTrigger>
+              {/* Categories Filter */}
+              {categories.length > 0 && (
+                <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-6">
+                  <TabsList className="w-full justify-start">
+                    <TabsTrigger value="all">Todos</TabsTrigger>
+                    {categories.map((category) => (
+                      <TabsTrigger key={category.id} value={category.id}>
+                        {category.name}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
+              )}
+
+              {/* Products Grid */}
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                {filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    id={product.id}
+                    name={product.name}
+                    price={Number(product.base_price)}
+                    category={product.category?.name || "Sin categoría"}
+                    image={product.image_url || undefined}
+                    onClick={() => handleProductClick(product)}
+                  />
                 ))}
-              </TabsList>
-            </Tabs>
-          )}
+              </div>
 
-          {/* Products Grid */}
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {filteredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                id={product.id}
-                name={product.name}
-                price={Number(product.base_price)}
-                category={product.category?.name || "Sin categoría"}
-                image={product.image_url || undefined}
-                onClick={() => handleProductClick(product)}
-              />
-            ))}
-          </div>
-
-          {filteredProducts.length === 0 && (
-            <div className="py-12 text-center">
-              <p className="text-muted-foreground">No se encontraron productos</p>
+              {filteredProducts.length === 0 && (
+                <div className="py-12 text-center">
+                  <p className="text-muted-foreground">No se encontraron productos</p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Sidebar - Cart */}
-        <div className="w-96">
-          <Cart
-            items={cartItems}
-            taxRate={taxRate}
-            onUpdateQuantity={handleUpdateQuantity}
-            onRemoveItem={handleRemoveItem}
-            onCheckout={handleCheckout}
-          />
-        </div>
+            {/* Sidebar - Cart */}
+            <div className="w-96">
+              <Cart
+                items={cartItems}
+                taxRate={taxRate}
+                onUpdateQuantity={handleUpdateQuantity}
+                onRemoveItem={handleRemoveItem}
+                onCheckout={handleCheckout}
+              />
+            </div>
+          </div>
+        </main>
       </div>
 
       {/* Product Configuration Modal */}
