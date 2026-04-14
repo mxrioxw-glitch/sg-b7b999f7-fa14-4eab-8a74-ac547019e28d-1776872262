@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { ProductCard } from "@/components/ProductCard";
@@ -9,8 +10,13 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingScreen } from "@/components/ui/loading";
 import { productService, type ProductWithDetails } from "@/services/productService";
 import { categoryService, type Category } from "@/services/categoryService";
+import { businessService } from "@/services/businessService";
+import { subscriptionService } from "@/services/subscriptionService";
+import { supabase } from "@/integrations/supabase/client";
 import { Search, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 
 const DEMO_BUSINESS_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -26,6 +32,7 @@ interface CartItem {
 }
 
 export default function POSPage() {
+  const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<ProductWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +41,84 @@ export default function POSPage() {
   const [selectedProduct, setSelectedProduct] = useState<ProductWithDetails | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [needsBusinessSetup, setNeedsBusinessSetup] = useState(false);
+  const [businessName, setBusinessName] = useState("");
+  const [settingUpBusiness, setSettingUpBusiness] = useState(false);
+
+  useEffect(() => {
+    checkAuthAndBusiness();
+  }, []);
+
+  const checkAuthAndBusiness = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        router.push("/auth/login");
+        return;
+      }
+
+      // Check if user has a business
+      const business = await businessService.getBusinessByOwnerId(user.id);
+      
+      if (!business) {
+        setNeedsBusinessSetup(true);
+        setLoading(false);
+        return;
+      }
+
+      // Load data normally
+      loadData();
+    } catch (error) {
+      console.error("Error checking auth/business:", error);
+      setLoading(false);
+    }
+  };
+
+  const handleBusinessSetup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!businessName.trim()) return;
+
+    setSettingUpBusiness(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Create business
+      const { business, error } = await businessService.createBusiness({
+        name: businessName,
+        email: user.email || ""
+      });
+
+      if (error || !business) {
+        alert("Error al crear el negocio. Por favor intenta de nuevo.");
+        setSettingUpBusiness(false);
+        return;
+      }
+
+      // Create employee record
+      await supabase
+        .from("employees")
+        .insert({
+          business_id: business.id,
+          user_id: user.id,
+          role: "owner",
+          is_active: true
+        });
+
+      // Create trial subscription
+      await subscriptionService.createTrialSubscription(business.id);
+
+      // Reload page
+      setNeedsBusinessSetup(false);
+      loadData();
+    } catch (error) {
+      console.error("Error setting up business:", error);
+      alert("Error inesperado. Por favor intenta de nuevo.");
+      setSettingUpBusiness(false);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -51,10 +136,6 @@ export default function POSPage() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    loadData();
-  }, []);
 
   const filteredProducts = products.filter((product) => {
     const matchesCategory = selectedCategory === "all" || product.category_id === selectedCategory;
@@ -92,6 +173,43 @@ export default function POSPage() {
 
   if (loading) {
     return <LoadingScreen />;
+  }
+
+  if (needsBusinessSetup) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Configuración inicial</CardTitle>
+            <CardDescription>
+              Para empezar a usar el sistema POS, necesitas configurar tu negocio.
+            </CardDescription>
+          </CardHeader>
+          <form onSubmit={handleBusinessSetup}>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="businessName">Nombre del negocio</Label>
+                <Input
+                  id="businessName"
+                  placeholder="Mi Cafetería"
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  required
+                  disabled={settingUpBusiness}
+                />
+              </div>
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={settingUpBusiness || !businessName.trim()}
+              >
+                {settingUpBusiness ? "Configurando..." : "Continuar"}
+              </Button>
+            </CardContent>
+          </form>
+        </Card>
+      </div>
+    );
   }
 
   return (

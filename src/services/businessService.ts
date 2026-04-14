@@ -10,7 +10,7 @@ export const businessService = {
       .from("businesses")
       .select("*")
       .eq("owner_id", ownerId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("Error fetching business:", error);
@@ -28,7 +28,7 @@ export const businessService = {
       .from("businesses")
       .select("*")
       .eq("owner_id", user.id)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("Error fetching business:", error);
