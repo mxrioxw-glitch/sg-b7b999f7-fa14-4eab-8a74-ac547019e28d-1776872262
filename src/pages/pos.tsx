@@ -215,8 +215,8 @@ export default function POSPage() {
     try {
       const { sale, error } = await saleService.createSale({
         businessId: business.id,
-        employeeId: cashRegister?.employee_id || "",
-        cashRegisterId: cashRegister?.id || "",
+        employeeId: cashRegister?.employee_id || undefined,
+        cashRegisterId: cashRegister?.id || undefined,
         customerId: selectedCustomer?.id || undefined,
         subtotal: cartSubtotal,
         taxAmount: cartTax,

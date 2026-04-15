@@ -39,20 +39,30 @@ export interface CreateSaleData {
 export const saleService = {
   async createSale(saleData: CreateSaleData): Promise<{ sale: Sale | null; error: string | null }> {
     try {
-      // Create the sale
+      // Create the sale - only include UUID fields if they have valid values
+      const saleInsertData: any = {
+        business_id: saleData.businessId,
+        subtotal: saleData.subtotal,
+        tax_amount: saleData.taxAmount,
+        total: saleData.total,
+        notes: saleData.notes,
+        status: "completed",
+      };
+
+      // Only add UUID fields if they have valid values
+      if (saleData.employeeId) {
+        saleInsertData.employee_id = saleData.employeeId;
+      }
+      if (saleData.customerId) {
+        saleInsertData.customer_id = saleData.customerId;
+      }
+      if (saleData.cashRegisterId) {
+        saleInsertData.cash_register_id = saleData.cashRegisterId;
+      }
+
       const { data: sale, error: saleError } = await supabase
         .from("sales")
-        .insert({
-          business_id: saleData.businessId,
-          employee_id: saleData.employeeId,
-          customer_id: saleData.customerId,
-          cash_register_id: saleData.cashRegisterId,
-          subtotal: saleData.subtotal,
-          tax_amount: saleData.taxAmount,
-          total: saleData.total,
-          notes: saleData.notes,
-          status: "completed",
-        })
+        .insert(saleInsertData)
         .select()
         .single();
 
