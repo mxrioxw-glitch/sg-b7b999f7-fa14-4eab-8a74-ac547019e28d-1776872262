@@ -237,9 +237,9 @@ export default function ProductsPage() {
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
                       <h3 className="font-semibold text-foreground line-clamp-1">{product.name}</h3>
-                      {product.category && (
+                      {(product as any).category && (
                         <p className="text-xs text-muted-foreground">
-                          {product.category.icon} {product.category.name}
+                          {(product as any).category.icon} {(product as any).category.name}
                         </p>
                       )}
                     </div>
@@ -307,9 +307,12 @@ export default function ProductsPage() {
           </DialogHeader>
           <ProductForm
             product={editingProduct}
+            categories={categories}
             businessId={businessId}
-            onSave={handleProductSaved}
-            onCancel={() => setIsModalOpen(false)}
+            onClose={() => {
+              setIsModalOpen(false);
+              loadProducts(businessId);
+            }}
           />
         </DialogContent>
       </Dialog>
@@ -322,8 +325,8 @@ export default function ProductsPage() {
           </DialogHeader>
           <CategoryManager
             businessId={businessId}
-            onClose={() => {
-              setShowCategoryManager(false);
+            categories={categories}
+            onRefresh={() => {
               loadCategories(businessId);
             }}
           />

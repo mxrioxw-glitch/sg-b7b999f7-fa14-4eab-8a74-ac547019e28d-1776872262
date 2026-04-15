@@ -48,6 +48,10 @@ export default function Settings() {
   const [employees, setEmployees] = useState<EmployeeWithUser[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   
+  const [activeTab, setActiveTab] = useState("business");
+  const [editingEmployee, setEditingEmployee] = useState<any>(null);
+  const [employeeDialogOpen, setEmployeeDialogOpen] = useState(false);
+  
   // Form states
   const [businessForm, setBusinessForm] = useState({
     name: "",
