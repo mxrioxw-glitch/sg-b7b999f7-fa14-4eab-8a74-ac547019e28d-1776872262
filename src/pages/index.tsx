@@ -54,6 +54,7 @@ interface LowStockItem {
 export default function HomePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [businessName, setBusinessName] = useState("");
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
@@ -231,13 +232,14 @@ export default function HomePage() {
       </Head>
 
       <div className="flex min-h-screen bg-background">
-        <Sidebar />
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 flex flex-col">
           <Header 
             businessName={businessName}
             userName={userName}
             userEmail={userEmail}
             planName={planName}
+            onMenuClick={() => setSidebarOpen(true)}
           />
 
           <main className="flex-1 p-8 space-y-8">

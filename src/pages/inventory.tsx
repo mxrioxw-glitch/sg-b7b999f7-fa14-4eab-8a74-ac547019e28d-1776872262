@@ -50,6 +50,7 @@ import { requireActiveSubscription } from "@/middleware/subscription";
 export default function InventoryPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,9 +143,9 @@ export default function InventoryPage() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1">
-        <Header />
+        <Header onMenuClick={() => setSidebarOpen(true)} />
         <main className="p-8">
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-foreground mb-2">

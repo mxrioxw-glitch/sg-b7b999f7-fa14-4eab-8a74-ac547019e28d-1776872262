@@ -48,6 +48,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function ProductsPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,9 +133,9 @@ export default function ProductsPage() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1">
-        <Header />
+        <Header onMenuClick={() => setSidebarOpen(true)} />
         <main className="p-8">
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-foreground mb-2">

@@ -38,6 +38,7 @@ type PaymentMethod = Database["public"]["Tables"]["payment_methods"]["Row"];
 export default function Settings() {
   const router = useRouter();
   const { toast } = useToast();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -471,10 +472,10 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
-      <div className="flex">
-        <Sidebar />
+      <div className="flex-1 flex flex-col">
+        <Header onMenuClick={() => setSidebarOpen(true)} />
         
         <main className="flex-1 overflow-y-auto">
           <div className="container mx-auto px-4 py-8">

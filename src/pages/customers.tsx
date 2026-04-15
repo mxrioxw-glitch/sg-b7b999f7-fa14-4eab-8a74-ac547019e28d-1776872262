@@ -22,6 +22,7 @@ import type { GetServerSideProps } from "next";
 export default function Customers() {
   const router = useRouter();
   const { toast } = useToast();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,9 +163,9 @@ export default function Customers() {
       </Head>
 
       <div className="min-h-screen bg-background">
-        <Header />
-        <div className="flex">
-          <Sidebar />
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <div className="flex-1 flex flex-col">
+          <Header onMenuClick={() => setSidebarOpen(true)} />
           <main className="flex-1 p-8">
             <div className="max-w-7xl mx-auto space-y-8">
               <div className="flex justify-between items-center">

@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export default function Dashboard() {
   const router = useRouter();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [businessId, setBusinessId] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -116,13 +117,9 @@ export default function Dashboard() {
       </Head>
 
       <div className="flex h-screen bg-background">
-        <div className="print:hidden">
-          <Sidebar />
-        </div>
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="print:hidden">
-            <Header />
-          </div>
+          <Header onMenuClick={() => setSidebarOpen(true)} />
 
           <main className="flex-1 overflow-y-auto p-6 print:p-0 print:overflow-visible">
             {/* Filters */}
