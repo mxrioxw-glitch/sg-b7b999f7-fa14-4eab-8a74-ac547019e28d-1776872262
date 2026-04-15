@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import Head from "next/head";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
+import { FeatureGuard } from "@/components/FeatureGuard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -166,95 +167,97 @@ export default function Customers() {
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 flex flex-col">
           <Header onMenuClick={() => setSidebarOpen(true)} />
-          <main className="flex-1 p-8">
-            <div className="max-w-7xl mx-auto space-y-8">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h1 className="text-3xl font-bold text-foreground">Customers</h1>
-                  <p className="text-muted-foreground mt-2">Manage your customer database</p>
+          <FeatureGuard feature="customers">
+            <main className="flex-1 p-8">
+              <div className="max-w-7xl mx-auto space-y-8">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h1 className="text-3xl font-bold text-foreground">Customers</h1>
+                    <p className="text-muted-foreground mt-2">Manage your customer database</p>
+                  </div>
+                  <Button onClick={() => { setSelectedCustomer(null); setFormOpen(true); }} size="lg">
+                    <Plus className="h-5 w-5 mr-2" />
+                    New Customer
+                  </Button>
                 </div>
-                <Button onClick={() => { setSelectedCustomer(null); setFormOpen(true); }} size="lg">
-                  <Plus className="h-5 w-5 mr-2" />
-                  New Customer
-                </Button>
-              </div>
 
-              <div className="flex gap-4 items-center">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by name, email, or phone..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+                <div className="flex gap-4 items-center">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name, email, or phone..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="grid gap-4">
-                {filteredCustomers.length === 0 ? (
-                  <Card>
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                      <p className="text-muted-foreground">
-                        {searchTerm ? "No customers found matching your search" : "No customers yet"}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  filteredCustomers.map((customer) => (
-                    <Card key={customer.id} className="hover:shadow-md transition-shadow">
-                      <CardContent className="p-6">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3">
-                              <h3 className="text-xl font-semibold">{customer.name}</h3>
-                              {customer.loyalty_points && customer.loyalty_points > 0 && (
-                                <Badge variant="secondary" className="flex items-center gap-1">
-                                  <Star className="h-3 w-3" />
-                                  {customer.loyalty_points} points
-                                </Badge>
-                              )}
-                            </div>
-
-                            <div className="mt-4 space-y-2">
-                              {customer.email && (
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                  <Mail className="h-4 w-4" />
-                                  <span className="text-sm">{customer.email}</span>
-                                </div>
-                              )}
-                              {customer.phone && (
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                  <Phone className="h-4 w-4" />
-                                  <span className="text-sm">{customer.phone}</span>
-                                </div>
-                              )}
-                              {customer.notes && (
-                                <p className="text-sm text-muted-foreground mt-2">{customer.notes}</p>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={() => handleViewDetails(customer)}>
-                              <Eye className="h-4 w-4 mr-1" />
-                              Details
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleEditCustomer(customer)}>
-                              Edit
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleDeleteClick(customer)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
+                <div className="grid gap-4">
+                  {filteredCustomers.length === 0 ? (
+                    <Card>
+                      <CardContent className="flex flex-col items-center justify-center py-12">
+                        <p className="text-muted-foreground">
+                          {searchTerm ? "No customers found matching your search" : "No customers yet"}
+                        </p>
                       </CardContent>
                     </Card>
-                  ))
-                )}
+                  ) : (
+                    filteredCustomers.map((customer) => (
+                      <Card key={customer.id} className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-6">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3">
+                                <h3 className="text-xl font-semibold">{customer.name}</h3>
+                                {customer.loyalty_points && customer.loyalty_points > 0 && (
+                                  <Badge variant="secondary" className="flex items-center gap-1">
+                                    <Star className="h-3 w-3" />
+                                    {customer.loyalty_points} points
+                                  </Badge>
+                                )}
+                              </div>
+
+                              <div className="mt-4 space-y-2">
+                                {customer.email && (
+                                  <div className="flex items-center gap-2 text-muted-foreground">
+                                    <Mail className="h-4 w-4" />
+                                    <span className="text-sm">{customer.email}</span>
+                                  </div>
+                                )}
+                                {customer.phone && (
+                                  <div className="flex items-center gap-2 text-muted-foreground">
+                                    <Phone className="h-4 w-4" />
+                                    <span className="text-sm">{customer.phone}</span>
+                                  </div>
+                                )}
+                                {customer.notes && (
+                                  <p className="text-sm text-muted-foreground mt-2">{customer.notes}</p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" onClick={() => handleViewDetails(customer)}>
+                                <Eye className="h-4 w-4 mr-1" />
+                                Details
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => handleEditCustomer(customer)}>
+                                Edit
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => handleDeleteClick(customer)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
               </div>
-            </div>
-          </main>
+            </main>
+          </FeatureGuard>
         </div>
       </div>
 

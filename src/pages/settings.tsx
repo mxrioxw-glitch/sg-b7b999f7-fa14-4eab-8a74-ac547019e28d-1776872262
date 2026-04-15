@@ -23,6 +23,7 @@ import type { Database } from "@/integrations/supabase/types";
 import type { EmployeeWithUser } from "@/services/employeeService";
 import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
+import { subscriptionService } from "@/services/subscriptionService";
 
 type Employee = Database["public"]["Tables"]["employees"]["Row"] & {
   user: {
@@ -456,6 +457,28 @@ export default function Settings() {
     }
   }
 
+  async function handleAddEmployee() {
+    // Check employee limit
+    const result = await subscriptionService.canAddEmployee();
+    
+    if (!result.canAdd) {
+      toast({
+        title: "Límite alcanzado",
+        description: result.reason,
+        variant: "destructive",
+      });
+      
+      // Show upgrade prompt
+      setTimeout(() => {
+        router.push("/subscription");
+      }, 2000);
+      return;
+    }
+
+    setEditingEmployee(null);
+    setEmployeeDialogOpen(true);
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -478,38 +501,20 @@ export default function Settings() {
         <Header onMenuClick={() => setSidebarOpen(true)} />
         
         <main className="flex-1 overflow-y-auto">
-          <div className="container mx-auto px-4 py-8">
+          <div className="p-8">
             <div className="mb-8">
-              <h1 className="text-3xl font-bold">Configuración</h1>
-              <p className="text-muted-foreground mt-2">Administra la configuración de tu negocio</p>
+              <h1 className="text-3xl font-bold text-foreground mb-2">Configuración</h1>
+              <p className="text-muted-foreground">
+                Gestiona la configuración de tu negocio
+              </p>
             </div>
 
-            <Tabs defaultValue="business" className="w-full">
-              <TabsList className="grid w-full grid-cols-6 mb-8">
-                <TabsTrigger value="business" className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  <span className="hidden sm:inline">Negocio</span>
-                </TabsTrigger>
-                <TabsTrigger value="taxes" className="flex items-center gap-2">
-                  <Receipt className="h-4 w-4" />
-                  <span className="hidden sm:inline">Impuestos</span>
-                </TabsTrigger>
-                <TabsTrigger value="employees" className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  <span className="hidden sm:inline">Empleados</span>
-                </TabsTrigger>
-                <TabsTrigger value="payments" className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" />
-                  <span className="hidden sm:inline">Pagos</span>
-                </TabsTrigger>
-                <TabsTrigger value="printer" className="flex items-center gap-2">
-                  <Receipt className="h-4 w-4" />
-                  <span className="hidden sm:inline">Impresora</span>
-                </TabsTrigger>
-                <TabsTrigger value="customization" className="flex items-center gap-2">
-                  <Palette className="h-4 w-4" />
-                  <span className="hidden sm:inline">Personalización</span>
-                </TabsTrigger>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+                <TabsTrigger value="business">Negocio</TabsTrigger>
+                <TabsTrigger value="employees">Empleados</TabsTrigger>
+                <TabsTrigger value="payments">Métodos de Pago</TabsTrigger>
+                <TabsTrigger value="system">Sistema</TabsTrigger>
               </TabsList>
 
               <TabsContent value="business">
@@ -859,9 +864,11 @@ export default function Settings() {
                           <p className="text-[10px]">Tel: 123-456-7890</p>
                         </div>
                         <div className="border-t border-dashed border-gray-400 my-2"></div>
-                        <div className="text-[10px] space-y-1">
-                          <p>Ticket: #ABC12345</p>
-                          <p>Fecha: 14/04/2026 12:30</p>
+                        <div className="space-y-1 text-[10px]">
+                          <div className="flex justify-between">
+                            <span>Ticket: #ABC12345</span>
+                            <span>Fecha: 14/04/2026 12:30</span>
+                          </div>
                         </div>
                         <div className="border-t border-dashed border-gray-400 my-2"></div>
                         <div className="space-y-2">

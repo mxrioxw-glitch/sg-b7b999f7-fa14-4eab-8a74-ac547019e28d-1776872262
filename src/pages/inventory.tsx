@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
+import { FeatureGuard } from "@/components/FeatureGuard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -146,147 +147,149 @@ export default function InventoryPage() {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1">
         <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="p-8">
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-foreground mb-2">
-              Inventario
-            </h1>
-            <p className="text-muted">
-              Gestiona tus insumos y controla el stock
-            </p>
-          </div>
+        <FeatureGuard feature="inventory">
+          <main className="p-8">
+            <div className="mb-8">
+              <h1 className="text-4xl font-bold text-foreground mb-2">
+                Inventario
+              </h1>
+              <p className="text-muted">
+                Gestiona tus insumos y controla el stock
+              </p>
+            </div>
 
-          {lowStockItems.length > 0 && (
-            <Alert className="mb-6 border-yellow-500 bg-yellow-50">
-              <AlertTriangle className="h-5 w-5 text-yellow-600" />
-              <AlertTitle className="text-yellow-800 font-semibold">
-                Alerta de Bajo Stock
-              </AlertTitle>
-              <AlertDescription className="text-yellow-700">
-                Hay {lowStockItems.length} insumo(s) con stock bajo o agotado
-              </AlertDescription>
-            </Alert>
-          )}
+            {lowStockItems.length > 0 && (
+              <Alert className="mb-6 border-yellow-500 bg-yellow-50">
+                <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                <AlertTitle className="text-yellow-800 font-semibold">
+                  Alerta de Bajo Stock
+                </AlertTitle>
+                <AlertDescription className="text-yellow-700">
+                  Hay {lowStockItems.length} insumo(s) con stock bajo o agotado
+                </AlertDescription>
+              </Alert>
+            )}
 
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Insumos</CardTitle>
-                  <CardDescription>
-                    {filteredItems.length} insumos en inventario
-                  </CardDescription>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Insumos</CardTitle>
+                    <CardDescription>
+                      {filteredItems.length} insumos en inventario
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => router.push("/inventory/kardex")}>
+                      <History className="w-4 h-4 mr-2" />
+                      Ver Kardex
+                    </Button>
+                    <Button onClick={() => setIsModalOpen(true)}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Nuevo Insumo
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => router.push("/inventory/kardex")}>
-                    <History className="w-4 h-4 mr-2" />
-                    Ver Kardex
-                  </Button>
-                  <Button onClick={() => setIsModalOpen(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nuevo Insumo
-                  </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-6 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                  <Input
+                    placeholder="Buscar insumos..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-6 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                <Input
-                  placeholder="Buscar insumos..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
 
-              {loading ? (
-                <div className="text-center py-12">
-                  <p className="text-muted">Cargando inventario...</p>
-                </div>
-              ) : filteredItems.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-muted mb-4">
-                    No hay insumos registrados
-                  </p>
-                  <Button onClick={() => setIsModalOpen(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Crear primer insumo
-                  </Button>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nombre</TableHead>
-                      <TableHead>Unidad</TableHead>
-                      <TableHead>Stock Actual</TableHead>
-                      <TableHead>Stock Mínimo</TableHead>
-                      <TableHead>Costo/Unidad</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredItems.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">
-                          {item.name}
-                        </TableCell>
-                        <TableCell>{item.unit}</TableCell>
-                        <TableCell>
-                          {Number(item.current_stock).toFixed(2)}
-                        </TableCell>
-                        <TableCell>
-                          {Number(item.min_stock).toFixed(2)}
-                        </TableCell>
-                        <TableCell>
-                          ${Number(item.cost_per_unit).toFixed(2)}
-                        </TableCell>
-                        <TableCell>
-                          {isLowStock(item) ? (
-                            <Badge variant="destructive" className="gap-1">
-                              <AlertTriangle className="w-3 h-3" />
-                              Bajo Stock
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-accent text-white">Normal</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleAdjust(item)}
-                              title="Ajustar stock"
-                            >
-                              <TrendingUp className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleEdit(item)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleDelete(item.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                {loading ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted">Cargando inventario...</p>
+                  </div>
+                ) : filteredItems.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted mb-4">
+                      No hay insumos registrados
+                    </p>
+                    <Button onClick={() => setIsModalOpen(true)}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Crear primer insumo
+                    </Button>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nombre</TableHead>
+                        <TableHead>Unidad</TableHead>
+                        <TableHead>Stock Actual</TableHead>
+                        <TableHead>Stock Mínimo</TableHead>
+                        <TableHead>Costo/Unidad</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </main>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredItems.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">
+                            {item.name}
+                          </TableCell>
+                          <TableCell>{item.unit}</TableCell>
+                          <TableCell>
+                            {Number(item.current_stock).toFixed(2)}
+                          </TableCell>
+                          <TableCell>
+                            {Number(item.min_stock).toFixed(2)}
+                          </TableCell>
+                          <TableCell>
+                            ${Number(item.cost_per_unit).toFixed(2)}
+                          </TableCell>
+                          <TableCell>
+                            {isLowStock(item) ? (
+                              <Badge variant="destructive" className="gap-1">
+                                <AlertTriangle className="w-3 h-3" />
+                                Bajo Stock
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-accent text-white">Normal</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleAdjust(item)}
+                                title="Ajustar stock"
+                              >
+                                <TrendingUp className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleEdit(item)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDelete(item.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </main>
+        </FeatureGuard>
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

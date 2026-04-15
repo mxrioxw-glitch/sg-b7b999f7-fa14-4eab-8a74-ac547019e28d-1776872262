@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import Head from "next/head";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
+import { FeatureGuard } from "@/components/FeatureGuard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -230,186 +231,188 @@ export default function CashRegisterPage() {
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 flex flex-col">
           <Header onMenuClick={() => setSidebarOpen(true)} />
-          <main className="flex-1 p-8">
-            <div className="max-w-7xl mx-auto space-y-8">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h1 className="text-3xl font-bold text-foreground">Cash Register</h1>
-                  <p className="text-muted-foreground mt-2">Manage your cash register shifts</p>
+          <FeatureGuard feature="cash_register">
+            <main className="flex-1 p-8">
+              <div className="max-w-7xl mx-auto space-y-8">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h1 className="text-3xl font-bold text-foreground">Cash Register</h1>
+                    <p className="text-muted-foreground mt-2">Manage your cash register shifts</p>
+                  </div>
+                  {activeRegister ? (
+                    <Button onClick={() => setCloseDialogOpen(true)} size="lg" variant="destructive">
+                      <XCircle className="h-5 w-5 mr-2" />
+                      Close Register
+                    </Button>
+                  ) : (
+                    <Button onClick={() => setOpenDialogOpen(true)} size="lg">
+                      <CheckCircle className="h-5 w-5 mr-2" />
+                      Open Register
+                    </Button>
+                  )}
                 </div>
-                {activeRegister ? (
-                  <Button onClick={() => setCloseDialogOpen(true)} size="lg" variant="destructive">
-                    <XCircle className="h-5 w-5 mr-2" />
-                    Close Register
-                  </Button>
-                ) : (
-                  <Button onClick={() => setOpenDialogOpen(true)} size="lg">
-                    <CheckCircle className="h-5 w-5 mr-2" />
-                    Open Register
-                  </Button>
-                )}
-              </div>
 
-              {activeRegister && (
-                <Card className="border-accent bg-accent/5">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <AlertCircle className="h-5 w-5 text-accent" />
-                      Active Shift
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Opened At</p>
-                        <p className="text-lg font-semibold">
-                          {new Date(activeRegister.opened_at).toLocaleString()}
-                        </p>
+                {activeRegister && (
+                  <Card className="border-accent bg-accent/5">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <AlertCircle className="h-5 w-5 text-accent" />
+                        Active Shift
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Opened At</p>
+                          <p className="text-lg font-semibold">
+                            {new Date(activeRegister.opened_at).toLocaleString()}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Opening Amount</p>
+                          <p className="text-lg font-semibold">
+                            ${Number(activeRegister.opening_amount).toFixed(2)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Status</p>
+                          <Badge className="bg-accent text-accent-foreground">
+                            {activeRegister.status.toUpperCase()}
+                          </Badge>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Opening Amount</p>
-                        <p className="text-lg font-semibold">
-                          ${Number(activeRegister.opening_amount).toFixed(2)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Status</p>
-                        <Badge className="bg-accent text-accent-foreground">
-                          {activeRegister.status.toUpperCase()}
-                        </Badge>
-                      </div>
-                    </div>
-                    {activeRegister.notes && (
-                      <div>
-                        <p className="text-sm text-muted-foreground">Notes</p>
-                        <p className="text-sm">{activeRegister.notes}</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-              <div className="flex gap-4 items-center">
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="open">Open</SelectItem>
-                    <SelectItem value="closed">Closed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-4">
-                <h2 className="text-xl font-semibold">Shift History</h2>
-                {filteredRegisters.length === 0 ? (
-                  <Card>
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                      <p className="text-muted-foreground">No shifts found</p>
+                      {activeRegister.notes && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Notes</p>
+                          <p className="text-sm">{activeRegister.notes}</p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
-                ) : (
-                  filteredRegisters.map((register) => {
-                    const employee = register.employees as any;
-                    const profile = employee?.profiles;
-                    
-                    return (
-                      <Card key={register.id} className="hover:shadow-md transition-shadow">
-                        <CardContent className="p-6">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 space-y-4">
-                              <div className="flex items-center gap-3">
-                                <Badge variant={register.status === "open" ? "default" : "secondary"}>
-                                  {register.status}
-                                </Badge>
-                                <p className="text-sm text-muted-foreground flex items-center gap-2">
-                                  <User className="h-4 w-4" />
-                                  {profile?.full_name || profile?.email || "Unknown"}
-                                </p>
-                              </div>
+                )}
 
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div>
-                                  <p className="text-sm text-muted-foreground">Opened</p>
-                                  <p className="font-medium">
-                                    {new Date(register.opened_at).toLocaleDateString()}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {new Date(register.opened_at).toLocaleTimeString()}
+                <div className="flex gap-4 items-center">
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="open">Open</SelectItem>
+                      <SelectItem value="closed">Closed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold">Shift History</h2>
+                  {filteredRegisters.length === 0 ? (
+                    <Card>
+                      <CardContent className="flex flex-col items-center justify-center py-12">
+                        <p className="text-muted-foreground">No shifts found</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    filteredRegisters.map((register) => {
+                      const employee = register.employees as any;
+                      const profile = employee?.profiles;
+                      
+                      return (
+                        <Card key={register.id} className="hover:shadow-md transition-shadow">
+                          <CardContent className="p-6">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 space-y-4">
+                                <div className="flex items-center gap-3">
+                                  <Badge variant={register.status === "open" ? "default" : "secondary"}>
+                                    {register.status}
+                                  </Badge>
+                                  <p className="text-sm text-muted-foreground flex items-center gap-2">
+                                    <User className="h-4 w-4" />
+                                    {profile?.full_name || profile?.email || "Unknown"}
                                   </p>
                                 </div>
 
-                                {register.closed_at && (
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                   <div>
-                                    <p className="text-sm text-muted-foreground">Closed</p>
+                                    <p className="text-sm text-muted-foreground">Opened</p>
                                     <p className="font-medium">
-                                      {new Date(register.closed_at).toLocaleDateString()}
+                                      {new Date(register.opened_at).toLocaleDateString()}
                                     </p>
                                     <p className="text-sm text-muted-foreground">
-                                      {new Date(register.closed_at).toLocaleTimeString()}
+                                      {new Date(register.opened_at).toLocaleTimeString()}
                                     </p>
                                   </div>
-                                )}
 
-                                <div>
-                                  <p className="text-sm text-muted-foreground">Opening Amount</p>
-                                  <p className="font-medium text-lg">
-                                    ${Number(register.opening_amount).toFixed(2)}
-                                  </p>
-                                </div>
-
-                                {register.status === "closed" && (
-                                  <>
+                                  {register.closed_at && (
                                     <div>
-                                      <p className="text-sm text-muted-foreground">Closing Amount</p>
-                                      <p className="font-medium text-lg">
-                                        ${Number(register.closing_amount || 0).toFixed(2)}
+                                      <p className="text-sm text-muted-foreground">Closed</p>
+                                      <p className="font-medium">
+                                        {new Date(register.closed_at).toLocaleDateString()}
+                                      </p>
+                                      <p className="text-sm text-muted-foreground">
+                                        {new Date(register.closed_at).toLocaleTimeString()}
                                       </p>
                                     </div>
-                                  </>
+                                  )}
+
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">Opening Amount</p>
+                                    <p className="font-medium text-lg">
+                                      ${Number(register.opening_amount).toFixed(2)}
+                                    </p>
+                                  </div>
+
+                                  {register.status === "closed" && (
+                                    <>
+                                      <div>
+                                        <p className="text-sm text-muted-foreground">Closing Amount</p>
+                                        <p className="font-medium text-lg">
+                                          ${Number(register.closing_amount || 0).toFixed(2)}
+                                        </p>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+
+                                {register.status === "closed" && register.difference !== null && (
+                                  <div className="flex items-center gap-4 pt-2 border-t">
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">Expected</p>
+                                      <p className="font-medium">
+                                        ${Number(register.expected_amount || 0).toFixed(2)}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">Difference</p>
+                                      <p className={`font-medium text-lg ${
+                                        Number(register.difference) === 0
+                                          ? "text-accent"
+                                          : Number(register.difference) > 0
+                                          ? "text-blue-600"
+                                          : "text-destructive"
+                                      }`}>
+                                        {Number(register.difference) > 0 ? "+" : ""}
+                                        ${Number(register.difference).toFixed(2)}
+                                      </p>
+                                    </div>
+                                  </div>
                                 )}
                               </div>
 
-                              {register.status === "closed" && register.difference !== null && (
-                                <div className="flex items-center gap-4 pt-2 border-t">
-                                  <div>
-                                    <p className="text-sm text-muted-foreground">Expected</p>
-                                    <p className="font-medium">
-                                      ${Number(register.expected_amount || 0).toFixed(2)}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm text-muted-foreground">Difference</p>
-                                    <p className={`font-medium text-lg ${
-                                      Number(register.difference) === 0
-                                        ? "text-accent"
-                                        : Number(register.difference) > 0
-                                        ? "text-blue-600"
-                                        : "text-destructive"
-                                    }`}>
-                                      {Number(register.difference) > 0 ? "+" : ""}
-                                      ${Number(register.difference).toFixed(2)}
-                                    </p>
-                                  </div>
-                                </div>
-                              )}
+                              <Button variant="outline" onClick={() => handleViewReport(register)}>
+                                <FileText className="h-4 w-4 mr-2" />
+                                View Report
+                              </Button>
                             </div>
-
-                            <Button variant="outline" onClick={() => handleViewReport(register)}>
-                              <FileText className="h-4 w-4 mr-2" />
-                              View Report
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })
-                )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })
+                  )}
+                </div>
               </div>
-            </div>
-          </main>
+            </main>
+          </FeatureGuard>
         </div>
       </div>
 
