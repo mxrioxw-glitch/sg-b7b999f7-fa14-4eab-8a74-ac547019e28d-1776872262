@@ -32,7 +32,7 @@ export function ProtectedRoute({ children, requiredPermission, requireWrite = fa
       }
 
       // Get user's business
-      const business = await businessService.getCurrentUserBusiness();
+      const business = await businessService.getCurrentBusiness();
       if (!business) {
         router.push("/");
         return;

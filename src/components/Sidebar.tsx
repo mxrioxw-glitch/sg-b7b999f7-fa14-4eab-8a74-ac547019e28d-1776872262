@@ -15,22 +15,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  Home,
-  BarChart3,
-  ShoppingCart,
-  Package,
-  Users,
-  DollarSign,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useIsMobileOrTablet } from "@/hooks/use-mobile";
-import { businessService } from "@/services/businessService";
-import { supabase } from "@/integrations/supabase/client";
-import { usePermissions } from "@/hooks/usePermissions";
-import {
   LayoutDashboard,
   ShoppingCart,
   Package,
@@ -41,7 +25,14 @@ import {
   ChevronRight,
   Store,
   BarChart3,
+  Home,
+  DollarSign
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useIsMobileOrTablet } from "@/hooks/use-mobile";
+import { businessService } from "@/services/businessService";
+import { supabase } from "@/integrations/supabase/client";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -65,7 +56,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const business = await businessService.getCurrentUserBusiness();
+      const business = await businessService.getCurrentBusiness();
       if (business) {
         setBusinessId(business.id);
         setIsOwner(business.owner_id === user.id);
