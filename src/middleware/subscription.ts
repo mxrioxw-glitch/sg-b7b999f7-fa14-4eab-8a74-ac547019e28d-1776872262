@@ -1,12 +1,16 @@
 import { GetServerSidePropsContext } from "next";
-import { authService } from "@/services/authService";
-import { businessService } from "@/services/businessService";
-import { subscriptionService } from "@/services/subscriptionService";
+import { createPagesServerClient } from "@supabase/auth-helpers-nextjs";
+import type { Database } from "@/integrations/supabase/types";
 
 export async function requireActiveSubscription(context: GetServerSidePropsContext) {
   try {
-    // Check auth first
-    const session = await authService.getCurrentSession();
+    // Create Supabase client for server-side
+    const supabase = createPagesServerClient<Database>(context);
+
+    // Check auth
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
     if (!session?.user) {
       return {
@@ -17,8 +21,38 @@ export async function requireActiveSubscription(context: GetServerSidePropsConte
       };
     }
 
-    // Get user's business (works for both owners and employees)
-    const business = await businessService.getCurrentBusiness();
+    // Get user's business (check both as owner and as employee)
+    let business = null;
+
+    // First try as owner
+    const { data: ownedBusiness } = await supabase
+      .from("businesses")
+      .select("*")
+      .eq("owner_id", session.user.id)
+      .maybeSingle();
+
+    if (ownedBusiness) {
+      business = ownedBusiness;
+    } else {
+      // If not owner, check if user is an employee
+      const { data: employee } = await supabase
+        .from("employees")
+        .select("business_id")
+        .eq("user_id", session.user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (employee) {
+        // Get the business for this employee
+        const { data: employeeBusiness } = await supabase
+          .from("businesses")
+          .select("*")
+          .eq("id", employee.business_id)
+          .maybeSingle();
+
+        business = employeeBusiness;
+      }
+    }
 
     if (!business) {
       return {
@@ -40,7 +74,12 @@ export async function requireActiveSubscription(context: GetServerSidePropsConte
     }
 
     // Get active subscription
-    const subscription = await subscriptionService.getActiveSubscription(business.id);
+    const { data: subscription } = await supabase
+      .from("subscriptions")
+      .select("*")
+      .eq("business_id", business.id)
+      .in("status", ["active", "trialing"])
+      .maybeSingle();
 
     if (!subscription) {
       return {
