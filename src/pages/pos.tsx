@@ -16,7 +16,7 @@ import { businessService } from "@/services/businessService";
 import { categoryService, type Category } from "@/services/categoryService";
 import { productService, type ProductWithDetails } from "@/services/productService";
 import { getCashRegisters, openCashRegister, type CashRegister } from "@/services/cashRegisterService";
-import { getCustomers } from "@/services/customerService";
+import { getCustomers, redeemLoyaltyPoints } from "@/services/customerService";
 import { saleService } from "@/services/saleService";
 import { subscriptionService } from "@/services/subscriptionService";
 import { supabase } from "@/integrations/supabase/client";
@@ -262,7 +262,7 @@ function POSContent() {
       const pointsPayment = payments.find(p => p.type === "points");
       if (pointsPayment && selectedCustomer) {
         try {
-          await customerService.redeemLoyaltyPoints(selectedCustomer.id, pointsPayment.amount);
+          await redeemLoyaltyPoints(selectedCustomer.id, pointsPayment.amount);
           console.log(`✅ Deducted ${pointsPayment.amount} points from customer ${selectedCustomer.name}`);
         } catch (pointsError) {
           console.error("Error deducting loyalty points:", pointsError);
