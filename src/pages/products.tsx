@@ -23,9 +23,10 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { businessService } from "@/services/businessService";
-import { productService, type Product } from "@/services/productService";
-import { categoryService, type Category } from "@/services/categoryService";
+import { productService } from "@/services/productService";
+import { categoryService } from "@/services/categoryService";
 import { subscriptionService } from "@/services/subscriptionService";
 import { 
   Plus, 
@@ -42,9 +43,6 @@ import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
 import type { Database } from "@/integrations/supabase/types";
 import { GetServerSidePropsContext } from "next";
-
-type Product = Database["public"]["Tables"]["products"]["Row"];
-type Category = Database["public"]["Tables"]["categories"]["Row"];
 
 // TEMPORARILY DISABLED FOR DEBUGGING
 // export const getServerSideProps = requireActiveSubscription;
