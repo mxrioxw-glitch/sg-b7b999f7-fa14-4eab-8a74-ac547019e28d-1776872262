@@ -80,7 +80,7 @@ serve(async (req) => {
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // Auto-confirm email
+      email_confirm: true,
       user_metadata: {
         full_name,
         is_employee: true,
@@ -109,7 +109,6 @@ serve(async (req) => {
 
     if (profileError) {
       console.error("Error creating/updating profile:", profileError);
-      // Cleanup: delete the user if profile fails
       await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
       return new Response(
         JSON.stringify({ success: false, error: `Failed to create profile: ${profileError.message}` }),
@@ -117,7 +116,7 @@ serve(async (req) => {
       );
     }
 
-    // Check if employee already exists for this user in this business
+    // Check if employee already exists
     const { data: existingEmployee } = await supabaseAdmin
       .from("employees")
       .select("id")
@@ -126,7 +125,6 @@ serve(async (req) => {
       .maybeSingle();
 
     if (existingEmployee) {
-      // Cleanup: delete the user
       await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
       return new Response(
         JSON.stringify({ success: false, error: "Este usuario ya es empleado de este negocio" }),
@@ -147,14 +145,7 @@ serve(async (req) => {
       .single();
 
     if (employeeError) {
-      console.error("Error creating employee record:", employeeError);
-      console.error("Employee error details:", {
-        message: employeeError.message,
-        details: employeeError.details,
-        hint: employeeError.hint,
-        code: employeeError.code
-      });
-      // Cleanup: delete the user and profile if employee creation fails
+      console.error("Error creating employee:", employeeError);
       await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
       await supabaseAdmin.from("profiles").delete().eq("id", newUser.user.id);
       return new Response(
@@ -168,7 +159,7 @@ serve(async (req) => {
       );
     }
 
-    // Create default permissions based on role
+    // Create default permissions with CORRECT column names
     const defaultPermissions = role === "admin"
       ? [
           { module: "pos", can_read: true, can_write: true },
@@ -191,13 +182,15 @@ serve(async (req) => {
       can_write: p.can_write,
     }));
 
+    console.log("Creating permissions:", JSON.stringify(permissionsToInsert, null, 2));
+
     const { error: permissionsError } = await supabaseAdmin
       .from("employee_permissions")
       .insert(permissionsToInsert);
 
     if (permissionsError) {
-      console.error("Error creating permissions:", permissionsError);
-      // Don't fail - permissions can be set later manually
+      console.error("Permissions error:", permissionsError);
+      // Don't fail - can set permissions manually
     }
 
     return new Response(
