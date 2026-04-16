@@ -929,10 +929,15 @@ export type Database = {
           business_id: string
         }[]
       }
-      has_permission: {
-        Args: { p_business_id: string; p_permission: string }
-        Returns: boolean
-      }
+      has_permission:
+        | {
+            Args: { p_action: string; p_business_id: string; p_module: string }
+            Returns: boolean
+          }
+        | {
+            Args: { p_business_id: string; p_permission: string }
+            Returns: boolean
+          }
     }
     Enums: {
       cash_register_status: "open" | "closed"

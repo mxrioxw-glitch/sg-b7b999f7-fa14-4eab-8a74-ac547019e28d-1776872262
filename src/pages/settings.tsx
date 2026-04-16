@@ -1103,6 +1103,239 @@ export default function SettingsPage() {
                     </CardContent>
                   </Card>
                 </TabsContent>
+
+                <TabsContent value="system">
+                  <div className="space-y-6">
+                    {/* Tax Settings */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Configuración de Impuestos</CardTitle>
+                        <CardDescription>Configura el IVA y otros impuestos</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="tax_rate">Tasa de IVA (%)</Label>
+                          <Input
+                            id="tax_rate"
+                            type="number"
+                            step="0.01"
+                            value={taxForm.tax_rate}
+                            onChange={(e) => setTaxForm({ ...taxForm, tax_rate: parseFloat(e.target.value) || 0 })}
+                            placeholder="16.00"
+                          />
+                          <p className="text-sm text-muted-foreground">Ejemplo: 16 para 16%</p>
+                        </div>
+                        
+                        <div className="flex items-center justify-between space-x-2">
+                          <div className="space-y-1">
+                            <Label htmlFor="tax_included">IVA Incluido en Precios</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Si está activado, los precios ya incluyen el IVA
+                            </p>
+                          </div>
+                          <Switch
+                            id="tax_included"
+                            checked={taxForm.tax_included}
+                            onCheckedChange={(checked) => setTaxForm({ ...taxForm, tax_included: checked })}
+                          />
+                        </div>
+                        
+                        <div className="flex justify-end">
+                          <Button onClick={handleSaveTaxSettings} disabled={saving}>
+                            <Save className="mr-2 h-4 w-4" />
+                            {saving ? "Guardando..." : "Guardar Configuración"}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Printer Configuration */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Configuración de Impresora</CardTitle>
+                        <CardDescription>Configura tu impresora térmica de tickets</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="printer_width">Ancho de Papel de Impresora</Label>
+                          <Select value={printerWidth} onValueChange={(value: "58mm" | "80mm") => setPrinterWidth(value)}>
+                            <SelectTrigger id="printer_width">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="58mm">58mm (2 pulgadas) - Compacta</SelectItem>
+                              <SelectItem value="80mm">80mm (3 pulgadas) - Estándar</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-sm text-muted-foreground">
+                            Selecciona el ancho de papel de tu impresora térmica. 
+                            El formato del ticket se ajustará automáticamente.
+                          </p>
+                        </div>
+
+                        <div className="border rounded-lg p-4 bg-muted/50">
+                          <h4 className="font-medium mb-2">Vista Previa del Ticket</h4>
+                          <div 
+                            className="bg-white border-2 border-dashed border-border mx-auto p-4 font-mono text-xs"
+                            style={{ width: printerWidth === "58mm" ? "200px" : "280px" }}
+                          >
+                            <div className="text-center mb-2">
+                              <p className="font-bold">Mi Negocio</p>
+                              <p className="text-[10px]">Calle Principal #123</p>
+                              <p className="text-[10px]">Tel: 123-456-7890</p>
+                            </div>
+                            <div className="border-t border-dashed border-gray-400 my-2"></div>
+                            <div className="space-y-1 text-[10px]">
+                              <div className="flex justify-between">
+                                <span>Ticket: #ABC12345</span>
+                                <span>Fecha: 16/04/2026 12:30</span>
+                              </div>
+                            </div>
+                            <div className="border-t border-dashed border-gray-400 my-2"></div>
+                            <div className="space-y-2">
+                              <div>
+                                <div className="flex justify-between font-semibold">
+                                  <span>1x Café Latte</span>
+                                  <span>$55.00</span>
+                                </div>
+                                <div className="text-[10px] text-gray-600 ml-2">$55.00 c/u</div>
+                              </div>
+                            </div>
+                            <div className="border-t border-dashed border-gray-400 my-2"></div>
+                            <div className="space-y-1 text-[11px]">
+                              <div className="flex justify-between">
+                                <span>Subtotal</span>
+                                <span>$55.00</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>IVA (16%)</span>
+                                <span>$8.80</span>
+                              </div>
+                              <div className="flex justify-between font-bold text-sm mt-1">
+                                <span>TOTAL</span>
+                                <span>$63.80</span>
+                              </div>
+                            </div>
+                            <div className="border-t border-dashed border-gray-400 my-2"></div>
+                            <div className="text-center text-[10px]">
+                              <p>¡Gracias por su compra!</p>
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2 text-center">
+                            Ancho: {printerWidth === "58mm" ? "~200px (58mm)" : "~280px (80mm)"}
+                          </p>
+                        </div>
+
+                        <div className="flex justify-end">
+                          <Button onClick={handleSavePrinterConfig} disabled={saving}>
+                            <Save className="mr-2 h-4 w-4" />
+                            {saving ? "Guardando..." : "Guardar Configuración"}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Customization */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Personalización</CardTitle>
+                        <CardDescription>Personaliza la apariencia del sistema</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="pos_name">Nombre del POS</Label>
+                          <Input
+                            id="pos_name"
+                            value={customizationForm.pos_name}
+                            onChange={(e) => setCustomizationForm({ ...customizationForm, pos_name: e.target.value })}
+                            placeholder="Mi Sistema POS"
+                          />
+                        </div>
+                        
+                        <div className="grid gap-4 md:grid-cols-3">
+                          <div className="space-y-2">
+                            <Label htmlFor="primary_color">Color Primario</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                id="primary_color"
+                                type="color"
+                                value={customizationForm.primary_color}
+                                onChange={(e) => setCustomizationForm({ ...customizationForm, primary_color: e.target.value })}
+                                className="w-20 h-10"
+                              />
+                              <Input
+                                value={customizationForm.primary_color}
+                                onChange={(e) => setCustomizationForm({ ...customizationForm, primary_color: e.target.value })}
+                                placeholder="#2A1810"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="secondary_color">Color Secundario</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                id="secondary_color"
+                                type="color"
+                                value={customizationForm.secondary_color}
+                                onChange={(e) => setCustomizationForm({ ...customizationForm, secondary_color: e.target.value })}
+                                className="w-20 h-10"
+                              />
+                              <Input
+                                value={customizationForm.secondary_color}
+                                onChange={(e) => setCustomizationForm({ ...customizationForm, secondary_color: e.target.value })}
+                                placeholder="#4A3228"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="accent_color">Color de Acento</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                id="accent_color"
+                                type="color"
+                                value={customizationForm.accent_color}
+                                onChange={(e) => setCustomizationForm({ ...customizationForm, accent_color: e.target.value })}
+                                className="w-20 h-10"
+                              />
+                              <Input
+                                value={customizationForm.accent_color}
+                                onChange={(e) => setCustomizationForm({ ...customizationForm, accent_color: e.target.value })}
+                                placeholder="#4A9C64"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="p-4 border rounded-lg bg-muted/50">
+                          <p className="text-sm font-medium mb-2">Vista Previa</p>
+                          <div className="flex gap-2">
+                            <div
+                              className="w-20 h-20 rounded-lg border-2"
+                              style={{ backgroundColor: customizationForm.primary_color }}
+                            />
+                            <div
+                              className="w-20 h-20 rounded-lg border-2"
+                              style={{ backgroundColor: customizationForm.secondary_color }}
+                            />
+                            <div
+                              className="w-20 h-20 rounded-lg border-2"
+                              style={{ backgroundColor: customizationForm.accent_color }}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="flex justify-end">
+                          <Button onClick={handleSaveCustomization} disabled={saving}>
+                            <Save className="mr-2 h-4 w-4" />
+                            {saving ? "Guardando..." : "Guardar y Aplicar"}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
               </Tabs>
             )}
           </div>
