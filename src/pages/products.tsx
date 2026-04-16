@@ -43,9 +43,7 @@ import { requireActiveSubscription } from "@/middleware/subscription";
 import type { Database } from "@/integrations/supabase/types";
 import { GetServerSidePropsContext } from "next";
 
-export const getServerSideProps = requireAuth(async (ctx: GetServerSidePropsContext) => {
-  return requireActiveSubscription(ctx);
-});
+export const getServerSideProps = requireActiveSubscription;
 
 export default function ProductsPage() {
   return (

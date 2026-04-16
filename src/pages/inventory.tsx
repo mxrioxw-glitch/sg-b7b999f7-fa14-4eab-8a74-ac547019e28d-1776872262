@@ -25,9 +25,7 @@ import { GetServerSidePropsContext } from "next";
 
 type InventoryItem = Database["public"]["Tables"]["inventory_items"]["Row"];
 
-export const getServerSideProps = requireAuth(async (ctx: GetServerSidePropsContext) => {
-  return requireActiveSubscription(ctx);
-});
+export const getServerSideProps = requireActiveSubscription;
 
 export default function InventoryPage() {
   return (

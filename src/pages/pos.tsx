@@ -46,9 +46,7 @@ interface Customer {
   points: number;
 }
 
-export const getServerSideProps = requireAuth(async (ctx: GetServerSidePropsContext) => {
-  return requireActiveSubscription(ctx);
-});
+export const getServerSideProps = requireActiveSubscription;
 
 export default function POSPage() {
   return (
