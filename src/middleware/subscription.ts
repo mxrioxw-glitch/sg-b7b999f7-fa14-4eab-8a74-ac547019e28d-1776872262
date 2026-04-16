@@ -1,19 +1,19 @@
 import { GetServerSidePropsContext } from "next";
-import { supabase } from "@/integrations/supabase/client";
-import { authService } from "@/services/authService";
-import { subscriptionService } from "@/services/subscriptionService";
+import { createServerSupabaseClient } from "@supabase/auth-helpers-nextjs";
+import type { Database } from "@/integrations/supabase/types";
 
 export async function requireActiveSubscription(context: GetServerSidePropsContext) {
-  console.log("🔍 [SUBSCRIPTION MIDDLEWARE] Starting check...");
+  console.log("🔍 [SERVER MIDDLEWARE] Starting subscription check...");
   
   try {
-    // Check auth first
-    console.log("🔍 [SUBSCRIPTION MIDDLEWARE] Getting current session...");
-    const session = await authService.getCurrentSession();
-    console.log("🔍 [SUBSCRIPTION MIDDLEWARE] Session:", session ? "✅ Found" : "❌ Not found");
-
+    // Create server-side Supabase client
+    const supabase = createServerSupabaseClient<Database>(context);
+    
+    // Get authenticated user
+    const { data: { session } } = await supabase.auth.getSession();
+    
     if (!session?.user) {
-      console.log("❌ [SUBSCRIPTION MIDDLEWARE] No session/user - redirecting to login");
+      console.log("❌ [SERVER MIDDLEWARE] No session - redirecting to login");
       return {
         redirect: {
           destination: "/auth/login",
@@ -22,59 +22,39 @@ export async function requireActiveSubscription(context: GetServerSidePropsConte
       };
     }
 
-    console.log("🔍 [SUBSCRIPTION MIDDLEWARE] User ID:", session.user.id);
+    console.log("✅ [SERVER MIDDLEWARE] User found:", session.user.id);
 
-    // Try to find business where user is owner
-    console.log("🔍 [SUBSCRIPTION MIDDLEWARE] Looking for owned business...");
-    const { data: ownedBusiness, error: ownerError } = await supabase
+    // Find business where user is owner
+    const { data: ownedBusiness } = await supabase
       .from("businesses")
       .select("*")
       .eq("owner_id", session.user.id)
       .maybeSingle();
 
-    if (ownerError) {
-      console.error("❌ [SUBSCRIPTION MIDDLEWARE] Error finding owned business:", ownerError);
-    }
-
-    console.log("🔍 [SUBSCRIPTION MIDDLEWARE] Owned business:", ownedBusiness ? "✅ Found" : "Not owner");
-
     let business = ownedBusiness;
 
-    // If not owner, check if user is an employee
+    // If not owner, check if employee
     if (!business) {
-      console.log("🔍 [SUBSCRIPTION MIDDLEWARE] Not owner, checking if employee...");
-      const { data: employee, error: employeeError } = await supabase
+      const { data: employee } = await supabase
         .from("employees")
         .select("business_id")
         .eq("user_id", session.user.id)
         .eq("is_active", true)
         .maybeSingle();
 
-      if (employeeError) {
-        console.error("❌ [SUBSCRIPTION MIDDLEWARE] Error finding employee:", employeeError);
-      }
-
-      console.log("🔍 [SUBSCRIPTION MIDDLEWARE] Employee record:", employee ? "✅ Found" : "❌ Not found");
-
       if (employee) {
-        console.log("🔍 [SUBSCRIPTION MIDDLEWARE] Getting business for employee...");
-        const { data: employeeBusiness, error: businessError } = await supabase
+        const { data: employeeBusiness } = await supabase
           .from("businesses")
           .select("*")
           .eq("id", employee.business_id)
           .maybeSingle();
 
-        if (businessError) {
-          console.error("❌ [SUBSCRIPTION MIDDLEWARE] Error finding employee's business:", businessError);
-        }
-
         business = employeeBusiness;
-        console.log("🔍 [SUBSCRIPTION MIDDLEWARE] Employee's business:", business ? "✅ Found" : "❌ Not found");
       }
     }
 
     if (!business) {
-      console.log("❌ [SUBSCRIPTION MIDDLEWARE] No business found - redirecting to setup");
+      console.log("❌ [SERVER MIDDLEWARE] No business found - redirecting to home");
       return {
         redirect: {
           destination: "/",
@@ -83,11 +63,11 @@ export async function requireActiveSubscription(context: GetServerSidePropsConte
       };
     }
 
-    console.log("✅ [SUBSCRIPTION MIDDLEWARE] Business found:", business.id, business.name);
+    console.log("✅ [SERVER MIDDLEWARE] Business found:", business.id, business.name);
 
     // Check if business is active
     if (!business.is_active) {
-      console.log("❌ [SUBSCRIPTION MIDDLEWARE] Business is not active - redirecting");
+      console.log("❌ [SERVER MIDDLEWARE] Business inactive - redirecting");
       return {
         redirect: {
           destination: "/suspended",
@@ -96,13 +76,15 @@ export async function requireActiveSubscription(context: GetServerSidePropsConte
       };
     }
 
-    console.log("🔍 [SUBSCRIPTION MIDDLEWARE] Getting subscription...");
-    // Get active subscription
-    const subscription = await subscriptionService.getActiveSubscription(business.id);
-    console.log("🔍 [SUBSCRIPTION MIDDLEWARE] Subscription:", subscription ? "✅ Found" : "❌ Not found");
+    // Get subscription
+    const { data: subscription } = await supabase
+      .from("subscriptions")
+      .select("*")
+      .eq("business_id", business.id)
+      .maybeSingle();
 
     if (!subscription) {
-      console.log("❌ [SUBSCRIPTION MIDDLEWARE] No subscription - redirecting");
+      console.log("❌ [SERVER MIDDLEWARE] No subscription - redirecting");
       return {
         redirect: {
           destination: "/subscription",
@@ -111,11 +93,11 @@ export async function requireActiveSubscription(context: GetServerSidePropsConte
       };
     }
 
-    console.log("✅ [SUBSCRIPTION MIDDLEWARE] Subscription status:", subscription.status);
+    console.log("✅ [SERVER MIDDLEWARE] Subscription found:", subscription.status);
 
     // Check subscription status
     if (subscription.status === "canceled" || subscription.status === "past_due") {
-      console.log("❌ [SUBSCRIPTION MIDDLEWARE] Subscription canceled/past_due - redirecting");
+      console.log("❌ [SERVER MIDDLEWARE] Subscription invalid - redirecting");
       return {
         redirect: {
           destination: "/subscription",
@@ -124,13 +106,13 @@ export async function requireActiveSubscription(context: GetServerSidePropsConte
       };
     }
 
-    // Check if trial has expired
+    // Check trial expiration
     if (subscription.status === "trialing" && subscription.trial_end) {
       const trialEndsAt = new Date(subscription.trial_end);
       const now = new Date();
 
       if (now > trialEndsAt) {
-        console.log("❌ [SUBSCRIPTION MIDDLEWARE] Trial expired - redirecting");
+        console.log("❌ [SERVER MIDDLEWARE] Trial expired - redirecting");
         return {
           redirect: {
             destination: "/subscription",
@@ -140,7 +122,8 @@ export async function requireActiveSubscription(context: GetServerSidePropsConte
       }
     }
 
-    console.log("✅ [SUBSCRIPTION MIDDLEWARE] All checks passed!");
+    console.log("✅ [SERVER MIDDLEWARE] All checks passed!");
+
     return {
       props: {
         user: session.user,
@@ -149,7 +132,7 @@ export async function requireActiveSubscription(context: GetServerSidePropsConte
       },
     };
   } catch (error) {
-    console.error("💥 [SUBSCRIPTION MIDDLEWARE] Unexpected error:", error);
+    console.error("💥 [SERVER MIDDLEWARE] Error:", error);
     return {
       redirect: {
         destination: "/auth/login",
