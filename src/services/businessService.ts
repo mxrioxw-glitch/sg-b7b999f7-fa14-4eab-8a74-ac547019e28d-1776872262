@@ -19,19 +19,24 @@ export const businessService = {
 
     if (ownedBusiness) return ownedBusiness;
 
-    // If not owner, try as employee
+    // If not owner, try as employee - use two-step approach for reliability
     const { data: employee } = await supabase
       .from("employees")
-      .select("business_id, businesses(*)")
+      .select("business_id")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .maybeSingle();
 
-    if (employee && employee.businesses) {
-      return employee.businesses as Business;
-    }
+    if (!employee) return null;
 
-    return null;
+    // Get the business data
+    const { data: business } = await supabase
+      .from("businesses")
+      .select("*")
+      .eq("id", employee.business_id)
+      .maybeSingle();
+
+    return business;
   },
 
   async getBusinessByOwnerId(ownerId: string): Promise<Business | null> {
