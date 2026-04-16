@@ -24,18 +24,33 @@ export const businessService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
-    const { data, error } = await supabase
+    // First try to find business where user is owner
+    const { data: ownedBusiness } = await supabase
       .from("businesses")
       .select("*")
       .eq("owner_id", user.id)
       .maybeSingle();
 
-    if (error) {
-      console.error("Error fetching business:", error);
-      return null;
-    }
+    if (ownedBusiness) return ownedBusiness;
 
-    return data;
+    // If not owner, check if user is an employee
+    const { data: employee } = await supabase
+      .from("employees")
+      .select("business_id")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (!employee) return null;
+
+    // Get the business for this employee
+    const { data: employeeBusiness } = await supabase
+      .from("businesses")
+      .select("*")
+      .eq("id", employee.business_id)
+      .maybeSingle();
+
+    return employeeBusiness;
   },
 
   async createBusiness(businessData: {
