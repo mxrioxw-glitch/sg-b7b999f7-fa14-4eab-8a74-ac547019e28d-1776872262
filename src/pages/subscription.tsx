@@ -131,16 +131,28 @@ export default function SubscriptionPage() {
       const now = new Date();
       const endDate = new Date(subscription.current_period_end);
       const isTrialing = subscription.status === "trialing" && endDate > now;
+      
+      // Debug logs
+      console.log("=== SUBSCRIPTION DEBUG ===");
+      console.log("Subscription data:", subscription);
+      console.log("Current date:", now);
+      console.log("End date:", endDate);
+      console.log("Status:", subscription.status);
+      console.log("Is trialing?:", isTrialing);
+      console.log("========================");
+      
       setIsInTrial(isTrialing);
 
       // Determine effective plan (Premium during trial, otherwise the subscribed plan)
       const plan = isTrialing ? "premium" : subscription.plan;
+      console.log("Effective plan:", plan);
       setEffectivePlan(plan);
 
       // Calculate days remaining
       if (subscription.current_period_end) {
         const diff = endDate.getTime() - now.getTime();
         const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+        console.log("Days remaining:", days);
         setDaysRemaining(Math.max(0, days));
       }
     } catch (error) {
