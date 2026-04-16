@@ -81,9 +81,12 @@ export default function Settings() {
   
   const [printerWidth, setPrinterWidth] = useState<"58mm" | "80mm">("80mm");
   
+  const [newEmployeeName, setNewEmployeeName] = useState("");
   const [newEmployeeEmail, setNewEmployeeEmail] = useState("");
+  const [newEmployeePassword, setNewEmployeePassword] = useState("");
   const [newEmployeeRole, setNewEmployeeRole] = useState<"admin" | "cashier">("cashier");
   const [newPaymentMethod, setNewPaymentMethod] = useState("");
+  const [creatingEmployee, setCreatingEmployee] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -351,25 +354,48 @@ export default function Settings() {
     root.style.setProperty("--accent", hexToHSL(customizationForm.accent_color));
   }
 
-  async function handleInviteEmployee() {
-    if (!businessId || !newEmployeeEmail) return;
-    
-    try {
-      await employeeService.inviteEmployee(businessId, newEmployeeEmail, newEmployeeRole);
+  async function handleCreateEmployee() {
+    if (!businessId || !newEmployeeEmail || !newEmployeePassword || !newEmployeeName) {
       toast({
-        title: "Empleado agregado",
-        description: `${newEmployeeEmail} fue agregado como ${newEmployeeRole}`
+        title: "Campos incompletos",
+        description: "Por favor llena nombre, email y contraseña",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setCreatingEmployee(true);
+    try {
+      const response = await employeeService.createEmployeeAccount({
+        business_id: businessId,
+        email: newEmployeeEmail,
+        password: newEmployeePassword,
+        full_name: newEmployeeName,
+        role: newEmployeeRole
+      });
+
+      if (!response.success) {
+        throw new Error(response.error);
+      }
+
+      toast({
+        title: "Empleado creado",
+        description: `${newEmployeeName} fue agregado como ${newEmployeeRole === "admin" ? "Administrador" : "Cajero"}`
       });
       
+      setNewEmployeeName("");
       setNewEmployeeEmail("");
+      setNewEmployeePassword("");
       setNewEmployeeRole("cashier");
       loadData();
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Error al agregar empleado",
+        description: error.message || "Error al crear empleado",
         variant: "destructive"
       });
+    } finally {
+      setCreatingEmployee(false);
     }
   }
 
@@ -717,28 +743,55 @@ export default function Settings() {
                   <Card>
                     <CardHeader>
                       <CardTitle>Gestión de Empleados</CardTitle>
-                      <CardDescription>Administra los empleados y sus roles</CardDescription>
+                      <CardDescription>Crea cuentas para tus cajeros o administradores. Ellos iniciarán sesión directamente con estos datos.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <div className="flex gap-4">
-                        <Input
-                          placeholder="Email del empleado"
-                          value={newEmployeeEmail}
-                          onChange={(e) => setNewEmployeeEmail(e.target.value)}
-                          type="email"
-                        />
-                        <Select value={newEmployeeRole} onValueChange={(value: "admin" | "cashier") => setNewEmployeeRole(value)}>
-                          <SelectTrigger className="w-[180px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="admin">Administrador</SelectItem>
-                            <SelectItem value="cashier">Cajero</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Button onClick={handleInviteEmployee}>
-                          <Mail className="mr-2 h-4 w-4" />
-                          Invitar
+                      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end bg-muted/50 p-4 rounded-lg border">
+                        <div className="space-y-2">
+                          <Label>Nombre del empleado</Label>
+                          <Input
+                            placeholder="Ej. Juan Pérez"
+                            value={newEmployeeName}
+                            onChange={(e) => setNewEmployeeName(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Email (Usuario)</Label>
+                          <Input
+                            placeholder="juan@ejemplo.com"
+                            value={newEmployeeEmail}
+                            onChange={(e) => setNewEmployeeEmail(e.target.value)}
+                            type="email"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Contraseña</Label>
+                          <Input
+                            placeholder="Mínimo 6 caracteres"
+                            value={newEmployeePassword}
+                            onChange={(e) => setNewEmployeePassword(e.target.value)}
+                            type="password"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Rol</Label>
+                          <Select value={newEmployeeRole} onValueChange={(value: "admin" | "cashier") => setNewEmployeeRole(value)}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="admin">Administrador</SelectItem>
+                              <SelectItem value="cashier">Cajero</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button 
+                          onClick={handleCreateEmployee} 
+                          disabled={creatingEmployee || !newEmployeeEmail || !newEmployeePassword || !newEmployeeName}
+                          className="w-full"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          {creatingEmployee ? "Creando..." : "Crear Empleado"}
                         </Button>
                       </div>
                       
