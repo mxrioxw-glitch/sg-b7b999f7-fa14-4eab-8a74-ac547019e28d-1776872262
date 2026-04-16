@@ -10,11 +10,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import Head from "next/head";
 import { supabase } from "@/integrations/supabase/client";
 import { businessService } from "@/services/businessService";
-import { getCustomers, deleteCustomer, type Customer } from "@/services/customerService";
-import { Plus, Search, Edit, Trash2, Users, Star, Phone, Mail } from "lucide-react";
+import { getCustomers, deleteCustomer, updateCustomer, createCustomer, getCustomerPurchaseHistory, type Customer } from "@/services/customerService";
+import { Plus, Search, Edit, Trash2, Users, Star, Phone, Mail, UserPlus, Eye } from "lucide-react";
 import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
 
