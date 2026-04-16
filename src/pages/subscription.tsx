@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { CheckoutModal } from "@/components/CheckoutModal";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { businessService } from "@/services/businessService";
@@ -68,6 +69,10 @@ export default function SubscriptionPage() {
   const [daysRemaining, setDaysRemaining] = useState<number>(0);
   const [isInTrial, setIsInTrial] = useState<boolean>(false);
   const [effectivePlan, setEffectivePlan] = useState<string>("basic");
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<"basic" | "professional" | "premium">("basic");
+  const [processingCheckout, setProcessingCheckout] = useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
 
   useEffect(() => {
     loadSubscriptionData();
@@ -167,10 +172,58 @@ export default function SubscriptionPage() {
   };
 
   const handleUpgrade = (planId: string) => {
-    toast({
-      title: "Próximamente",
-      description: "La funcionalidad de upgrade estará disponible pronto. Contacta a soporte.",
-    });
+    setSelectedPlan(planId as "basic" | "professional" | "premium");
+    setShowCheckout(true);
+  };
+
+  const handleCheckoutConfirm = async (billingCycle: "monthly" | "yearly") => {
+    if (!businessId) return;
+
+    setProcessingCheckout(true);
+    try {
+      // Simulate payment processing delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Calculate new period dates
+      const now = new Date();
+      const periodEnd = new Date();
+      if (billingCycle === "monthly") {
+        periodEnd.setMonth(periodEnd.getMonth() + 1);
+      } else {
+        periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+      }
+
+      // Update subscription to active status with new plan
+      const { error } = await supabase
+        .from("subscriptions")
+        .update({
+          plan: selectedPlan,
+          status: "active",
+          current_period_start: now.toISOString(),
+          current_period_end: periodEnd.toISOString(),
+          billing_cycle: billingCycle,
+        })
+        .eq("business_id", businessId);
+
+      if (error) throw error;
+
+      toast({
+        title: "¡Suscripción activada!",
+        description: `Plan ${selectedPlan === "basic" ? "Básico" : selectedPlan === "professional" ? "Profesional" : "Premium"} activado correctamente. Ciclo: ${billingCycle === "monthly" ? "Mensual" : "Anual"}`,
+      });
+
+      setShowCheckout(false);
+      await loadSubscriptionData();
+    } catch (error: any) {
+      console.error("Error upgrading subscription:", error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo procesar el pago",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingCheckout(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -411,6 +464,15 @@ export default function SubscriptionPage() {
           </Card>
         </main>
       </div>
+
+      {/* Checkout Modal */}
+      <CheckoutModal
+        open={showCheckout}
+        onOpenChange={setShowCheckout}
+        plan={selectedPlan}
+        onConfirm={handleCheckoutConfirm}
+        processing={processingCheckout}
+      />
     </div>
   );
 }
