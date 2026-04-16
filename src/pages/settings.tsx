@@ -15,10 +15,12 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
-import { Building2, Receipt, Users, CreditCard, Palette, Save, Trash2, Plus, Mail } from "lucide-react";
+import { PermissionSelector } from "@/components/PermissionSelector";
+import { Building2, Receipt, Users, CreditCard, Palette, Save, Trash2, Plus, Mail, Settings as SettingsIcon } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import type { EmployeeWithUser } from "@/services/employeeService";
 import { requireAuth } from "@/middleware/auth";
@@ -49,7 +51,7 @@ export default function Settings() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   
   const [activeTab, setActiveTab] = useState("business");
-  const [editingEmployee, setEditingEmployee] = useState<any>(null);
+  const [editingEmployee, setEditingEmployee] = useState<EmployeeWithUser | null>(null);
   const [employeeDialogOpen, setEmployeeDialogOpen] = useState(false);
   
   // Form states
@@ -483,6 +485,31 @@ export default function Settings() {
     setEmployeeDialogOpen(true);
   }
 
+  function handleEditEmployeePermissions(employee: EmployeeWithUser) {
+    setEditingEmployee(employee);
+    setEmployeeDialogOpen(true);
+  }
+
+  async function handleSaveEmployeePermissions() {
+    if (!editingEmployee) return;
+    
+    try {
+      toast({
+        title: "Permisos actualizados",
+        description: "Los permisos del empleado se han guardado correctamente"
+      });
+      setEmployeeDialogOpen(false);
+      setEditingEmployee(null);
+      loadData();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al guardar permisos",
+        variant: "destructive"
+      });
+    }
+  }
+
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -734,6 +761,14 @@ export default function Settings() {
                                 <TableCell className="text-right">
                                   {emp.role !== "owner" && (
                                     <div className="flex justify-end gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleEditEmployeePermissions(emp)}
+                                      >
+                                        <SettingsIcon className="h-4 w-4 mr-2" />
+                                        Permisos
+                                      </Button>
                                       <Button
                                         variant="outline"
                                         size="sm"
@@ -1016,6 +1051,52 @@ export default function Settings() {
           </div>
         </main>
       </div>
+
+      {/* Employee Permissions Dialog */}
+      <Dialog open={employeeDialogOpen} onOpenChange={setEmployeeDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingEmployee ? "Editar Permisos" : "Nuevo Empleado"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingEmployee 
+                ? `Configura los permisos de acceso para ${editingEmployee.user?.full_name || editingEmployee.user?.email}`
+                : "Configura los permisos para el nuevo empleado"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingEmployee && (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <p className="font-medium">{editingEmployee.user?.full_name || "Sin nombre"}</p>
+                    <p className="text-sm text-muted-foreground">{editingEmployee.user?.email}</p>
+                  </div>
+                  <Badge variant={editingEmployee.role === "admin" ? "default" : "outline"}>
+                    {editingEmployee.role === "admin" ? "Administrador" : "Cajero"}
+                  </Badge>
+                </div>
+              </div>
+
+              <PermissionSelector
+                employeeId={editingEmployee.id}
+                onPermissionsChange={() => {}}
+              />
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setEmployeeDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleSaveEmployeePermissions}>
+                  Guardar Permisos
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

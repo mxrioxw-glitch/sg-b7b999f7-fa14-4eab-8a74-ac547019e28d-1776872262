@@ -1,25 +1,24 @@
 import { useState, useEffect } from "react";
-import { hasPermission, getCurrentUserPermissions, type EmployeePermission } from "@/services/employeeService";
+import { employeeService, type EmployeePermission } from "@/services/employeeService";
 
 export function usePermissions(businessId: string | null) {
   const [permissions, setPermissions] = useState<EmployeePermission[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!businessId) {
+    if (businessId) {
+      loadPermissions();
+    } else {
       setLoading(false);
-      return;
     }
-
-    loadPermissions();
   }, [businessId]);
 
   async function loadPermissions() {
     if (!businessId) return;
-    
     try {
-      const perms = await getCurrentUserPermissions(businessId);
-      setPermissions(perms);
+      setLoading(true);
+      const userPerms = await employeeService.getCurrentUserPermissions(businessId);
+      setPermissions(userPerms);
     } catch (error) {
       console.error("Error loading permissions:", error);
     } finally {
@@ -27,16 +26,18 @@ export function usePermissions(businessId: string | null) {
     }
   }
 
-  async function checkPermission(module: string, type: "read" | "write" = "read"): Promise<boolean> {
+  // Verificar si tiene un permiso específico
+  const checkPermission = async (module: string, type: "read" | "write" = "read"): Promise<boolean> => {
     if (!businessId) return false;
-    return hasPermission(businessId, module, type);
-  }
+    return employeeService.hasPermission(businessId, module, type);
+  };
 
-  function hasModuleAccess(module: string, type: "read" | "write" = "read"): boolean {
-    const permission = permissions.find((p) => p.module === module);
-    if (!permission) return false;
-    return type === "read" ? permission.can_read : permission.can_write;
-  }
+  // Verificar si tiene acceso a un módulo (síncrono, basado en el estado local)
+  const hasModuleAccess = (module: string, type: "read" | "write" = "read"): boolean => {
+    const perm = permissions.find((p) => p.module === module);
+    if (!perm) return false;
+    return type === "read" ? perm.can_read : perm.can_write;
+  };
 
   return {
     permissions,
