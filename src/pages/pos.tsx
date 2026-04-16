@@ -15,7 +15,7 @@ import { businessService } from "@/services/businessService";
 import { categoryService, type Category } from "@/services/categoryService";
 import { productService, type ProductWithDetails } from "@/services/productService";
 import { getCashRegisters, openCashRegister, type CashRegister } from "@/services/cashRegisterService";
-import { getCustomers, type Customer } from "@/services/customerService";
+import { getCustomers } from "@/services/customerService";
 import { saleService } from "@/services/saleService";
 import { subscriptionService } from "@/services/subscriptionService";
 import { supabase } from "@/integrations/supabase/client";
