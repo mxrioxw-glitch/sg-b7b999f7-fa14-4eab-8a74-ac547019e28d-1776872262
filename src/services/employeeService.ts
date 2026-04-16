@@ -13,6 +13,33 @@ export type EmployeeWithUser = Employee & {
 };
 
 export const employeeService = {
+  async getCurrentEmployee(): Promise<EmployeeWithUser | null> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from("employees")
+        .select(`
+          *,
+          user:profiles!employees_user_id_fkey(email, full_name)
+        `)
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error getting current employee:", error);
+        return null;
+      }
+
+      return data as EmployeeWithUser;
+    } catch (error) {
+      console.error("Error in getCurrentEmployee:", error);
+      return null;
+    }
+  },
+
   async getEmployees(businessId: string): Promise<EmployeeWithUser[]> {
     const { data, error } = await supabase
       .from("employees")
@@ -133,6 +160,7 @@ export const employeeService = {
       .select("id")
       .eq("business_id", businessId)
       .eq("user_id", user.id)
+      .eq("is_active", true)
       .maybeSingle();
 
     if (!employee) return [];

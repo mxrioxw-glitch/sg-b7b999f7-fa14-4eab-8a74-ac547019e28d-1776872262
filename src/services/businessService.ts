@@ -1,30 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Database } from "@/integrations/supabase/types";
 
-export type Business = Tables<"businesses">;
-export type Employee = Tables<"employees">;
+type Business = Database["public"]["Tables"]["businesses"]["Row"];
+type BusinessInsert = Database["public"]["Tables"]["businesses"]["Insert"];
 
 export const businessService = {
-  async getBusinessByOwnerId(ownerId: string): Promise<Business | null> {
-    const { data, error } = await supabase
-      .from("businesses")
-      .select("*")
-      .eq("owner_id", ownerId)
-      .maybeSingle();
-
-    if (error) {
-      console.error("Error fetching business:", error);
-      return null;
-    }
-
-    return data;
-  },
-
   async getCurrentBusiness(): Promise<Business | null> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
-    // First try to find business where user is owner
+    // First try as owner
     const { data: ownedBusiness } = await supabase
       .from("businesses")
       .select("*")
@@ -33,24 +18,34 @@ export const businessService = {
 
     if (ownedBusiness) return ownedBusiness;
 
-    // If not owner, check if user is an employee
+    // If not owner, try as employee
     const { data: employee } = await supabase
       .from("employees")
-      .select("business_id")
+      .select("business_id, businesses(*)")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .maybeSingle();
 
-    if (!employee) return null;
+    if (employee && employee.businesses) {
+      return employee.businesses as Business;
+    }
 
-    // Get the business for this employee
-    const { data: employeeBusiness } = await supabase
-      .from("businesses")
-      .select("*")
-      .eq("id", employee.business_id)
+    return null;
+  },
+
+  async getCurrentBusinessForEmployee(userId: string): Promise<Business | null> {
+    const { data: employee } = await supabase
+      .from("employees")
+      .select("business_id, businesses(*)")
+      .eq("user_id", userId)
+      .eq("is_active", true)
       .maybeSingle();
 
-    return employeeBusiness;
+    if (employee && employee.businesses) {
+      return employee.businesses as Business;
+    }
+
+    return null;
   },
 
   async createBusiness(businessData: {
