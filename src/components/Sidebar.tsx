@@ -203,14 +203,14 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
       {/* Toggle button when collapsed - positioned below header */}
       {!isExpanded && (
-        <div className="relative">
+        <div className="relative h-16">
           <Button
             variant="ghost"
             size="icon"
             onClick={toggleSidebar}
-            className="absolute left-1/2 -translate-x-1/2 top-4 z-10 h-8 w-8 rounded-full bg-card border border-border shadow-md hover:shadow-lg"
+            className="absolute left-1/2 -translate-x-1/2 top-8 z-20 h-9 w-9 rounded-full bg-card border-2 border-primary/20 shadow-lg hover:shadow-xl hover:border-primary/40 transition-all"
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-5 w-5 text-primary" />
           </Button>
         </div>
       )}
