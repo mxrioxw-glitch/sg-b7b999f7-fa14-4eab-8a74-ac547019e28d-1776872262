@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,100 +7,113 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight
+  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
     // Get authorization header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error("No authorization header");
+      return new Response(
+        JSON.stringify({ success: false, error: "Missing authorization header" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+      );
     }
 
-    // Create Supabase client with user's token
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    // Create Supabase client with service role key for admin operations
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
 
-    // Client with user auth to verify permissions
-    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // Verify the user making the request
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
 
-    // Client with service role for admin operations
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Verify user is authenticated
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
     if (userError || !user) {
-      throw new Error("Unauthorized");
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid or expired token" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+      );
     }
 
-    // Get request body
+    // Parse request body
     const { email, password, full_name, business_id, role = "cashier" } = await req.json();
 
-    // Validate inputs
-    if (!email || !password || !business_id) {
-      throw new Error("Missing required fields: email, password, business_id");
+    if (!email || !password || !full_name || !business_id) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Missing required fields: email, password, full_name, business_id" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
     }
 
-    // Verify user owns this business
-    const { data: business, error: businessError } = await supabaseUser
+    // Verify the requesting user is the owner of the business
+    const { data: business, error: businessError } = await supabaseAdmin
       .from("businesses")
       .select("owner_id")
       .eq("id", business_id)
       .single();
 
-    if (businessError || !business || business.owner_id !== user.id) {
-      throw new Error("You don't have permission to add employees to this business");
+    if (businessError || !business) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Business not found" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
+      );
     }
 
-    // Check if user with this email already exists
-    const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers();
-    const userExists = existingUser?.users?.find((u) => u.email === email);
-
-    if (userExists) {
-      throw new Error("A user with this email already exists");
+    if (business.owner_id !== user.id) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Only business owner can create employees" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+      );
     }
 
-    // Create the user using admin API (this bypasses normal registration)
-    const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
+    // Create the user account with admin privileges
+    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // Auto-confirm email
+      email_confirm: true,
       user_metadata: {
-        full_name: full_name || email.split("@")[0],
+        full_name,
+        is_employee: true,
       },
     });
 
-    if (createUserError || !newUser.user) {
-      console.error("Error creating user:", createUserError);
-      throw new Error(createUserError?.message || "Failed to create user");
+    if (createError || !newUser.user) {
+      console.error("Error creating user:", createError);
+      return new Response(
+        JSON.stringify({ success: false, error: createError?.message || "Failed to create user account" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
     }
 
-    console.log("User created:", newUser.user.id);
-
-    // Create profile (the trigger should handle this, but we'll do it manually to be sure)
+    // Create profile entry
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
-      .upsert({
+      .insert({
         id: newUser.user.id,
-        email: email,
-        full_name: full_name || email.split("@")[0],
+        email,
+        full_name,
       });
 
     if (profileError) {
       console.error("Error creating profile:", profileError);
     }
 
-    // Create employee record FIRST (this prevents the business creation trigger)
+    // Create employee record
     const { data: employee, error: employeeError } = await supabaseAdmin
       .from("employees")
       .insert({
-        business_id,
         user_id: newUser.user.id,
+        business_id,
         role,
         is_active: true,
       })
@@ -108,58 +121,55 @@ serve(async (req) => {
       .single();
 
     if (employeeError) {
-      console.error("Error creating employee:", employeeError);
-      // If employee creation fails, delete the user
+      console.error("Error creating employee record:", employeeError);
       await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
-      throw new Error("Failed to create employee record: " + employeeError.message);
+      return new Response(
+        JSON.stringify({ success: false, error: "Failed to create employee record" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
     }
 
-    console.log("Employee created:", employee.id);
+    // Create default permissions
+    const defaultPermissions = role === "admin"
+      ? [
+          { module: "pos", can_read: true, can_write: true },
+          { module: "products", can_read: true, can_write: true },
+          { module: "inventory", can_read: true, can_write: true },
+          { module: "customers", can_read: true, can_write: true },
+          { module: "cash_register", can_read: true, can_write: true },
+          { module: "reports", can_read: true, can_write: false },
+        ]
+      : [
+          { module: "pos", can_read: true, can_write: true },
+          { module: "cash_register", can_read: true, can_write: true },
+        ];
 
-    // Create default permissions for cashier role
-    if (role === "cashier") {
-      const defaultPermissions = [
-        { employee_id: employee.id, module: "pos", can_read: true, can_write: true },
-        { employee_id: employee.id, module: "customers", can_read: true, can_write: false },
-        { employee_id: employee.id, module: "cash_register", can_read: true, can_write: true },
-      ];
+    const permissionsToInsert = defaultPermissions.map((p) => ({
+      employee_id: employee.id,
+      ...p,
+    }));
 
-      const { error: permsError } = await supabaseAdmin
-        .from("employee_permissions")
-        .insert(defaultPermissions);
-
-      if (permsError) {
-        console.error("Error creating permissions:", permsError);
-      }
-    }
+    await supabaseAdmin
+      .from("employee_permissions")
+      .insert(permissionsToInsert);
 
     return new Response(
       JSON.stringify({
         success: true,
         employee: {
           id: employee.id,
-          user_id: newUser.user.id,
-          email: email,
-          full_name: full_name || email.split("@")[0],
+          email,
+          full_name,
           role,
         },
       }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error) {
-    console.error("Error in create-employee function:", error);
+    console.error("Unexpected error:", error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message || "Internal server error",
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
-      }
+      JSON.stringify({ success: false, error: error.message || "Internal server error" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }
 });
