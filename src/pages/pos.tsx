@@ -258,6 +258,23 @@ function POSContent() {
         throw new Error(error || "Error al procesar la venta");
       }
 
+      // Auto-deduct loyalty points if customer paid with points
+      const pointsPayment = payments.find(p => p.type === "points");
+      if (pointsPayment && selectedCustomer) {
+        try {
+          await customerService.redeemLoyaltyPoints(selectedCustomer.id, pointsPayment.amount);
+          console.log(`✅ Deducted ${pointsPayment.amount} points from customer ${selectedCustomer.name}`);
+        } catch (pointsError) {
+          console.error("Error deducting loyalty points:", pointsError);
+          // Don't fail the sale if points deduction fails
+          toast({
+            title: "Advertencia",
+            description: "La venta se completó pero hubo un error al descontar los puntos",
+            variant: "destructive",
+          });
+        }
+      }
+
       toast({
         title: "Venta completada",
         description: "La venta se ha registrado correctamente",
