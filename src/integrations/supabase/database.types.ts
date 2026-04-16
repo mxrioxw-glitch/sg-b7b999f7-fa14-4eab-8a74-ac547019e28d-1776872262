@@ -234,6 +234,68 @@ export type Database = {
           },
         ]
       }
+      employee_permissions: {
+        Row: {
+          can_access_pos: boolean | null
+          can_manage_cash_register: boolean | null
+          can_manage_customers: boolean | null
+          can_manage_employees: boolean | null
+          can_manage_inventory: boolean | null
+          can_manage_products: boolean | null
+          can_manage_settings: boolean | null
+          can_view_customers: boolean | null
+          can_view_inventory: boolean | null
+          can_view_products: boolean | null
+          can_view_reports: boolean | null
+          created_at: string | null
+          employee_id: string
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          can_access_pos?: boolean | null
+          can_manage_cash_register?: boolean | null
+          can_manage_customers?: boolean | null
+          can_manage_employees?: boolean | null
+          can_manage_inventory?: boolean | null
+          can_manage_products?: boolean | null
+          can_manage_settings?: boolean | null
+          can_view_customers?: boolean | null
+          can_view_inventory?: boolean | null
+          can_view_products?: boolean | null
+          can_view_reports?: boolean | null
+          created_at?: string | null
+          employee_id: string
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          can_access_pos?: boolean | null
+          can_manage_cash_register?: boolean | null
+          can_manage_customers?: boolean | null
+          can_manage_employees?: boolean | null
+          can_manage_inventory?: boolean | null
+          can_manage_products?: boolean | null
+          can_manage_settings?: boolean | null
+          can_view_customers?: boolean | null
+          can_view_inventory?: boolean | null
+          can_view_products?: boolean | null
+          can_view_reports?: boolean | null
+          created_at?: string | null
+          employee_id?: string
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_permissions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           business_id: string
@@ -835,6 +897,7 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          billing_cycle: string | null
           business_id: string
           created_at: string | null
           current_period_end: string | null
@@ -847,6 +910,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          billing_cycle?: string | null
           business_id: string
           created_at?: string | null
           current_period_end?: string | null
@@ -859,6 +923,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          billing_cycle?: string | null
           business_id?: string
           created_at?: string | null
           current_period_end?: string | null
@@ -890,6 +955,10 @@ export type Database = {
         Returns: {
           business_id: string
         }[]
+      }
+      has_permission: {
+        Args: { p_business_id: string; p_permission: string }
+        Returns: boolean
       }
     }
     Enums: {
