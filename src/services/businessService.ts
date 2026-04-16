@@ -1,7 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import type { Employee } from "@/services/employeeService";
 
-type Business = Database["public"]["Tables"]["businesses"]["Row"];
+export type Business = Database["public"]["Tables"]["businesses"]["Row"];
 type BusinessInsert = Database["public"]["Tables"]["businesses"]["Insert"];
 
 export const businessService = {
@@ -31,6 +32,12 @@ export const businessService = {
     }
 
     return null;
+  },
+
+  async getBusinessByOwnerId(ownerId: string): Promise<Business | null> {
+    // Para mantener compatibilidad con código existente que esperaba obtener el negocio por ownerId
+    // Pero en realidad queremos usar getCurrentBusiness() que maneja owners y employees
+    return this.getCurrentBusiness();
   },
 
   async getCurrentBusinessForEmployee(userId: string): Promise<Business | null> {
