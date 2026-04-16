@@ -18,6 +18,7 @@ import { getCustomers, createCustomer, updateCustomer, deleteCustomer, getCustom
 import { Plus, Search, Mail, Phone, Star, Trash2, Eye, UserPlus, Edit, Users } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { GetServerSideProps } from "next";
 
 export default function Customers() {
