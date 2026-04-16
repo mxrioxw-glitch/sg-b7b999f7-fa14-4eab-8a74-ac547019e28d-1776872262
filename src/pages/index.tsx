@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingScreen } from "@/components/ui/loading";
 import { businessService } from "@/services/businessService";
 import { subscriptionService } from "@/services/subscriptionService";
+import { employeeService } from "@/services/employeeService";
 import { getCashRegisters, openCashRegister, closeCashRegister } from "@/services/cashRegisterService";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -113,15 +114,24 @@ export default function HomePage() {
       setBusinessName(business.name);
       setBusinessId(business.id);
 
-      // Get employee ID
-      const { data: employee } = await supabase
-        .from("employees")
-        .select("id")
-        .eq("business_id", business.id)
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      setEmployeeId(employee?.id || "");
+      // Get employee ID - works for both owners and cashiers
+      const currentEmployee = await employeeService.getCurrentEmployee();
+      if (currentEmployee) {
+        setEmployeeId(currentEmployee.id);
+      } else {
+        // If no employee record found, might be owner without employee entry
+        // Create a temporary employee for owner
+        const { data: ownerEmployee } = await supabase
+          .from("employees")
+          .select("id")
+          .eq("business_id", business.id)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        
+        if (ownerEmployee) {
+          setEmployeeId(ownerEmployee.id);
+        }
+      }
 
       // Get subscription
       const subscription = await subscriptionService.getCurrentSubscription();
