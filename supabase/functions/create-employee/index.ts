@@ -13,9 +13,12 @@ serve(async (req) => {
   }
 
   try {
+    console.log("=== CREATE EMPLOYEE FUNCTION STARTED ===");
+    
     // Get authorization header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      console.error("Missing authorization header");
       return new Response(
         JSON.stringify({ success: false, error: "Missing authorization header" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
@@ -39,14 +42,18 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
 
     if (userError || !user) {
+      console.error("Invalid token:", userError);
       return new Response(
         JSON.stringify({ success: false, error: "Invalid or expired token" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
       );
     }
 
+    console.log("Request by user:", user.email);
+
     // Parse request body
     const { email, password, full_name, business_id, role = "cashier" } = await req.json();
+    console.log("Creating employee:", { email, full_name, business_id, role });
 
     if (!email || !password || !full_name || !business_id) {
       return new Response(
@@ -63,6 +70,7 @@ serve(async (req) => {
       .single();
 
     if (businessError || !business) {
+      console.error("Business not found:", businessError);
       return new Response(
         JSON.stringify({ success: false, error: "Business not found" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
@@ -75,6 +83,8 @@ serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
       );
     }
+
+    console.log("Creating auth user...");
 
     // Create the user account with admin privileges
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -95,6 +105,8 @@ serve(async (req) => {
       );
     }
 
+    console.log("User created:", newUser.user.id);
+
     // Create profile entry (UPSERT to avoid conflicts with trigger)
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
@@ -108,13 +120,15 @@ serve(async (req) => {
       });
 
     if (profileError) {
-      console.error("Error creating/updating profile:", profileError);
+      console.error("Error creating profile:", profileError);
       await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
       return new Response(
         JSON.stringify({ success: false, error: `Failed to create profile: ${profileError.message}` }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
+
+    console.log("Profile created");
 
     // Check if employee already exists
     const { data: existingEmployee } = await supabaseAdmin
@@ -125,12 +139,15 @@ serve(async (req) => {
       .maybeSingle();
 
     if (existingEmployee) {
+      console.error("Employee already exists");
       await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
       return new Response(
         JSON.stringify({ success: false, error: "Este usuario ya es empleado de este negocio" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
+
+    console.log("Creating employee record...");
 
     // Create employee record
     const { data: employee, error: employeeError } = await supabaseAdmin
@@ -151,47 +168,22 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: `Failed to create employee record: ${employeeError.message}`,
+          error: `Failed to create employee: ${employeeError.message}`,
           details: employeeError.details,
-          hint: employeeError.hint
+          hint: employeeError.hint,
+          code: employeeError.code
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
 
-    // Create default permissions with CORRECT column names
-    const defaultPermissions = role === "admin"
-      ? [
-          { module: "pos", can_read: true, can_write: true },
-          { module: "products", can_read: true, can_write: true },
-          { module: "inventory", can_read: true, can_write: true },
-          { module: "customers", can_read: true, can_write: true },
-          { module: "cash_register", can_read: true, can_write: true },
-          { module: "reports", can_read: true, can_write: false },
-          { module: "settings", can_read: true, can_write: true },
-        ]
-      : [
-          { module: "pos", can_read: true, can_write: true },
-          { module: "cash_register", can_read: true, can_write: true },
-        ];
+    console.log("Employee created:", employee.id);
+    console.log("Skipping permissions creation for now - will be added manually");
 
-    const permissionsToInsert = defaultPermissions.map((p) => ({
-      employee_id: employee.id,
-      module: p.module,
-      can_read: p.can_read,
-      can_write: p.can_write,
-    }));
+    // PERMISSIONS DISABLED TEMPORARILY TO DEBUG
+    // Will create permissions manually in the UI
 
-    console.log("Creating permissions:", JSON.stringify(permissionsToInsert, null, 2));
-
-    const { error: permissionsError } = await supabaseAdmin
-      .from("employee_permissions")
-      .insert(permissionsToInsert);
-
-    if (permissionsError) {
-      console.error("Permissions error:", permissionsError);
-      // Don't fail - can set permissions manually
-    }
+    console.log("=== SUCCESS ===");
 
     return new Response(
       JSON.stringify({
@@ -202,13 +194,18 @@ serve(async (req) => {
           full_name,
           role,
         },
+        message: "Employee created successfully. Please set permissions manually in the UI."
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error) {
     console.error("Unexpected error:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message || "Internal server error" }),
+      JSON.stringify({ 
+        success: false, 
+        error: error.message || "Internal server error",
+        stack: error.stack
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }
