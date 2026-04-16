@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
 import type { Business } from "@/services/businessService";
+import { GetServerSidePropsContext } from "next";
 
 interface CartItem {
   id: string;
@@ -45,7 +46,9 @@ interface Customer {
   points: number;
 }
 
-export const getServerSideProps = requireAuth(requireActiveSubscription);
+export const getServerSideProps = requireAuth(async (ctx: GetServerSidePropsContext) => {
+  return requireActiveSubscription(ctx);
+});
 
 export default function POSPage() {
   return (

@@ -21,10 +21,13 @@ import { Plus, Search, Edit, Trash2, Package, AlertTriangle, History, TrendingDo
 import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
 import type { Database } from "@/integrations/supabase/types";
+import { GetServerSidePropsContext } from "next";
 
 type InventoryItem = Database["public"]["Tables"]["inventory_items"]["Row"];
 
-export const getServerSideProps = requireAuth(requireActiveSubscription);
+export const getServerSideProps = requireAuth(async (ctx: GetServerSidePropsContext) => {
+  return requireActiveSubscription(ctx);
+});
 
 export default function InventoryPage() {
   return (
