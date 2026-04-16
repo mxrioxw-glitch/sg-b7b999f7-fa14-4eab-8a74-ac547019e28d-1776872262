@@ -1,16 +1,11 @@
 import { GetServerSidePropsContext } from "next";
-import { createPagesServerClient } from "@supabase/auth-helpers-nextjs";
-import type { Database } from "@/integrations/supabase/types";
+import { supabase } from "@/integrations/supabase/client";
+import { authService } from "@/services/authService";
 
 export async function requireActiveSubscription(context: GetServerSidePropsContext) {
   try {
-    // Create Supabase client for server-side
-    const supabase = createPagesServerClient<Database>(context);
-
-    // Check auth
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    // Check auth first
+    const session = await authService.getCurrentSession();
 
     if (!session?.user) {
       return {
