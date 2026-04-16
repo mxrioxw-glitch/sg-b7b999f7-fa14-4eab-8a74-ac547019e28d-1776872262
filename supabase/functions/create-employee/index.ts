@@ -134,7 +134,7 @@ serve(async (req) => {
       );
     }
 
-    // Create employee record with service role (bypasses RLS)
+    // Create employee record
     const { data: employee, error: employeeError } = await supabaseAdmin
       .from("employees")
       .insert({
@@ -177,6 +177,7 @@ serve(async (req) => {
           { module: "customers", can_read: true, can_write: true },
           { module: "cash_register", can_read: true, can_write: true },
           { module: "reports", can_read: true, can_write: false },
+          { module: "settings", can_read: true, can_write: true },
         ]
       : [
           { module: "pos", can_read: true, can_write: true },
@@ -185,7 +186,9 @@ serve(async (req) => {
 
     const permissionsToInsert = defaultPermissions.map((p) => ({
       employee_id: employee.id,
-      ...p,
+      module: p.module,
+      can_read: p.can_read,
+      can_write: p.can_write,
     }));
 
     const { error: permissionsError } = await supabaseAdmin
@@ -194,7 +197,7 @@ serve(async (req) => {
 
     if (permissionsError) {
       console.error("Error creating permissions:", permissionsError);
-      // Don't fail - permissions can be set later
+      // Don't fail - permissions can be set later manually
     }
 
     return new Response(
