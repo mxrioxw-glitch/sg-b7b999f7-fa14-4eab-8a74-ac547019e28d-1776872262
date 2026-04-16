@@ -17,8 +17,8 @@ export async function requireActiveSubscription(context: GetServerSidePropsConte
       };
     }
 
-    // Get user's business
-    const business = await businessService.getBusinessByOwnerId(session.user.id);
+    // Get user's business (works for both owners and employees)
+    const business = await businessService.getCurrentBusiness();
 
     if (!business) {
       return {
@@ -84,6 +84,7 @@ export async function requireActiveSubscription(context: GetServerSidePropsConte
       },
     };
   } catch (error) {
+    console.error("Error in requireActiveSubscription:", error);
     return {
       redirect: {
         destination: "/auth/login",
