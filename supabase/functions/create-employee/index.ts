@@ -134,7 +134,7 @@ serve(async (req) => {
       );
     }
 
-    // Create employee record
+    // Create employee record with service role (bypasses RLS)
     const { data: employee, error: employeeError } = await supabaseAdmin
       .from("employees")
       .insert({
