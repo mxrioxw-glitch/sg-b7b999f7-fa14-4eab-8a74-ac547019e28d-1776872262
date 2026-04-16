@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { ProductForm } from "@/components/ProductForm";
 import { CategoryManager } from "@/components/CategoryManager";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,8 +37,21 @@ import {
   DollarSign,
   AlertCircle
 } from "lucide-react";
+import { requireAuth } from "@/middleware/auth";
+import { requireActiveSubscription } from "@/middleware/subscription";
+import type { Database } from "@/integrations/supabase/types";
+
+export const getServerSideProps = requireAuth(requireActiveSubscription);
 
 export default function ProductsPage() {
+  return (
+    <ProtectedRoute requiredPermission="products" requireWrite>
+      <ProductsContent />
+    </ProtectedRoute>
+  );
+}
+
+function ProductsContent() {
   const router = useRouter();
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);

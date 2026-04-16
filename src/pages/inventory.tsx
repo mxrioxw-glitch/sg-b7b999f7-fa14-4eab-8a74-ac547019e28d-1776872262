@@ -2,53 +2,37 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
-import { FeatureGuard } from "@/components/FeatureGuard";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit, Trash2, AlertTriangle, TrendingUp, TrendingDown, History } from "lucide-react";
-import {
-  getInventoryItems,
-  getLowStockItems,
-  deleteInventoryItem,
-  adjustInventoryStock,
-} from "@/services/inventoryService";
-import { businessService } from "@/services/businessService";
-import type { InventoryItem } from "@/services/inventoryService";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { InventoryForm } from "@/components/InventoryForm";
 import { InventoryAdjustForm } from "@/components/InventoryAdjustForm";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
+import { businessService } from "@/services/businessService";
+import { inventoryService } from "@/services/inventoryService";
+import { Plus, Search, Edit, Trash2, Package, AlertTriangle, History, TrendingDown, TrendingUp } from "lucide-react";
 import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
+import type { Database } from "@/integrations/supabase/types";
+
+type InventoryItem = Database["public"]["Tables"]["inventory_items"]["Row"];
+
+export const getServerSideProps = requireAuth(requireActiveSubscription);
 
 export default function InventoryPage() {
+  return (
+    <ProtectedRoute requiredPermission="inventory" requireWrite>
+      <InventoryContent />
+    </ProtectedRoute>
+  );
+}
+
+function InventoryContent() {
   const router = useRouter();
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);

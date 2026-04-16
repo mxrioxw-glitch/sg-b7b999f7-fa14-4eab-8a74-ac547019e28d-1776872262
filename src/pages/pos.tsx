@@ -7,6 +7,7 @@ import { Cart } from "@/components/Cart";
 import { ProductModal } from "@/components/ProductModal";
 import { PaymentModal } from "@/components/PaymentModal";
 import { CustomerIdentificationModal } from "@/components/CustomerIdentificationModal";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { TicketPreview } from "@/components/TicketPreview";
 import { QuickCashRegister } from "@/components/QuickCashRegister";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,17 @@ interface Customer {
   points: number;
 }
 
+export const getServerSideProps = requireAuth(requireActiveSubscription);
+
 export default function POSPage() {
+  return (
+    <ProtectedRoute requiredPermission="pos">
+      <POSContent />
+    </ProtectedRoute>
+  );
+}
+
+function POSContent() {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
