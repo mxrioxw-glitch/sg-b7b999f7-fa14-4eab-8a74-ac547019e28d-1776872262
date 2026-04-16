@@ -236,61 +236,34 @@ export type Database = {
       }
       employee_permissions: {
         Row: {
-          can_access_pos: boolean | null
-          can_manage_cash_register: boolean | null
-          can_manage_customers: boolean | null
-          can_manage_employees: boolean | null
-          can_manage_inventory: boolean | null
-          can_manage_products: boolean | null
-          can_manage_settings: boolean | null
-          can_view_customers: boolean | null
-          can_view_inventory: boolean | null
-          can_view_products: boolean | null
-          can_view_reports: boolean | null
+          can_read: boolean | null
+          can_write: boolean | null
           created_at: string | null
-          employee_id: string
+          employee_id: string | null
           id: string
-          updated_at: string | null
+          module: string
         }
         Insert: {
-          can_access_pos?: boolean | null
-          can_manage_cash_register?: boolean | null
-          can_manage_customers?: boolean | null
-          can_manage_employees?: boolean | null
-          can_manage_inventory?: boolean | null
-          can_manage_products?: boolean | null
-          can_manage_settings?: boolean | null
-          can_view_customers?: boolean | null
-          can_view_inventory?: boolean | null
-          can_view_products?: boolean | null
-          can_view_reports?: boolean | null
+          can_read?: boolean | null
+          can_write?: boolean | null
           created_at?: string | null
-          employee_id: string
+          employee_id?: string | null
           id?: string
-          updated_at?: string | null
+          module: string
         }
         Update: {
-          can_access_pos?: boolean | null
-          can_manage_cash_register?: boolean | null
-          can_manage_customers?: boolean | null
-          can_manage_employees?: boolean | null
-          can_manage_inventory?: boolean | null
-          can_manage_products?: boolean | null
-          can_manage_settings?: boolean | null
-          can_view_customers?: boolean | null
-          can_view_inventory?: boolean | null
-          can_view_products?: boolean | null
-          can_view_reports?: boolean | null
+          can_read?: boolean | null
+          can_write?: boolean | null
           created_at?: string | null
-          employee_id?: string
+          employee_id?: string | null
           id?: string
-          updated_at?: string | null
+          module?: string
         }
         Relationships: [
           {
             foreignKeyName: "employee_permissions_employee_id_fkey"
             columns: ["employee_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
