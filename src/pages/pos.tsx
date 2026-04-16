@@ -5,22 +5,25 @@ import { Sidebar } from "@/components/Sidebar";
 import { ProductCard } from "@/components/ProductCard";
 import { Cart } from "@/components/Cart";
 import { ProductModal } from "@/components/ProductModal";
-import { TicketPreview } from "@/components/TicketPreview";
 import { PaymentModal } from "@/components/PaymentModal";
 import { CustomerIdentificationModal } from "@/components/CustomerIdentificationModal";
+import { TicketPreview } from "@/components/TicketPreview";
+import { QuickCashRegister } from "@/components/QuickCashRegister";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { businessService, type Business } from "@/services/businessService";
-import { productService, type ProductWithDetails } from "@/services/productService";
+import { businessService } from "@/services/businessService";
 import { categoryService, type Category } from "@/services/categoryService";
+import { productService, type ProductWithDetails } from "@/services/productService";
+import { getCashRegisters, openCashRegister, type CashRegister } from "@/services/cashRegisterService";
+import { getCustomers, type Customer } from "@/services/customerService";
 import { saleService } from "@/services/saleService";
-import { getCustomers } from "@/services/customerService";
 import { subscriptionService } from "@/services/subscriptionService";
-import { getCashRegisters, type CashRegister } from "@/services/cashRegisterService";
-import { Search, Package, ShoppingCart, ChevronLeft } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { useIsMobileOrTablet } from "@/hooks/use-mobile";
+import { Search, Package, ShoppingCart, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Business } from "@/services/businessService";
 
 interface CartItem {
   id: string;
@@ -64,6 +67,9 @@ export default function POSPage() {
   
   const [showTicket, setShowTicket] = useState(false);
   const [ticketData, setTicketData] = useState<any>(null);
+
+  const [quickCashRegisterOpen, setQuickCashRegisterOpen] = useState(false);
+  const [processingCashRegister, setProcessingCashRegister] = useState(false);
 
   const isMobileOrTablet = useIsMobileOrTablet();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -275,6 +281,51 @@ export default function POSPage() {
     }
   };
 
+  async function handleQuickOpenCashRegister(amount: number, notes: string) {
+    if (!business) return;
+
+    setProcessingCashRegister(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: employee } = await supabase
+        .from("employees")
+        .select("id")
+        .eq("business_id", business.id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!employee) {
+        throw new Error("No se encontró el empleado");
+      }
+
+      await openCashRegister({
+        businessId: business.id,
+        employeeId: employee.id,
+        openingAmount: amount,
+        notes,
+      });
+
+      toast({
+        title: "Turno abierto",
+        description: "El turno de caja se ha abierto correctamente",
+      });
+
+      setQuickCashRegisterOpen(false);
+      await loadActiveCashRegister(business.id);
+    } catch (error: any) {
+      console.error("Error opening cash register:", error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo abrir el turno",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingCashRegister(false);
+    }
+  }
+
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -447,6 +498,8 @@ export default function POSPage() {
           customers={customers}
           onConfirm={handlePaymentConfirm}
           processing={processingPayment}
+          hasCashRegister={!!cashRegister}
+          onOpenCashRegister={() => setQuickCashRegisterOpen(true)}
         />
       )}
 
@@ -489,6 +542,15 @@ export default function POSPage() {
           onConfirm={() => setShowTicket(false)}
         />
       )}
+
+      {/* Quick Cash Register Dialog */}
+      <QuickCashRegister
+        open={quickCashRegisterOpen}
+        onOpenChange={setQuickCashRegisterOpen}
+        mode="open"
+        onConfirm={handleQuickOpenCashRegister}
+        processing={processingCashRegister}
+      />
     </div>
   );
 }

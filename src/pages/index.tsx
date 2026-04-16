@@ -4,13 +4,16 @@ import Head from "next/head";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
+import { QuickCashRegister } from "@/components/QuickCashRegister";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingScreen } from "@/components/ui/loading";
 import { businessService } from "@/services/businessService";
 import { subscriptionService } from "@/services/subscriptionService";
+import { getCashRegisters, openCashRegister, closeCashRegister } from "@/services/cashRegisterService";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { 
   ShoppingCart, 
   Package, 
@@ -53,12 +56,15 @@ interface LowStockItem {
 
 export default function HomePage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [businessName, setBusinessName] = useState("");
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [planName, setPlanName] = useState("");
+  const [businessId, setBusinessId] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
   const [stats, setStats] = useState<DashboardStats>({
     todaySales: 0,
     todayOrders: 0,
@@ -68,6 +74,10 @@ export default function HomePage() {
   });
   const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
   const [lowStockItems, setLowStockItems] = useState<LowStockItem[]>([]);
+  const [quickCashRegisterOpen, setQuickCashRegisterOpen] = useState(false);
+  const [cashRegisterMode, setCashRegisterMode] = useState<"open" | "close">("open");
+  const [processingCashRegister, setProcessingCashRegister] = useState(false);
+  const [expectedAmount, setExpectedAmount] = useState(0);
 
   useEffect(() => {
     loadDashboardData();
@@ -101,6 +111,17 @@ export default function HomePage() {
       }
 
       setBusinessName(business.name);
+      setBusinessId(business.id);
+
+      // Get employee ID
+      const { data: employee } = await supabase
+        .from("employees")
+        .select("id")
+        .eq("business_id", business.id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      setEmployeeId(employee?.id || "");
 
       // Get subscription
       const subscription = await subscriptionService.getCurrentSubscription();
@@ -136,12 +157,17 @@ export default function HomePage() {
       const todaySales = itemsData?.reduce((sum, item) => sum + Number(item.quantity), 0) || 0;
 
       // Get active cash register
-      const { data: activeCashRegister } = await supabase
-        .from("cash_registers")
-        .select("id, opening_amount, opened_at")
-        .eq("business_id", business.id)
-        .eq("status", "open")
-        .maybeSingle();
+      const registers = await getCashRegisters(business.id);
+      const activeCashRegister = registers.find(r => r.status === "open");
+
+      // Calculate expected amount if there's an active register
+      if (activeCashRegister) {
+        const registerSales = (salesData || []).filter(
+          s => s.id === activeCashRegister.id
+        );
+        const salesTotal = registerSales.reduce((sum, sale) => sum + Number(sale.total), 0);
+        setExpectedAmount(Number(activeCashRegister.opening_amount) + salesTotal);
+      }
 
       // Get low stock items
       const { data: inventoryData } = await supabase
@@ -188,6 +214,84 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleQuickOpenCashRegister(amount: number, notes: string) {
+    if (!businessId || !employeeId) {
+      toast({
+        title: "Error",
+        description: "No se pudo identificar tu negocio o empleado",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setProcessingCashRegister(true);
+    try {
+      await openCashRegister({
+        businessId,
+        employeeId,
+        openingAmount: amount,
+        notes,
+      });
+
+      toast({
+        title: "Turno abierto",
+        description: "El turno de caja se ha abierto correctamente",
+      });
+
+      setQuickCashRegisterOpen(false);
+      await loadDashboardData();
+    } catch (error: any) {
+      console.error("Error opening cash register:", error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo abrir el turno",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingCashRegister(false);
+    }
+  }
+
+  async function handleQuickCloseCashRegister(amount: number, notes: string) {
+    if (!stats.activeShift) return;
+
+    setProcessingCashRegister(true);
+    try {
+      await closeCashRegister({
+        registerId: stats.activeShift.id,
+        closingAmount: amount,
+        notes,
+      });
+
+      toast({
+        title: "Turno cerrado",
+        description: "El turno de caja se ha cerrado correctamente",
+      });
+
+      setQuickCashRegisterOpen(false);
+      await loadDashboardData();
+    } catch (error: any) {
+      console.error("Error closing cash register:", error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo cerrar el turno",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingCashRegister(false);
+    }
+  }
+
+  function handleOpenCashRegisterDialog() {
+    setCashRegisterMode("open");
+    setQuickCashRegisterOpen(true);
+  }
+
+  function handleCloseCashRegisterDialog() {
+    setCashRegisterMode("close");
+    setQuickCashRegisterOpen(true);
   }
 
   if (loading) {
@@ -242,13 +346,13 @@ export default function HomePage() {
             onMenuClick={() => setSidebarOpen(true)}
           />
 
-          <main className="flex-1 p-8 space-y-8">
+          <main className="flex-1 p-4 md:p-8 space-y-6 md:space-y-8">
             {/* Welcome Section */}
             <div>
-              <h1 className="text-4xl font-bold text-foreground mb-2">
+              <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
                 ¡Bienvenido, {userName}! 👋
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-sm md:text-base text-muted-foreground">
                 Aquí está el resumen de tu negocio para hoy
               </p>
             </div>
@@ -257,7 +361,7 @@ export default function HomePage() {
             {stats.activeShift ? (
               <Card className="border-accent bg-accent/5">
                 <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="p-2 rounded-full bg-accent/20">
                       <CheckCircle className="h-6 w-6 text-accent" />
                     </div>
@@ -271,21 +375,25 @@ export default function HomePage() {
                         })}
                       </p>
                     </div>
-                    <Link href="/cash-register">
-                      <Button variant="outline" size="sm">
-                        Ver Detalles
-                        <ArrowRight className="ml-2 h-4 w-4" />
+                    <div className="flex gap-2 w-full sm:w-auto">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCloseCashRegisterDialog}
+                        className="flex-1 sm:flex-none"
+                      >
+                        Cerrar Turno
                       </Button>
-                    </Link>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             ) : (
-              <Card className="border-destructive bg-destructive/5">
+              <Card className="border-orange-500 bg-orange-50 dark:bg-orange-950">
                 <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-full bg-destructive/20">
-                      <XCircle className="h-6 w-6 text-destructive" />
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="p-2 rounded-full bg-orange-500/20">
+                      <AlertTriangle className="h-6 w-6 text-orange-600" />
                     </div>
                     <div className="flex-1">
                       <p className="font-semibold text-foreground">No hay turno de caja activo</p>
@@ -293,12 +401,13 @@ export default function HomePage() {
                         Abre un turno para empezar a registrar ventas en el POS
                       </p>
                     </div>
-                    <Link href="/cash-register">
-                      <Button size="sm">
-                        Abrir Turno
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
+                    <Button
+                      size="sm"
+                      onClick={handleOpenCashRegisterDialog}
+                      className="w-full sm:w-auto"
+                    >
+                      Abrir Turno
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -488,6 +597,16 @@ export default function HomePage() {
           </main>
         </div>
       </div>
+
+      {/* Quick Cash Register Dialog */}
+      <QuickCashRegister
+        open={quickCashRegisterOpen}
+        onOpenChange={setQuickCashRegisterOpen}
+        mode={cashRegisterMode}
+        currentAmount={expectedAmount}
+        onConfirm={cashRegisterMode === "open" ? handleQuickOpenCashRegister : handleQuickCloseCashRegister}
+        processing={processingCashRegister}
+      />
     </>
   );
 }
