@@ -162,13 +162,13 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     <aside 
       className={cn(
         "relative bg-card border-r border-border flex-shrink-0 transition-all duration-300 ease-in-out",
-        isExpanded ? "w-64" : "w-16"
+        isExpanded ? "w-64" : "w-[70px]"
       )}
     >
       {/* Header with logo and toggle */}
       <div className={cn(
         "relative border-b border-border flex items-center justify-between",
-        isExpanded ? "p-4 md:p-6" : "p-3 justify-center"
+        isExpanded ? "p-6" : "p-3 justify-center"
       )}>
         <div className={cn(
           "flex items-center gap-3 transition-opacity duration-200",
@@ -177,7 +177,9 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary flex-shrink-0">
             <span className="text-lg font-bold text-primary-foreground">☕</span>
           </div>
-          <h1 className="text-xl font-bold text-primary whitespace-nowrap">POS SaaS</h1>
+          {isExpanded && (
+            <h1 className="text-xl font-bold text-primary whitespace-nowrap">POS SaaS</h1>
+          )}
         </div>
 
         {!isExpanded && (
@@ -186,32 +188,42 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           </div>
         )}
 
-        {/* Toggle button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleSidebar}
-          className={cn(
-            "absolute transition-all duration-300 flex-shrink-0",
-            isExpanded ? "right-2" : "-right-3 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-card border border-border shadow-md"
-          )}
-        >
-          {isExpanded ? (
-            <ChevronLeft className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
-        </Button>
+        {/* Toggle button - only show when expanded */}
+        {isExpanded && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+            className="absolute right-2"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+        )}
       </div>
+
+      {/* Toggle button when collapsed - positioned below header */}
+      {!isExpanded && (
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+            className="absolute left-1/2 -translate-x-1/2 top-4 z-10 h-8 w-8 rounded-full bg-card border border-border shadow-md hover:shadow-lg"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       <NavigationContent />
 
-      {/* Footer indicator for collapsed state */}
-      {!isExpanded && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-          <div className="h-1 w-6 rounded-full bg-muted" />
-        </div>
-      )}
+      {/* Footer indicator */}
+      <div className={cn(
+        "absolute bottom-4 left-1/2 -translate-x-1/2 transition-opacity duration-200",
+        isExpanded ? "opacity-0" : "opacity-100"
+      )}>
+        <div className="h-1 w-6 rounded-full bg-muted" />
+      </div>
     </aside>
   );
 }
