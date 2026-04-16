@@ -486,13 +486,13 @@ export default function Settings() {
     setEmployeeDialogOpen(true);
   }
 
-  function handleEditEmployeePermissions(employee: EmployeeWithUser) {
+  async function handleEditEmployeePermissions(employee: EmployeeWithUser) {
     setEditingEmployee(employee);
     setEditingPermissions([]); // Reset while loading
     setEmployeeDialogOpen(true);
     
     try {
-      const perms = employeeService.getEmployeePermissions(employee.id);
+      const perms = await employeeService.getEmployeePermissions(employee.id);
       setEditingPermissions(perms);
     } catch (error) {
       console.error("Error loading permissions:", error);
