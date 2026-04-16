@@ -80,7 +80,7 @@ serve(async (req) => {
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true,
+      email_confirm: true, // Auto-confirm email
       user_metadata: {
         full_name,
         is_employee: true,
@@ -95,17 +95,43 @@ serve(async (req) => {
       );
     }
 
-    // Create profile entry
+    // Create profile entry (UPSERT to avoid conflicts with trigger)
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
-      .insert({
+      .upsert({
         id: newUser.user.id,
         email,
         full_name,
+      }, {
+        onConflict: 'id',
+        ignoreDuplicates: false
       });
 
     if (profileError) {
-      console.error("Error creating profile:", profileError);
+      console.error("Error creating/updating profile:", profileError);
+      // Cleanup: delete the user if profile fails
+      await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
+      return new Response(
+        JSON.stringify({ success: false, error: `Failed to create profile: ${profileError.message}` }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
+    }
+
+    // Check if employee already exists for this user in this business
+    const { data: existingEmployee } = await supabaseAdmin
+      .from("employees")
+      .select("id")
+      .eq("user_id", newUser.user.id)
+      .eq("business_id", business_id)
+      .maybeSingle();
+
+    if (existingEmployee) {
+      // Cleanup: delete the user
+      await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
+      return new Response(
+        JSON.stringify({ success: false, error: "Este usuario ya es empleado de este negocio" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
     }
 
     // Create employee record
@@ -122,14 +148,27 @@ serve(async (req) => {
 
     if (employeeError) {
       console.error("Error creating employee record:", employeeError);
+      console.error("Employee error details:", {
+        message: employeeError.message,
+        details: employeeError.details,
+        hint: employeeError.hint,
+        code: employeeError.code
+      });
+      // Cleanup: delete the user and profile if employee creation fails
       await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
+      await supabaseAdmin.from("profiles").delete().eq("id", newUser.user.id);
       return new Response(
-        JSON.stringify({ success: false, error: "Failed to create employee record" }),
+        JSON.stringify({ 
+          success: false, 
+          error: `Failed to create employee record: ${employeeError.message}`,
+          details: employeeError.details,
+          hint: employeeError.hint
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
 
-    // Create default permissions
+    // Create default permissions based on role
     const defaultPermissions = role === "admin"
       ? [
           { module: "pos", can_read: true, can_write: true },
@@ -149,9 +188,14 @@ serve(async (req) => {
       ...p,
     }));
 
-    await supabaseAdmin
+    const { error: permissionsError } = await supabaseAdmin
       .from("employee_permissions")
       .insert(permissionsToInsert);
+
+    if (permissionsError) {
+      console.error("Error creating permissions:", permissionsError);
+      // Don't fail - permissions can be set later
+    }
 
     return new Response(
       JSON.stringify({
