@@ -5,7 +5,7 @@ import { authService } from "@/services/authService";
 import { businessService } from "@/services/businessService";
 import { settingsService, type BusinessSettings } from "@/services/settingsService";
 import { employeeService } from "@/services/employeeService";
-import { paymentMethodService } from "@/services/paymentMethodService";
+import { paymentMethodService, type PaymentMethod } from "@/services/paymentMethodService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
