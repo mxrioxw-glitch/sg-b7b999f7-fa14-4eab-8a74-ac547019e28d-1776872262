@@ -27,18 +27,10 @@ import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
 import { subscriptionService } from "@/services/subscriptionService";
 
-type Employee = Database["public"]["Tables"]["employees"]["Row"] & {
-  user: {
-    id: string;
-    email: string | null;
-    full_name: string | null;
-    avatar_url: string | null;
-  } | null;
-};
+// TEMPORARILY DISABLED FOR DEBUGGING
+// export const getServerSideProps = requireActiveSubscription;
 
-type PaymentMethod = Database["public"]["Tables"]["payment_methods"]["Row"];
-
-export default function Settings() {
+export default function SettingsPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
