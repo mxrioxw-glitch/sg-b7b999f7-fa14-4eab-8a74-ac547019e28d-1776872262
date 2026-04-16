@@ -25,8 +25,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
 
-// TEMPORARILY DISABLED FOR DEBUGGING
-// export const getServerSideProps = requireActiveSubscription;
+export const getServerSideProps = requireActiveSubscription;
 
 export default function Dashboard() {
   const router = useRouter();

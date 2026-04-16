@@ -29,8 +29,7 @@ import { Plus, Search, Edit, Trash2, Users, Star, Phone, Mail, UserPlus, Eye } f
 import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
 
-// TEMPORARILY DISABLED FOR DEBUGGING
-// export const getServerSideProps = requireActiveSubscription;
+export const getServerSideProps = requireActiveSubscription;
 
 export default function CustomersPage() {
   return (

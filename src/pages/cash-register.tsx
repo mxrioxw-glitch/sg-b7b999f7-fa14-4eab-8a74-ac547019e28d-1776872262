@@ -21,8 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { requireAuth } from "@/middleware/auth";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-// TEMPORARILY DISABLED FOR DEBUGGING
-// export const getServerSideProps = requireActiveSubscription;
+export const getServerSideProps = requireActiveSubscription;
 
 export default function CashRegisterPage() {
   return (

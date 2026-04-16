@@ -27,8 +27,7 @@ import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
 import { subscriptionService } from "@/services/subscriptionService";
 
-// TEMPORARILY DISABLED FOR DEBUGGING
-// export const getServerSideProps = requireActiveSubscription;
+export const getServerSideProps = requireActiveSubscription;
 
 export default function SettingsPage() {
   const router = useRouter();
