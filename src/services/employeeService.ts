@@ -1,15 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
-export type Employee = Database["public"]["Tables"]["employees"]["Row"];
-export type EmployeeInsert = Database["public"]["Tables"]["employees"]["Insert"];
-export type EmployeePermission = Database["public"]["Tables"]["employee_permissions"]["Row"];
+type Employee = Database["public"]["Tables"]["employees"]["Row"];
+type EmployeeInsert = Database["public"]["Tables"]["employees"]["Insert"];
+type EmployeePermission = Database["public"]["Tables"]["employee_permissions"]["Row"];
+
 export type EmployeeWithUser = Employee & {
-  user: {
-    id: string;
-    email: string | null;
-    full_name: string | null;
-    avatar_url: string | null;
+  user?: {
+    email?: string;
+    full_name?: string;
   } | null;
 };
 
@@ -19,29 +18,47 @@ export const employeeService = {
       .from("employees")
       .select(`
         *,
-        user:user_id (
-          id,
-          email,
-          full_name,
-          avatar_url
-        )
+        user:profiles!employees_user_id_fkey(email, full_name)
       `)
       .eq("business_id", businessId)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    // Cast to any to bypass complex type inference issues with joined tables
-    return (data || []) as any;
+    return (data as EmployeeWithUser[]) || [];
   },
 
-  async inviteEmployee(businessId: string, email: string, role: "admin" | "cashier"): Promise<void> {
-    // Call the Edge Function to create a user and invite them, 
-    // or simulate it for now.
-    // Real implementation would use supabase.functions.invoke
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("No authenticated user");
-    
-    throw new Error("Por seguridad, el usuario debe registrarse primero en el sistema con ese correo. Una vez registrado, podrás agregarlo aquí usando su correo.");
+  async createEmployeeAccount(params: {
+    email: string;
+    password: string;
+    full_name: string;
+    business_id: string;
+    role?: "admin" | "cashier";
+  }): Promise<{ success: boolean; employee?: any; error?: string }> {
+    try {
+      // Get current session token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("No active session");
+      }
+
+      // Call Edge Function to create employee
+      const { data, error } = await supabase.functions.invoke("create-employee", {
+        body: params,
+      });
+
+      if (error) throw error;
+      if (!data.success) {
+        throw new Error(data.error || "Failed to create employee");
+      }
+
+      return { success: true, employee: data.employee };
+    } catch (error: any) {
+      console.error("Error creating employee account:", error);
+      return { 
+        success: false, 
+        error: error.message || "Failed to create employee account" 
+      };
+    }
   },
 
   async updateEmployee(id: string, updates: Partial<EmployeeInsert>): Promise<Employee> {
@@ -79,7 +96,7 @@ export const employeeService = {
     employeeId: string,
     permissions: { module: string; can_read: boolean; can_write: boolean }[]
   ): Promise<void> {
-    // Primero eliminar permisos existentes
+    // Delete existing permissions
     const { error: deleteError } = await supabase
       .from("employee_permissions")
       .delete()
@@ -87,7 +104,7 @@ export const employeeService = {
 
     if (deleteError) throw deleteError;
 
-    // Insertar nuevos permisos
+    // Insert new permissions
     if (permissions.length > 0) {
       const { error: insertError } = await supabase
         .from("employee_permissions")
@@ -108,7 +125,6 @@ export const employeeService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
 
-    // Buscar el empleado del usuario actual en este negocio
     const { data: employee } = await supabase
       .from("employees")
       .select("id")
@@ -121,8 +137,11 @@ export const employeeService = {
     return this.getEmployeePermissions(employee.id);
   },
 
-  async hasPermission(businessId: string, module: string, type: "read" | "write" = "read"): Promise<boolean> {
-    // Primero verificar si es el dueño del negocio
+  async hasPermission(
+    businessId: string,
+    module: string,
+    type: "read" | "write" = "read"
+  ): Promise<boolean> {
     const { data: business } = await supabase
       .from("businesses")
       .select("owner_id")
@@ -134,15 +153,15 @@ export const employeeService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
 
-    // Si es el dueño, tiene todos los permisos
     if (business.owner_id === user.id) return true;
 
-    // Si no es el dueño, verificar permisos de empleado
     const permissions = await this.getCurrentUserPermissions(businessId);
     const permission = permissions.find((p) => p.module === module);
 
     if (!permission) return false;
 
     return type === "read" ? permission.can_read : permission.can_write;
-  }
+  },
 };
+
+export type { Employee, EmployeePermission };
