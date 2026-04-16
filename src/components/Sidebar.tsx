@@ -99,6 +99,12 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
   const menuItems = [
     { 
+      name: "Inicio", 
+      icon: Home, 
+      path: "/",
+      permission: "reports" // Same as dashboard - read-only access
+    },
+    { 
       name: "Dashboard", 
       icon: LayoutDashboard, 
       path: "/dashboard",
