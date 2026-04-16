@@ -15,7 +15,7 @@ import { requireActiveSubscription } from "@/middleware/subscription";
 import { businessService } from "@/services/businessService";
 import { supabase } from "@/integrations/supabase/client";
 import { getCustomers, createCustomer, updateCustomer, deleteCustomer, getCustomerPurchaseHistory, type Customer } from "@/services/customerService";
-import { Plus, Search, Mail, Phone, Star, Trash2, Eye } from "lucide-react";
+import { Plus, Search, Mail, Phone, Star, Trash2, Eye, UserPlus, Edit, Users } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { GetServerSideProps } from "next";
@@ -163,99 +163,127 @@ export default function Customers() {
         <title>Customers - POS System</title>
       </Head>
 
-      <div className="min-h-screen bg-background">
+      <div className="flex min-h-screen bg-background">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 flex flex-col">
           <Header onMenuClick={() => setSidebarOpen(true)} />
           <FeatureGuard feature="customers">
-            <main className="flex-1 p-8">
-              <div className="max-w-7xl mx-auto space-y-8">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h1 className="text-3xl font-bold text-foreground">Customers</h1>
-                    <p className="text-muted-foreground mt-2">Manage your customer database</p>
-                  </div>
-                  <Button onClick={() => { setSelectedCustomer(null); setFormOpen(true); }} size="lg">
-                    <Plus className="h-5 w-5 mr-2" />
-                    New Customer
-                  </Button>
+            <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+              <div className="mb-6 md:mb-8">
+                <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Clientes</h1>
+                <p className="text-sm md:text-base text-muted-foreground">
+                  Gestiona tu base de clientes y su historial
+                </p>
+              </div>
+
+              {/* Search and Actions */}
+              <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-6">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar clientes..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
+                <Button onClick={() => setFormOpen(true)} className="w-full sm:w-auto">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Nuevo Cliente
+                </Button>
+              </div>
 
-                <div className="flex gap-4 items-center">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search by name, email, or phone..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
+              {/* Customers Table */}
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                 </div>
-
-                <div className="grid gap-4">
-                  {filteredCustomers.length === 0 ? (
-                    <Card>
-                      <CardContent className="flex flex-col items-center justify-center py-12">
-                        <p className="text-muted-foreground">
-                          {searchTerm ? "No customers found matching your search" : "No customers yet"}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    filteredCustomers.map((customer) => (
-                      <Card key={customer.id} className="hover:shadow-md transition-shadow">
-                        <CardContent className="p-6">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3">
-                                <h3 className="text-xl font-semibold">{customer.name}</h3>
-                                {customer.loyalty_points && customer.loyalty_points > 0 && (
-                                  <Badge variant="secondary" className="flex items-center gap-1">
-                                    <Star className="h-3 w-3" />
-                                    {customer.loyalty_points} points
-                                  </Badge>
-                                )}
+              ) : filteredCustomers.length > 0 ? (
+                <Card>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nombre</TableHead>
+                          <TableHead className="hidden md:table-cell">Email</TableHead>
+                          <TableHead className="hidden sm:table-cell">Teléfono</TableHead>
+                          <TableHead className="hidden lg:table-cell">Puntos</TableHead>
+                          <TableHead className="text-right">Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredCustomers.map((customer) => (
+                          <TableRow key={customer.id}>
+                            <TableCell className="font-medium">{customer.name}</TableCell>
+                            <TableCell className="hidden md:table-cell text-muted-foreground">
+                              {customer.email || "-"}
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell text-muted-foreground">
+                              {customer.phone || "-"}
+                            </TableCell>
+                            <TableCell className="hidden lg:table-cell">
+                              <Badge variant="secondary">
+                                {customer.loyalty_points || 0} pts
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setDetailCustomer(customer);
+                                    setDetailDialogOpen(true);
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setSelectedCustomer(customer);
+                                    setFormOpen(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setCustomerToDelete(customer);
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                  className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </div>
-
-                              <div className="mt-4 space-y-2">
-                                {customer.email && (
-                                  <div className="flex items-center gap-2 text-muted-foreground">
-                                    <Mail className="h-4 w-4" />
-                                    <span className="text-sm">{customer.email}</span>
-                                  </div>
-                                )}
-                                {customer.phone && (
-                                  <div className="flex items-center gap-2 text-muted-foreground">
-                                    <Phone className="h-4 w-4" />
-                                    <span className="text-sm">{customer.phone}</span>
-                                  </div>
-                                )}
-                                {customer.notes && (
-                                  <p className="text-sm text-muted-foreground mt-2">{customer.notes}</p>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="flex gap-2">
-                              <Button variant="outline" size="sm" onClick={() => handleViewDetails(customer)}>
-                                <Eye className="h-4 w-4 mr-1" />
-                                Details
-                              </Button>
-                              <Button variant="outline" size="sm" onClick={() => handleEditCustomer(customer)}>
-                                Edit
-                              </Button>
-                              <Button variant="outline" size="sm" onClick={() => handleDeleteClick(customer)}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </Card>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Users className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                  <h3 className="text-lg font-semibold mb-2">No hay clientes</h3>
+                  <p className="text-muted-foreground mb-4">
+                    {searchTerm
+                      ? "No se encontraron clientes con ese nombre"
+                      : "Comienza agregando tu primer cliente"}
+                  </p>
+                  {!searchTerm && (
+                    <Button onClick={() => setFormOpen(true)}>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Crear Cliente
+                    </Button>
                   )}
                 </div>
-              </div>
+              )}
             </main>
           </FeatureGuard>
         </div>

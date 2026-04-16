@@ -3,7 +3,6 @@ import { useRouter } from "next/router";
 import { subscriptionService } from "@/services/subscriptionService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Lock, Zap, ArrowRight } from "lucide-react";
 
 interface FeatureGuardProps {
@@ -35,7 +34,7 @@ export function FeatureGuard({ feature, children, fallback }: FeatureGuardProps)
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-8">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
@@ -50,7 +49,7 @@ export function FeatureGuard({ feature, children, fallback }: FeatureGuardProps)
   }
 
   return (
-    <div className="flex items-center justify-center min-h-[400px] p-8">
+    <div className="flex-1 flex items-center justify-center p-8">
       <Card className="max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">

@@ -483,543 +483,536 @@ export default function Settings() {
     setEmployeeDialogOpen(true);
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Cargando configuración...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
       <div className="flex-1 flex flex-col">
         <Header onMenuClick={() => setSidebarOpen(true)} />
         
         <main className="flex-1 overflow-y-auto">
-          <div className="p-8">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-foreground mb-2">Configuración</h1>
-              <p className="text-muted-foreground">
+          <div className="p-4 md:p-8">
+            <div className="mb-6 md:mb-8">
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Configuración</h1>
+              <p className="text-sm md:text-base text-muted-foreground">
                 Gestiona la configuración de tu negocio
               </p>
             </div>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
-                <TabsTrigger value="business">Negocio</TabsTrigger>
-                <TabsTrigger value="employees">Empleados</TabsTrigger>
-                <TabsTrigger value="payments">Métodos de Pago</TabsTrigger>
-                <TabsTrigger value="system">Sistema</TabsTrigger>
-              </TabsList>
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              </div>
+            ) : (
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+                <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+                  <TabsTrigger value="business">Negocio</TabsTrigger>
+                  <TabsTrigger value="employees">Empleados</TabsTrigger>
+                  <TabsTrigger value="payments">Métodos de Pago</TabsTrigger>
+                  <TabsTrigger value="system">Sistema</TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="business">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Información del Negocio</CardTitle>
-                    <CardDescription>Datos generales de tu negocio</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Nombre del Negocio *</Label>
-                        <Input
-                          id="name"
-                          value={businessForm.name}
-                          onChange={(e) => setBusinessForm({ ...businessForm, name: e.target.value })}
-                          placeholder="Mi Cafetería"
-                        />
+                {/* Business Settings Tab */}
+                <TabsContent value="business">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Información del Negocio</CardTitle>
+                      <CardDescription>Datos generales de tu negocio</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="name">Nombre del Negocio *</Label>
+                          <Input
+                            id="name"
+                            value={businessForm.name}
+                            onChange={(e) => setBusinessForm({ ...businessForm, name: e.target.value })}
+                            placeholder="Mi Cafetería"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="email">Email</Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={businessForm.email}
+                            onChange={(e) => setBusinessForm({ ...businessForm, email: e.target.value })}
+                            placeholder="contacto@micafeteria.com"
+                          />
+                        </div>
                       </div>
                       
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={businessForm.email}
-                          onChange={(e) => setBusinessForm({ ...businessForm, email: e.target.value })}
-                          placeholder="contacto@micafeteria.com"
-                        />
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="phone">Teléfono</Label>
+                          <Input
+                            id="phone"
+                            value={businessForm.phone}
+                            onChange={(e) => setBusinessForm({ ...businessForm, phone: e.target.value })}
+                            placeholder="+52 123 456 7890"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="address">Dirección</Label>
+                          <Input
+                            id="address"
+                            value={businessForm.address}
+                            onChange={(e) => setBusinessForm({ ...businessForm, address: e.target.value })}
+                            placeholder="Calle Principal #123"
+                          />
+                        </div>
                       </div>
-                    </div>
-                    
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Teléfono</Label>
-                        <Input
-                          id="phone"
-                          value={businessForm.phone}
-                          onChange={(e) => setBusinessForm({ ...businessForm, phone: e.target.value })}
-                          placeholder="+52 123 456 7890"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="address">Dirección</Label>
-                        <Input
-                          id="address"
-                          value={businessForm.address}
-                          onChange={(e) => setBusinessForm({ ...businessForm, address: e.target.value })}
-                          placeholder="Calle Principal #123"
-                        />
-                      </div>
-                    </div>
 
-                    <div className="border-t pt-4 mt-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="logo">Logo del Negocio</Label>
-                        <div className="flex items-start gap-4">
-                          {logoPreview && (
-                            <div className="flex-shrink-0">
-                              <img
-                                src={logoPreview}
-                                alt="Logo actual"
-                                className="h-24 w-24 object-contain border rounded-lg bg-muted p-2"
-                              />
-                            </div>
-                          )}
-                          <div className="flex-1 space-y-2">
-                            <Input
-                              id="logo"
-                              type="file"
-                              accept="image/png,image/jpeg,image/jpg,image/webp"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  setLogoFile(file);
-                                  // Create preview
-                                  const reader = new FileReader();
-                                  reader.onloadend = () => {
-                                    setLogoPreview(reader.result as string);
-                                  };
-                                  reader.readAsDataURL(file);
-                                }
-                              }}
-                              disabled={uploadingLogo}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              PNG, JPG o WebP. Máximo 2MB. Se mostrará en los tickets de venta.
-                            </p>
+                      <div className="border-t pt-4 mt-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="logo">Logo del Negocio</Label>
+                          <div className="flex items-start gap-4">
                             {logoPreview && (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setLogoPreview("");
-                                  setLogoFile(null);
-                                }}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Quitar Logo
-                              </Button>
+                              <div className="flex-shrink-0">
+                                <img
+                                  src={logoPreview}
+                                  alt="Logo actual"
+                                  className="h-24 w-24 object-contain border rounded-lg bg-muted p-2"
+                                />
+                              </div>
                             )}
+                            <div className="flex-1 space-y-2">
+                              <Input
+                                id="logo"
+                                type="file"
+                                accept="image/png,image/jpeg,image/jpg,image/webp"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    setLogoFile(file);
+                                    // Create preview
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => {
+                                      setLogoPreview(reader.result as string);
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }}
+                                disabled={uploadingLogo}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                PNG, JPG o WebP. Máximo 2MB. Se mostrará en los tickets de venta.
+                              </p>
+                              {logoPreview && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setLogoPreview("");
+                                    setLogoFile(null);
+                                  }}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Quitar Logo
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                    
-                    <div className="flex justify-end">
-                      <Button onClick={handleSaveBusinessInfo} disabled={saving || uploadingLogo}>
-                        <Save className="mr-2 h-4 w-4" />
-                        {uploadingLogo ? "Subiendo logo..." : saving ? "Guardando..." : "Guardar Cambios"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="taxes">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Configuración de Impuestos</CardTitle>
-                    <CardDescription>Configura el IVA y otros impuestos</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="tax_rate">Tasa de IVA (%)</Label>
-                      <Input
-                        id="tax_rate"
-                        type="number"
-                        step="0.01"
-                        value={taxForm.tax_rate}
-                        onChange={(e) => setTaxForm({ ...taxForm, tax_rate: parseFloat(e.target.value) || 0 })}
-                        placeholder="16.00"
-                      />
-                      <p className="text-sm text-muted-foreground">Ejemplo: 16 para 16%</p>
-                    </div>
-                    
-                    <div className="flex items-center justify-between space-x-2">
-                      <div className="space-y-1">
-                        <Label htmlFor="tax_included">IVA Incluido en Precios</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Si está activado, los precios ya incluyen el IVA
-                        </p>
+                      
+                      <div className="flex justify-end">
+                        <Button onClick={handleSaveBusinessInfo} disabled={saving || uploadingLogo}>
+                          <Save className="mr-2 h-4 w-4" />
+                          {uploadingLogo ? "Subiendo logo..." : saving ? "Guardando..." : "Guardar Cambios"}
+                        </Button>
                       </div>
-                      <Switch
-                        id="tax_included"
-                        checked={taxForm.tax_included}
-                        onCheckedChange={(checked) => setTaxForm({ ...taxForm, tax_included: checked })}
-                      />
-                    </div>
-                    
-                    <div className="flex justify-end">
-                      <Button onClick={handleSaveTaxSettings} disabled={saving}>
-                        <Save className="mr-2 h-4 w-4" />
-                        {saving ? "Guardando..." : "Guardar Cambios"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
-              <TabsContent value="employees">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Gestión de Empleados</CardTitle>
-                    <CardDescription>Administra los empleados y sus roles</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="flex gap-4">
-                      <Input
-                        placeholder="Email del empleado"
-                        value={newEmployeeEmail}
-                        onChange={(e) => setNewEmployeeEmail(e.target.value)}
-                        type="email"
-                      />
-                      <Select value={newEmployeeRole} onValueChange={(value: "admin" | "cashier") => setNewEmployeeRole(value)}>
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="admin">Administrador</SelectItem>
-                          <SelectItem value="cashier">Cajero</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button onClick={handleInviteEmployee}>
-                        <Mail className="mr-2 h-4 w-4" />
-                        Invitar
-                      </Button>
-                    </div>
-                    
-                    <div className="border rounded-lg">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Empleado</TableHead>
-                            <TableHead>Rol</TableHead>
-                            <TableHead>Estado</TableHead>
-                            <TableHead className="text-right">Acciones</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {employees.map((emp) => (
-                            <TableRow key={emp.id}>
-                              <TableCell>
-                                <div>
-                                  <p className="font-medium">{emp.user?.full_name || "Sin nombre"}</p>
-                                  <p className="text-sm text-muted-foreground">{emp.user?.email}</p>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant={emp.role === "owner" ? "default" : emp.role === "admin" ? "secondary" : "outline"}>
-                                  {emp.role === "owner" ? "Propietario" : emp.role === "admin" ? "Administrador" : "Cajero"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant={emp.is_active ? "default" : "secondary"}>
-                                  {emp.is_active ? "Activo" : "Inactivo"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {emp.role !== "owner" && (
+                <TabsContent value="taxes">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Configuración de Impuestos</CardTitle>
+                      <CardDescription>Configura el IVA y otros impuestos</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="tax_rate">Tasa de IVA (%)</Label>
+                        <Input
+                          id="tax_rate"
+                          type="number"
+                          step="0.01"
+                          value={taxForm.tax_rate}
+                          onChange={(e) => setTaxForm({ ...taxForm, tax_rate: parseFloat(e.target.value) || 0 })}
+                          placeholder="16.00"
+                        />
+                        <p className="text-sm text-muted-foreground">Ejemplo: 16 para 16%</p>
+                      </div>
+                      
+                      <div className="flex items-center justify-between space-x-2">
+                        <div className="space-y-1">
+                          <Label htmlFor="tax_included">IVA Incluido en Precios</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Si está activado, los precios ya incluyen el IVA
+                          </p>
+                        </div>
+                        <Switch
+                          id="tax_included"
+                          checked={taxForm.tax_included}
+                          onCheckedChange={(checked) => setTaxForm({ ...taxForm, tax_included: checked })}
+                        />
+                      </div>
+                      
+                      <div className="flex justify-end">
+                        <Button onClick={handleSaveTaxSettings} disabled={saving}>
+                          <Save className="mr-2 h-4 w-4" />
+                          {saving ? "Guardando..." : "Guardar Cambios"}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="employees">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Gestión de Empleados</CardTitle>
+                      <CardDescription>Administra los empleados y sus roles</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="flex gap-4">
+                        <Input
+                          placeholder="Email del empleado"
+                          value={newEmployeeEmail}
+                          onChange={(e) => setNewEmployeeEmail(e.target.value)}
+                          type="email"
+                        />
+                        <Select value={newEmployeeRole} onValueChange={(value: "admin" | "cashier") => setNewEmployeeRole(value)}>
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">Administrador</SelectItem>
+                            <SelectItem value="cashier">Cajero</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button onClick={handleInviteEmployee}>
+                          <Mail className="mr-2 h-4 w-4" />
+                          Invitar
+                        </Button>
+                      </div>
+                      
+                      <div className="border rounded-lg">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Empleado</TableHead>
+                              <TableHead>Rol</TableHead>
+                              <TableHead>Estado</TableHead>
+                              <TableHead className="text-right">Acciones</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {employees.map((emp) => (
+                              <TableRow key={emp.id}>
+                                <TableCell>
+                                  <div>
+                                    <p className="font-medium">{emp.user?.full_name || "Sin nombre"}</p>
+                                    <p className="text-sm text-muted-foreground">{emp.user?.email}</p>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={emp.role === "owner" ? "default" : emp.role === "admin" ? "secondary" : "outline"}>
+                                    {emp.role === "owner" ? "Propietario" : emp.role === "admin" ? "Administrador" : "Cajero"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={emp.is_active ? "default" : "secondary"}>
+                                    {emp.is_active ? "Activo" : "Inactivo"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {emp.role !== "owner" && (
+                                    <div className="flex justify-end gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleToggleEmployee(emp.id, emp.is_active || false)}
+                                      >
+                                        {emp.is_active ? "Desactivar" : "Activar"}
+                                      </Button>
+                                      <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => handleDeleteEmployee(emp.id)}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="payments">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Métodos de Pago</CardTitle>
+                      <CardDescription>Configura los métodos de pago disponibles</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="flex gap-4">
+                        <Input
+                          placeholder="Nombre del método (ej. Efectivo, Tarjeta)"
+                          value={newPaymentMethod}
+                          onChange={(e) => setNewPaymentMethod(e.target.value)}
+                        />
+                        <Button onClick={handleAddPaymentMethod}>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Agregar
+                        </Button>
+                      </div>
+                      
+                      <div className="border rounded-lg">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Método</TableHead>
+                              <TableHead>Estado</TableHead>
+                              <TableHead className="text-right">Acciones</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {paymentMethods.map((pm) => (
+                              <TableRow key={pm.id}>
+                                <TableCell className="font-medium">{pm.name}</TableCell>
+                                <TableCell>
+                                  <Badge variant={pm.is_active ? "default" : "secondary"}>
+                                    {pm.is_active ? "Activo" : "Inactivo"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
                                   <div className="flex justify-end gap-2">
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => handleToggleEmployee(emp.id, emp.is_active || false)}
+                                      onClick={() => handleTogglePaymentMethod(pm.id, pm.is_active || false)}
                                     >
-                                      {emp.is_active ? "Desactivar" : "Activar"}
+                                      {pm.is_active ? "Desactivar" : "Activar"}
                                     </Button>
                                     <Button
                                       variant="destructive"
                                       size="sm"
-                                      onClick={() => handleDeleteEmployee(emp.id)}
+                                      onClick={() => handleDeletePaymentMethod(pm.id)}
                                     >
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
                                   </div>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
-              <TabsContent value="payments">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Métodos de Pago</CardTitle>
-                    <CardDescription>Configura los métodos de pago disponibles</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="flex gap-4">
-                      <Input
-                        placeholder="Nombre del método (ej. Efectivo, Tarjeta)"
-                        value={newPaymentMethod}
-                        onChange={(e) => setNewPaymentMethod(e.target.value)}
-                      />
-                      <Button onClick={handleAddPaymentMethod}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Agregar
-                      </Button>
-                    </div>
-                    
-                    <div className="border rounded-lg">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Método</TableHead>
-                            <TableHead>Estado</TableHead>
-                            <TableHead className="text-right">Acciones</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {paymentMethods.map((pm) => (
-                            <TableRow key={pm.id}>
-                              <TableCell className="font-medium">{pm.name}</TableCell>
-                              <TableCell>
-                                <Badge variant={pm.is_active ? "default" : "secondary"}>
-                                  {pm.is_active ? "Activo" : "Inactivo"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end gap-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleTogglePaymentMethod(pm.id, pm.is_active || false)}
-                                  >
-                                    {pm.is_active ? "Desactivar" : "Activar"}
-                                  </Button>
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() => handleDeletePaymentMethod(pm.id)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+                <TabsContent value="printer">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Configuración de Impresora</CardTitle>
+                      <CardDescription>Configura tu impresora térmica de tickets</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="printer_width">Ancho de Papel de Impresora</Label>
+                        <Select value={printerWidth} onValueChange={(value: "58mm" | "80mm") => setPrinterWidth(value)}>
+                          <SelectTrigger id="printer_width">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="58mm">58mm (2 pulgadas) - Compacta</SelectItem>
+                            <SelectItem value="80mm">80mm (3 pulgadas) - Estándar</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-sm text-muted-foreground">
+                          Selecciona el ancho de papel de tu impresora térmica. 
+                          El formato del ticket se ajustará automáticamente.
+                        </p>
+                      </div>
 
-              <TabsContent value="printer">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Configuración de Impresora</CardTitle>
-                    <CardDescription>Configura tu impresora térmica de tickets</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="printer_width">Ancho de Papel de Impresora</Label>
-                      <Select value={printerWidth} onValueChange={(value: "58mm" | "80mm") => setPrinterWidth(value)}>
-                        <SelectTrigger id="printer_width">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="58mm">58mm (2 pulgadas) - Compacta</SelectItem>
-                          <SelectItem value="80mm">80mm (3 pulgadas) - Estándar</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-sm text-muted-foreground">
-                        Selecciona el ancho de papel de tu impresora térmica. 
-                        El formato del ticket se ajustará automáticamente.
-                      </p>
-                    </div>
-
-                    <div className="border rounded-lg p-4 bg-muted/50">
-                      <h4 className="font-medium mb-2">Vista Previa del Ticket</h4>
-                      <div 
-                        className="bg-white border-2 border-dashed border-border mx-auto p-4 font-mono text-xs"
-                        style={{ width: printerWidth === "58mm" ? "200px" : "280px" }}
-                      >
-                        <div className="text-center mb-2">
-                          <p className="font-bold">Mi Negocio</p>
-                          <p className="text-[10px]">Calle Principal #123</p>
-                          <p className="text-[10px]">Tel: 123-456-7890</p>
-                        </div>
-                        <div className="border-t border-dashed border-gray-400 my-2"></div>
-                        <div className="space-y-1 text-[10px]">
-                          <div className="flex justify-between">
-                            <span>Ticket: #ABC12345</span>
-                            <span>Fecha: 14/04/2026 12:30</span>
+                      <div className="border rounded-lg p-4 bg-muted/50">
+                        <h4 className="font-medium mb-2">Vista Previa del Ticket</h4>
+                        <div 
+                          className="bg-white border-2 border-dashed border-border mx-auto p-4 font-mono text-xs"
+                          style={{ width: printerWidth === "58mm" ? "200px" : "280px" }}
+                        >
+                          <div className="text-center mb-2">
+                            <p className="font-bold">Mi Negocio</p>
+                            <p className="text-[10px]">Calle Principal #123</p>
+                            <p className="text-[10px]">Tel: 123-456-7890</p>
                           </div>
-                        </div>
-                        <div className="border-t border-dashed border-gray-400 my-2"></div>
-                        <div className="space-y-2">
-                          <div>
-                            <div className="flex justify-between font-semibold">
-                              <span>1x Café Latte</span>
+                          <div className="border-t border-dashed border-gray-400 my-2"></div>
+                          <div className="space-y-1 text-[10px]">
+                            <div className="flex justify-between">
+                              <span>Ticket: #ABC12345</span>
+                              <span>Fecha: 14/04/2026 12:30</span>
+                            </div>
+                          </div>
+                          <div className="border-t border-dashed border-gray-400 my-2"></div>
+                          <div className="space-y-2">
+                            <div>
+                              <div className="flex justify-between font-semibold">
+                                <span>1x Café Latte</span>
+                                <span>$55.00</span>
+                              </div>
+                              <div className="text-[10px] text-gray-600 ml-2">$55.00 c/u</div>
+                            </div>
+                          </div>
+                          <div className="border-t border-dashed border-gray-400 my-2"></div>
+                          <div className="space-y-1 text-[11px]">
+                            <div className="flex justify-between">
+                              <span>Subtotal</span>
                               <span>$55.00</span>
                             </div>
-                            <div className="text-[10px] text-gray-600 ml-2">$55.00 c/u</div>
+                            <div className="flex justify-between">
+                              <span>IVA (16%)</span>
+                              <span>$8.80</span>
+                            </div>
+                            <div className="flex justify-between font-bold text-sm mt-1">
+                              <span>TOTAL</span>
+                              <span>$63.80</span>
+                            </div>
+                          </div>
+                          <div className="border-t border-dashed border-gray-400 my-2"></div>
+                          <div className="text-center text-[10px]">
+                            <p>¡Gracias por su compra!</p>
                           </div>
                         </div>
-                        <div className="border-t border-dashed border-gray-400 my-2"></div>
-                        <div className="space-y-1 text-[11px]">
-                          <div className="flex justify-between">
-                            <span>Subtotal</span>
-                            <span>$55.00</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>IVA (16%)</span>
-                            <span>$8.80</span>
-                          </div>
-                          <div className="flex justify-between font-bold text-sm mt-1">
-                            <span>TOTAL</span>
-                            <span>$63.80</span>
+                        <p className="text-xs text-muted-foreground mt-2 text-center">
+                          Ancho: {printerWidth === "58mm" ? "~200px (58mm)" : "~280px (80mm)"}
+                        </p>
+                      </div>
+
+                      <div className="flex justify-end">
+                        <Button onClick={handleSavePrinterConfig} disabled={saving}>
+                          <Save className="mr-2 h-4 w-4" />
+                          {saving ? "Guardando..." : "Guardar Configuración"}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="customization">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Personalización</CardTitle>
+                      <CardDescription>Personaliza la apariencia del sistema</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="pos_name">Nombre del POS</Label>
+                        <Input
+                          id="pos_name"
+                          value={customizationForm.pos_name}
+                          onChange={(e) => setCustomizationForm({ ...customizationForm, pos_name: e.target.value })}
+                          placeholder="Mi Sistema POS"
+                        />
+                      </div>
+                      
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="primary_color">Color Primario</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="primary_color"
+                              type="color"
+                              value={customizationForm.primary_color}
+                              onChange={(e) => setCustomizationForm({ ...customizationForm, primary_color: e.target.value })}
+                              className="w-20 h-10"
+                            />
+                            <Input
+                              value={customizationForm.primary_color}
+                              onChange={(e) => setCustomizationForm({ ...customizationForm, primary_color: e.target.value })}
+                              placeholder="#2A1810"
+                            />
                           </div>
                         </div>
-                        <div className="border-t border-dashed border-gray-400 my-2"></div>
-                        <div className="text-center text-[10px]">
-                          <p>¡Gracias por su compra!</p>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="secondary_color">Color Secundario</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="secondary_color"
+                              type="color"
+                              value={customizationForm.secondary_color}
+                              onChange={(e) => setCustomizationForm({ ...customizationForm, secondary_color: e.target.value })}
+                              className="w-20 h-10"
+                            />
+                            <Input
+                              value={customizationForm.secondary_color}
+                              onChange={(e) => setCustomizationForm({ ...customizationForm, secondary_color: e.target.value })}
+                              placeholder="#4A3228"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="accent_color">Color de Acento</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="accent_color"
+                              type="color"
+                              value={customizationForm.accent_color}
+                              onChange={(e) => setCustomizationForm({ ...customizationForm, accent_color: e.target.value })}
+                              className="w-20 h-10"
+                            />
+                            <Input
+                              value={customizationForm.accent_color}
+                              onChange={(e) => setCustomizationForm({ ...customizationForm, accent_color: e.target.value })}
+                              placeholder="#4A9C64"
+                            />
+                          </div>
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-2 text-center">
-                        Ancho: {printerWidth === "58mm" ? "~200px (58mm)" : "~280px (80mm)"}
-                      </p>
-                    </div>
-
-                    <div className="flex justify-end">
-                      <Button onClick={handleSavePrinterConfig} disabled={saving}>
-                        <Save className="mr-2 h-4 w-4" />
-                        {saving ? "Guardando..." : "Guardar Configuración"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="customization">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Personalización</CardTitle>
-                    <CardDescription>Personaliza la apariencia del sistema</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="pos_name">Nombre del POS</Label>
-                      <Input
-                        id="pos_name"
-                        value={customizationForm.pos_name}
-                        onChange={(e) => setCustomizationForm({ ...customizationForm, pos_name: e.target.value })}
-                        placeholder="Mi Sistema POS"
-                      />
-                    </div>
-                    
-                    <div className="grid gap-4 md:grid-cols-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="primary_color">Color Primario</Label>
+                      
+                      <div className="p-4 border rounded-lg bg-muted/50">
+                        <p className="text-sm font-medium mb-2">Vista Previa</p>
                         <div className="flex gap-2">
-                          <Input
-                            id="primary_color"
-                            type="color"
-                            value={customizationForm.primary_color}
-                            onChange={(e) => setCustomizationForm({ ...customizationForm, primary_color: e.target.value })}
-                            className="w-20 h-10"
+                          <div
+                            className="w-20 h-20 rounded-lg border-2"
+                            style={{ backgroundColor: customizationForm.primary_color }}
                           />
-                          <Input
-                            value={customizationForm.primary_color}
-                            onChange={(e) => setCustomizationForm({ ...customizationForm, primary_color: e.target.value })}
-                            placeholder="#2A1810"
+                          <div
+                            className="w-20 h-20 rounded-lg border-2"
+                            style={{ backgroundColor: customizationForm.secondary_color }}
+                          />
+                          <div
+                            className="w-20 h-20 rounded-lg border-2"
+                            style={{ backgroundColor: customizationForm.accent_color }}
                           />
                         </div>
                       </div>
                       
-                      <div className="space-y-2">
-                        <Label htmlFor="secondary_color">Color Secundario</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            id="secondary_color"
-                            type="color"
-                            value={customizationForm.secondary_color}
-                            onChange={(e) => setCustomizationForm({ ...customizationForm, secondary_color: e.target.value })}
-                            className="w-20 h-10"
-                          />
-                          <Input
-                            value={customizationForm.secondary_color}
-                            onChange={(e) => setCustomizationForm({ ...customizationForm, secondary_color: e.target.value })}
-                            placeholder="#4A3228"
-                          />
-                        </div>
+                      <div className="flex justify-end">
+                        <Button onClick={handleSaveCustomization} disabled={saving}>
+                          <Save className="mr-2 h-4 w-4" />
+                          {saving ? "Guardando..." : "Guardar y Aplicar"}
+                        </Button>
                       </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="accent_color">Color de Acento</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            id="accent_color"
-                            type="color"
-                            value={customizationForm.accent_color}
-                            onChange={(e) => setCustomizationForm({ ...customizationForm, accent_color: e.target.value })}
-                            className="w-20 h-10"
-                          />
-                          <Input
-                            value={customizationForm.accent_color}
-                            onChange={(e) => setCustomizationForm({ ...customizationForm, accent_color: e.target.value })}
-                            placeholder="#4A9C64"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="p-4 border rounded-lg bg-muted/50">
-                      <p className="text-sm font-medium mb-2">Vista Previa</p>
-                      <div className="flex gap-2">
-                        <div
-                          className="w-20 h-20 rounded-lg border-2"
-                          style={{ backgroundColor: customizationForm.primary_color }}
-                        />
-                        <div
-                          className="w-20 h-20 rounded-lg border-2"
-                          style={{ backgroundColor: customizationForm.secondary_color }}
-                        />
-                        <div
-                          className="w-20 h-20 rounded-lg border-2"
-                          style={{ backgroundColor: customizationForm.accent_color }}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-end">
-                      <Button onClick={handleSaveCustomization} disabled={saving}>
-                        <Save className="mr-2 h-4 w-4" />
-                        {saving ? "Guardando..." : "Guardar y Aplicar"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            )}
           </div>
         </main>
       </div>
