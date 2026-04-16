@@ -478,7 +478,7 @@ function POSContent() {
                 onRemoveItem={removeFromCart}
                 onCheckout={() => {
                   if (cart.length === 0) return;
-                  setShowPayment(true);
+                  setShowCustomerModal(true);
                 }}
                 className="flex-1 border-none shadow-none rounded-none"
               />
@@ -545,6 +545,7 @@ function POSContent() {
               if (c) setSelectedCustomer(c);
             }
             setShowCustomerModal(false);
+            setShowPayment(true);
           }}
         />
       )}
