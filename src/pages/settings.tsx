@@ -53,6 +53,7 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState("business");
   const [editingEmployee, setEditingEmployee] = useState<EmployeeWithUser | null>(null);
   const [employeeDialogOpen, setEmployeeDialogOpen] = useState(false);
+  const [editingPermissions, setEditingPermissions] = useState<{module: string, can_read: boolean, can_write: boolean}[]>([]);
   
   // Form states
   const [businessForm, setBusinessForm] = useState({
@@ -487,13 +488,23 @@ export default function Settings() {
 
   function handleEditEmployeePermissions(employee: EmployeeWithUser) {
     setEditingEmployee(employee);
+    setEditingPermissions([]); // Reset while loading
     setEmployeeDialogOpen(true);
+    
+    try {
+      const perms = employeeService.getEmployeePermissions(employee.id);
+      setEditingPermissions(perms);
+    } catch (error) {
+      console.error("Error loading permissions:", error);
+    }
   }
 
   async function handleSaveEmployeePermissions() {
     if (!editingEmployee) return;
     
+    setSaving(true);
     try {
+      await employeeService.updateEmployeePermissions(editingEmployee.id, editingPermissions);
       toast({
         title: "Permisos actualizados",
         description: "Los permisos del empleado se han guardado correctamente"
@@ -507,6 +518,8 @@ export default function Settings() {
         description: "Error al guardar permisos",
         variant: "destructive"
       });
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -1081,16 +1094,16 @@ export default function Settings() {
               </div>
 
               <PermissionSelector
-                employeeId={editingEmployee.id}
-                onPermissionsChange={() => {}}
+                permissions={editingPermissions}
+                onChange={setEditingPermissions}
               />
 
               <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => setEmployeeDialogOpen(false)}>
+                <Button variant="outline" onClick={() => setEmployeeDialogOpen(false)} disabled={saving}>
                   Cancelar
                 </Button>
-                <Button onClick={handleSaveEmployeePermissions}>
-                  Guardar Permisos
+                <Button onClick={handleSaveEmployeePermissions} disabled={saving}>
+                  {saving ? "Guardando..." : "Guardar Permisos"}
                 </Button>
               </div>
             </div>
