@@ -24,6 +24,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsMobileOrTablet } from "@/hooks/use-mobile";
 import { Search, Package, ShoppingCart, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { requireAuth } from "@/middleware/auth";
+import { requireActiveSubscription } from "@/middleware/subscription";
 import type { Business } from "@/services/businessService";
 
 interface CartItem {

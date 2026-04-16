@@ -35,13 +35,17 @@ import {
   Package,
   Tag,
   DollarSign,
-  AlertCircle
+  AlertCircle,
+  Grid3x3
 } from "lucide-react";
 import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
 import type { Database } from "@/integrations/supabase/types";
+import { GetServerSidePropsContext } from "next";
 
-export const getServerSideProps = requireAuth(requireActiveSubscription);
+export const getServerSideProps = requireAuth(async (ctx: GetServerSidePropsContext) => {
+  return requireActiveSubscription(ctx);
+});
 
 export default function ProductsPage() {
   return (
