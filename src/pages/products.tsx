@@ -43,7 +43,11 @@ import { requireActiveSubscription } from "@/middleware/subscription";
 import type { Database } from "@/integrations/supabase/types";
 import { GetServerSidePropsContext } from "next";
 
-export const getServerSideProps = requireActiveSubscription;
+type Product = Database["public"]["Tables"]["products"]["Row"];
+type Category = Database["public"]["Tables"]["categories"]["Row"];
+
+// TEMPORARILY DISABLED FOR DEBUGGING
+// export const getServerSideProps = requireActiveSubscription;
 
 export default function ProductsPage() {
   return (

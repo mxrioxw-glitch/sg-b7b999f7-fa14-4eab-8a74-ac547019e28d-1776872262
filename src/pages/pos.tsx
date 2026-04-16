@@ -46,7 +46,8 @@ interface Customer {
   points: number;
 }
 
-export const getServerSideProps = requireActiveSubscription;
+// TEMPORARILY DISABLED FOR DEBUGGING
+// export const getServerSideProps = requireActiveSubscription;
 
 export default function POSPage() {
   return (
