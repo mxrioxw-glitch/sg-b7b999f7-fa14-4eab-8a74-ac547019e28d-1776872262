@@ -1,27 +1,34 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import Head from "next/head";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
-import { FeatureGuard } from "@/components/FeatureGuard";
+import { CustomerForm } from "@/components/CustomerForm";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CustomerForm } from "@/components/CustomerForm";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { businessService } from "@/services/businessService";
+import { getCustomers, deleteCustomer, type Customer } from "@/services/customerService";
+import { Plus, Search, Edit, Trash2, Users, Star, Phone, Mail } from "lucide-react";
 import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
-import { businessService } from "@/services/businessService";
-import { supabase } from "@/integrations/supabase/client";
-import { getCustomers, createCustomer, updateCustomer, deleteCustomer, getCustomerPurchaseHistory, type Customer } from "@/services/customerService";
-import { Plus, Search, Mail, Phone, Star, Trash2, Eye, UserPlus, Edit, Users } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { GetServerSideProps } from "next";
 
-export default function Customers() {
+export const getServerSideProps = requireActiveSubscription;
+
+export default function CustomersPage() {
+  return (
+    <ProtectedRoute requiredPermission="customers" requireWrite>
+      <CustomersContent />
+    </ProtectedRoute>
+  );
+}
+
+function CustomersContent() {
   const router = useRouter();
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);

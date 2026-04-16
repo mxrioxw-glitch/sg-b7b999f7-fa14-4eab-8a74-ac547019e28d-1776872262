@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import Head from "next/head";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
-import { FeatureGuard } from "@/components/FeatureGuard";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +21,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { requireAuth } from "@/middleware/auth";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
+export const getServerSideProps = requireActiveSubscription;
+
 export default function CashRegisterPage() {
+  return (
+    <ProtectedRoute requiredPermission="cash_register">
+      <CashRegisterContent />
+    </ProtectedRoute>
+  );
+}
+
+function CashRegisterContent() {
   const router = useRouter();
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
