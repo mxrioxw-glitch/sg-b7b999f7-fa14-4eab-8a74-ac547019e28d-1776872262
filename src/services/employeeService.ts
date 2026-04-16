@@ -41,9 +41,12 @@ export const employeeService = {
         throw new Error("No active session");
       }
 
-      // Call Edge Function to create employee
+      // Call Edge Function to create employee with proper auth headers
       const { data, error } = await supabase.functions.invoke("create-employee", {
         body: params,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (error) throw error;
