@@ -48,17 +48,24 @@ export const storageService = {
    */
   async generateAIImage(productName: string, businessId: string): Promise<{ url: string; path: string }> {
     try {
-      // Call our Edge Function to generate the image
-      const { data, error } = await supabase.functions.invoke('generate-product-image', {
-        body: { 
-          prompt: `Professional product photo of ${productName}, high quality, well lit, clean background, commercial photography style`,
-          businessId 
-        }
+      const response = await fetch('/api/generate-product-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productName,
+          businessId,
+        }),
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate image');
+      }
 
-      return { url: data.url, path: data.path };
+      const data = await response.json();
+      return data;
     } catch (error) {
       console.error('Error generating AI image:', error);
       throw error;
