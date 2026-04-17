@@ -134,47 +134,25 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           "md:translate-x-0"
         )}
       >
-        <div className="flex items-center justify-between border-b p-4">
-          <AnimatePresence>
-            {isExpanded && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex items-center gap-3"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <Store className="h-7 w-7" />
-                </div>
-                <div>
-                  <h2 className="font-semibold">{businessName}</h2>
-                  <p className="text-xs text-muted-foreground">Sistema POS</p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="md:hidden"
-          >
-            <X className="h-5 w-5" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="hidden md:flex"
-          >
-            {isExpanded ? (
-              <ChevronLeft className="h-7 w-7" />
-            ) : (
-              <ChevronRight className="h-7 w-7" />
-            )}
-          </Button>
+        {/* Logo Section - Always visible */}
+        <div className="flex h-16 items-center justify-center border-b px-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+              <Store className="h-7 w-7 text-primary-foreground" />
+            </div>
+            <AnimatePresence>
+              {isExpanded && (
+                <motion.span
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: "auto" }}
+                  exit={{ opacity: 0, width: 0 }}
+                  className="overflow-hidden whitespace-nowrap text-lg font-semibold"
+                >
+                  {businessName}
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         <nav className="flex-1 space-y-2 overflow-y-auto p-4">
