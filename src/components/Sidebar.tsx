@@ -31,7 +31,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { businessService } from "@/services/businessService";
-import { Badge } from "@/components/ui/badge";
 
 type Business = Database["public"]["Tables"]["businesses"]["Row"];
 
