@@ -187,10 +187,16 @@ export async function getCashRegisterReport(registerId: string) {
   const sales = Array.isArray(register.sales) ? register.sales : [];
   const totalSales = sales.reduce((sum: number, sale: any) => sum + Number(sale.total), 0);
   const transactionCount = sales.length;
+  
+  // Calculate cash in drawer
+  const cashInDrawer = register.status === "closed" 
+    ? Number(register.closing_amount || 0)
+    : Number(register.opening_amount || 0) + totalSales;
 
   return {
     ...register,
-    totalSales,
-    transactionCount,
+    total_sales: totalSales,
+    cash_in_drawer: cashInDrawer,
+    transaction_count: transactionCount,
   };
 }
