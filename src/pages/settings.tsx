@@ -20,8 +20,31 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from "@/hooks/use-toast";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
-import { PermissionSelector } from "@/components/PermissionSelector";
-import { Building2, Receipt, Users, CreditCard, Palette, Save, Trash2, Plus, Mail, Settings as SettingsIcon } from "lucide-react";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { 
+  Building2, 
+  DollarSign, 
+  CreditCard, 
+  Users, 
+  Settings as SettingsIcon,
+  Save,
+  Plus,
+  Pencil,
+  Trash2,
+  Upload,
+  X,
+  Check,
+  AlertCircle,
+  Zap
+} from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import type { EmployeeWithUser, EmployeePermission } from "@/services/employeeService";
 import type { Business } from "@/services/businessService";
@@ -41,6 +64,7 @@ export default function SettingsPage() {
   const [business, setBusiness] = useState<Business | null>(null);
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   // Restore form state
   const [businessForm, setBusinessForm] = useState({ name: "", email: "", phone: "", address: "" });
