@@ -55,18 +55,18 @@ export function Cart({
             </div>
           ) : (
             items.map((item) => (
-              <Card key={item.id} className="p-3">
+              <Card key={item.id} className="p-3 mb-3">
                 <div className="flex items-start gap-3">
                   <div className="flex-1">
-                    <h4 className="font-medium text-sm mb-1">{item.product.name}</h4>
+                    <h4 className="font-medium text-sm mb-1">{item.productName}</h4>
                     {item.variant && (
                       <p className="text-xs text-muted-foreground">
-                        Variante: {item.variant.name}
+                        Variante: {typeof item.variant === 'string' ? item.variant : item.variant}
                       </p>
                     )}
                     {item.extras && item.extras.length > 0 && (
                       <div className="text-xs text-muted-foreground mt-1">
-                        Extras: {item.extras.map(e => e.name).join(", ")}
+                        Extras: {item.extras.join(", ")}
                       </div>
                     )}
                     {item.notes && (
@@ -98,7 +98,7 @@ export function Cart({
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-sm">
-                      ${item.total.toFixed(2)}
+                      ${(item.price * item.quantity).toFixed(2)}
                     </p>
                     <Button
                       size="icon"
