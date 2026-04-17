@@ -60,7 +60,7 @@ export default function CashRegisterPage() {
 function CashRegisterContent() {
   const router = useRouter();
   const { toast } = useToast();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [employeeId, setEmployeeId] = useState<string | null>(null);
@@ -317,9 +317,9 @@ function CashRegisterContent() {
       />
 
       <div className="flex min-h-screen bg-background">
-        <Sidebar />
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
         <div className="flex-1 flex flex-col">
-          <Header />
+          <Header onMenuClick={() => setIsSidebarOpen(true)} />
           <main className="flex-1 p-4 md:p-8 overflow-y-auto">
             <div className="space-y-6">
               {/* Header */}

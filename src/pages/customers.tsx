@@ -43,7 +43,6 @@ export default function CustomersPage() {
 function CustomersContent() {
   const router = useRouter();
   const { toast } = useToast();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);

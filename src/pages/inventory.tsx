@@ -39,7 +39,6 @@ export default function InventoryPage() {
 function InventoryContent() {
   const router = useRouter();
   const { toast } = useToast();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [items, setItems] = useState<any[]>([]);
   const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);

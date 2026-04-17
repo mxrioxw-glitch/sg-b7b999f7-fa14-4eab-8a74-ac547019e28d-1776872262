@@ -44,7 +44,7 @@ export default function KardexPage() {
   const [selectedItemId, setSelectedItemId] = useState<string>("");
   const [movements, setMovements] = useState<InventoryMovement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     loadItems();
@@ -132,144 +132,146 @@ export default function KardexPage() {
     <div className="min-h-screen bg-background flex">
       <SEO 
         title="Kardex - Nexum Cloud"
-        description="Historial de movimientos de inventario en Nexum Cloud"
+        description="Kardex y movimientos de inventario"
       />
-      <Sidebar />
-      <div className="flex-1 flex flex-col">
-        <Header />
-        <main className="p-8">
-          <div className="mb-8">
-            <Link href="/inventory">
-              <Button variant="ghost" className="mb-4">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Volver a Inventario
-              </Button>
-            </Link>
-            <h1 className="text-4xl font-bold text-foreground mb-2">
-              Kardex de Inventario
-            </h1>
-            <p className="text-muted">
-              Historial de movimientos de inventario
-            </p>
-          </div>
+      <div className="flex min-h-screen bg-background">
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+        <div className="flex-1 flex flex-col">
+          <Header onMenuClick={() => setIsSidebarOpen(true)} />
+          <main className="flex-1 p-8">
+            <div className="mb-8">
+              <Link href="/inventory">
+                <Button variant="ghost" className="mb-4">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Volver a Inventario
+                </Button>
+              </Link>
+              <h1 className="text-4xl font-bold text-foreground mb-2">
+                Kardex de Inventario
+              </h1>
+              <p className="text-muted">
+                Historial de movimientos de inventario
+              </p>
+            </div>
 
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Movimientos de Inventario</CardTitle>
-                  <CardDescription>
-                    Selecciona un insumo para ver su historial
-                  </CardDescription>
-                </div>
-                <div className="w-[300px]">
-                  <Select value={selectedItemId} onValueChange={setSelectedItemId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar insumo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {items.map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          {item.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {selectedItem && (
-                <div className="bg-muted/50 p-4 rounded-lg mb-6">
-                  <div className="grid grid-cols-4 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Insumo</p>
-                      <p className="font-semibold">{selectedItem.name}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Stock Actual</p>
-                      <p className="font-semibold">
-                        {Number(selectedItem.current_stock).toFixed(2)} {selectedItem.unit}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Stock Mínimo</p>
-                      <p className="font-semibold">
-                        {Number(selectedItem.min_stock).toFixed(2)} {selectedItem.unit}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Costo/Unidad</p>
-                      <p className="font-semibold">
-                        ${Number(selectedItem.cost_per_unit).toFixed(2)}
-                      </p>
-                    </div>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Movimientos de Inventario</CardTitle>
+                    <CardDescription>
+                      Selecciona un insumo para ver su historial
+                    </CardDescription>
+                  </div>
+                  <div className="w-[300px]">
+                    <Select value={selectedItemId} onValueChange={setSelectedItemId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar insumo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {items.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-              )}
+              </CardHeader>
+              <CardContent>
+                {selectedItem && (
+                  <div className="bg-muted/50 p-4 rounded-lg mb-6">
+                    <div className="grid grid-cols-4 gap-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Insumo</p>
+                        <p className="font-semibold">{selectedItem.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Stock Actual</p>
+                        <p className="font-semibold">
+                          {Number(selectedItem.current_stock).toFixed(2)} {selectedItem.unit}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Stock Mínimo</p>
+                        <p className="font-semibold">
+                          {Number(selectedItem.min_stock).toFixed(2)} {selectedItem.unit}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Costo/Unidad</p>
+                        <p className="font-semibold">
+                          ${Number(selectedItem.cost_per_unit).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-              {loading ? (
-                <div className="text-center py-12">
-                  <p className="text-muted">Cargando movimientos...</p>
-                </div>
-              ) : movements.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-muted">No hay movimientos registrados</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Fecha/Hora</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Referencia</TableHead>
-                      <TableHead className="text-right">Cantidad</TableHead>
-                      <TableHead>Notas</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {movements.map((movement) => (
-                      <TableRow key={movement.id}>
-                        <TableCell className="text-sm">
-                          {formatDate(movement.created_at)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              movement.movement_type === "in"
-                                ? "default"
-                                : movement.movement_type === "out"
-                                ? "destructive"
-                                : "outline"
-                            }
-                            className="gap-1"
-                          >
-                            {movement.movement_type === "in" ? (
-                              <TrendingUp className="w-3 h-3" />
-                            ) : (
-                              <TrendingDown className="w-3 h-3" />
-                            )}
-                            {getMovementTypeLabel(movement.movement_type)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {getReferenceTypeLabel(movement.reference_type)}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {movement.movement_type === "in" ? "+" : "-"}
-                          {Number(movement.quantity).toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {movement.notes || "-"}
-                        </TableCell>
+                {loading ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted">Cargando movimientos...</p>
+                  </div>
+                ) : movements.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted">No hay movimientos registrados</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Fecha/Hora</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Referencia</TableHead>
+                        <TableHead className="text-right">Cantidad</TableHead>
+                        <TableHead>Notas</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </main>
+                    </TableHeader>
+                    <TableBody>
+                      {movements.map((movement) => (
+                        <TableRow key={movement.id}>
+                          <TableCell className="text-sm">
+                            {formatDate(movement.created_at)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                movement.movement_type === "in"
+                                  ? "default"
+                                  : movement.movement_type === "out"
+                                  ? "destructive"
+                                  : "outline"
+                              }
+                              className="gap-1"
+                            >
+                              {movement.movement_type === "in" ? (
+                                <TrendingUp className="w-3 h-3" />
+                              ) : (
+                                <TrendingDown className="w-3 h-3" />
+                              )}
+                              {getMovementTypeLabel(movement.movement_type)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {getReferenceTypeLabel(movement.reference_type)}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {movement.movement_type === "in" ? "+" : "-"}
+                            {Number(movement.quantity).toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {movement.notes || "-"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </main>
+        </div>
       </div>
     </div>
   );

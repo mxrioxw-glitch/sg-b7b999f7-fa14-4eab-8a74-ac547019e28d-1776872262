@@ -61,7 +61,6 @@ export default function ProductsPage() {
 function ProductsContent() {
   const router = useRouter();
   const { toast } = useToast();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
