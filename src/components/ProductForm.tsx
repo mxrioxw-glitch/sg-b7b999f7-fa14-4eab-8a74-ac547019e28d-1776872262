@@ -115,11 +115,13 @@ export function ProductForm({
       setName(product.name || "");
       setDescription(product.description || "");
       setCategoryId(product.category_id || "");
-      setBasePrice(product.base_price?.toString() || "");
+      // basePrice state requires a number
+      setBasePrice(product.base_price || 0);
       setImageUrl(product.image_url || "");
       setIsActive(product.is_active ?? true);
-      setVariants(product.variants || []);
-      setExtras(product.extras || []);
+      // variants and extras aren't on the product object directly, they are loaded separately
+      // setVariants(product.variants || []);
+      // setExtras(product.extras || []);
     }
     loadInventoryItems();
   }, [product]);
