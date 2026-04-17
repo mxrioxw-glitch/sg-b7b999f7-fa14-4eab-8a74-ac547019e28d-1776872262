@@ -6,19 +6,12 @@ import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/hooks/usePermissions";
 import { businessService } from "@/services/businessService";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { useIsMobileOrTablet } from "@/hooks/use-mobile";
 
-// Export sidebar width constants
-export const SIDEBAR_WIDTH_EXPANDED = 256;
+// Sidebar width constants - REDUCED for better space usage
+export const SIDEBAR_WIDTH_EXPANDED = 200;
 export const SIDEBAR_WIDTH_COLLAPSED = 70;
 
-interface SidebarProps {
-  isOpen?: boolean;
-  onClose?: () => void;
-}
-
-export function Sidebar({ isOpen, onClose }: SidebarProps) {
+export function Sidebar() {
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(() => {
     if (typeof window !== "undefined") {
@@ -28,8 +21,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     return true;
   });
   const [businessId, setBusinessId] = useState<string | null>(null);
+  const [businessName, setBusinessName] = useState<string>("");
+  const [logoUrl, setLogoUrl] = useState<string>("");
   const { hasModuleAccess, isOwner, loading } = usePermissions(businessId);
-  const isMobileOrTablet = useIsMobileOrTablet();
 
   useEffect(() => {
     loadBusiness();
@@ -38,10 +32,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("sidebar-expanded", JSON.stringify(isExpanded));
-      document.documentElement.style.setProperty(
-        "--sidebar-width",
-        `${isExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED}px`
-      );
     }
   }, [isExpanded]);
 
@@ -50,13 +40,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       const business = await businessService.getCurrentBusiness();
       if (business) {
         setBusinessId(business.id);
+        setBusinessName(business.name);
+        setLogoUrl(business.logo_url || "");
       }
     } catch (error) {
       console.error("Error loading business:", error);
     }
   }
-
-  const toggleSidebar = () => setIsExpanded(!isExpanded);
 
   const menuItems = [
     { 
@@ -133,127 +123,113 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     return hasModuleAccess(item.module, "read");
   });
 
-  const handleLinkClick = () => {
-    if (isMobileOrTablet && onClose) {
-      onClose();
-    }
-  };
-
-  const NavigationContent = () => (
-    <div className="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
-      {visibleMenuItems.map((item, index) => {
-        const Icon = item.icon;
-        const isActive = router.pathname === item.href;
-        
-        return (
-          <Link key={item.href} href={item.href} onClick={handleLinkClick}>
-            <motion.div
-              initial={false}
-              animate={{ opacity: 1 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <Button
-                variant={isActive ? "secondary" : "ghost"}
-                className={`w-full justify-start ${isExpanded ? "gap-3" : "justify-center px-2"} ${
-                  isActive ? "bg-primary/10 text-primary" : ""
-                }`}
-                title={!isExpanded ? item.name : undefined}
-              >
-                <Icon className={`h-5 w-5 ${isExpanded && "flex-shrink-0"}`} />
-                <AnimatePresence mode="wait">
-                  {isExpanded && (
-                    <motion.span
-                      initial={{ opacity: 0, width: 0 }}
-                      animate={{ opacity: 1, width: "auto" }}
-                      exit={{ opacity: 0, width: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden whitespace-nowrap"
-                    >
-                      {item.name}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </Button>
-            </motion.div>
-          </Link>
-        );
-      })}
-    </div>
-  );
-
-  // Vista Móvil: Sheet (Drawer)
-  if (isMobileOrTablet) {
-    return (
-      <Sheet open={isOpen} onOpenChange={onClose}>
-        <SheetContent side="left" className="p-0 w-64 sm:w-72 z-[100]">
-          <SheetHeader className="p-4 md:p-6 border-b border-border">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary flex-shrink-0">
-                <span className="text-lg font-bold text-primary-foreground">☕</span>
-              </div>
-              <SheetTitle className="text-xl font-bold text-primary">POS SaaS</SheetTitle>
-            </div>
-          </SheetHeader>
-          <NavigationContent />
-        </SheetContent>
-      </Sheet>
-    );
-  }
-
-  // Vista Desktop: Sticky Sidebar
-  // Al ser sticky y estar en el flujo flex, empuja el contenido naturalmente sin superponerse.
   return (
     <motion.aside
       initial={false}
       animate={{ width: isExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="hidden md:flex flex-col bg-card border-r sticky top-0 h-screen z-30"
+      className="sticky top-14 h-[calc(100vh-3.5rem)] bg-card border-r flex-shrink-0 z-30"
     >
-      {/* Header invisible placeholder para alinear con el Header principal si es necesario,
-          o simplemente dejamos que empiece desde arriba. Quitamos el logo duplicado aquí. */}
-      <div className="h-14 md:h-16 flex items-center justify-center border-b border-border">
-        {/* Espacio para alinear con la altura del Header principal */}
-        {!isExpanded && (
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 flex-shrink-0">
-            <span className="text-sm font-bold text-primary">P</span>
-          </div>
-        )}
-      </div>
+      <div className="flex flex-col h-full">
+        {/* Logo + Business Name Section */}
+        <div className="p-4 border-b">
+          <AnimatePresence mode="wait">
+            {isExpanded ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex items-center gap-3"
+              >
+                <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    <Store className="h-5 w-5 text-primary-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate">{businessName || "Mi Negocio"}</p>
+                  <p className="text-xs text-muted-foreground">Sistema POS</p>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex justify-center"
+              >
+                <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center overflow-hidden">
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    <Store className="h-5 w-5 text-primary-foreground" />
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-      <div className="flex flex-col h-[calc(100vh-4rem)]">
-        <NavigationContent />
+        {/* Menu Items */}
+        <div className="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
+          {visibleMenuItems.map((item, index) => {
+            const Icon = item.icon;
+            const isActive = router.pathname === item.href;
+            
+            return (
+              <Link key={item.href} href={item.href}>
+                <motion.div
+                  initial={false}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Button
+                    variant={isActive ? "secondary" : "ghost"}
+                    className={`w-full justify-start ${isExpanded ? "gap-3" : "justify-center px-2"} ${
+                      isActive ? "bg-primary/10 text-primary" : ""
+                    }`}
+                    title={!isExpanded ? item.name : undefined}
+                  >
+                    <Icon className={`h-5 w-5 ${isExpanded && "flex-shrink-0"}`} />
+                    <AnimatePresence mode="wait">
+                      {isExpanded && (
+                        <motion.span
+                          initial={{ opacity: 0, width: 0 }}
+                          animate={{ opacity: 1, width: "auto" }}
+                          exit={{ opacity: 0, width: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden whitespace-nowrap"
+                        >
+                          {item.name}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </Button>
+                </motion.div>
+              </Link>
+            );
+          })}
+        </div>
 
+        {/* Collapse Button - Simple Icon Only */}
         <div className="p-3 border-t">
           <Button
             variant="ghost"
-            size="sm"
-            onClick={toggleSidebar}
-            className={`w-full ${isExpanded ? "justify-start gap-3" : "justify-center px-2"}`}
+            size="icon"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="w-full h-9"
+            title={isExpanded ? "Contraer sidebar" : "Expandir sidebar"}
           >
             <motion.div
               animate={{ rotate: isExpanded ? 0 : 180 }}
               transition={{ duration: 0.3 }}
-              className="flex items-center gap-3"
             >
-              {isExpanded ? (
-                <ChevronLeft className="h-5 w-5" />
-              ) : (
-                <ChevronRight className="h-5 w-5" />
-              )}
+              <ChevronLeft className="h-5 w-5" />
             </motion.div>
-            <AnimatePresence mode="wait">
-              {isExpanded && (
-                <motion.span
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: "auto" }}
-                  exit={{ opacity: 0, width: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="text-sm overflow-hidden whitespace-nowrap"
-                >
-                  Contraer
-                </motion.span>
-              )}
-            </AnimatePresence>
           </Button>
         </div>
       </div>
