@@ -58,7 +58,7 @@ export function Cart({
               <Card key={item.id} className="p-3 mb-3">
                 <div className="flex items-start gap-3">
                   <div className="flex-1">
-                    <h4 className="font-medium text-sm mb-1">{item.productName}</h4>
+                    <h4 className="font-medium text-sm mb-1">{item.name}</h4>
                     {item.variant && (
                       <p className="text-xs text-muted-foreground">
                         Variante: {typeof item.variant === 'string' ? item.variant : item.variant}
