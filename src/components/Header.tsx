@@ -13,11 +13,15 @@ import { authService } from "@/services/authService";
 
 interface HeaderProps {
   onMenuClick?: () => void;
+  businessName?: string;
+  userName?: string;
+  userEmail?: string;
+  planName?: string;
 }
 
-export function Header({ onMenuClick }: HeaderProps) {
+export function Header({ onMenuClick, businessName, userName, userEmail, planName }: HeaderProps) {
   const router = useRouter();
-  const [user, setUser] = useState<{ email: string } | null>(null);
+  const [user, setUser] = useState<{ email?: string } | null>(null);
 
   useEffect(() => {
     const loadUser = async () => {
