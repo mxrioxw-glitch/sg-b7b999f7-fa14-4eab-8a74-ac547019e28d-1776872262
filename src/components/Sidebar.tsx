@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/router";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
@@ -41,7 +41,7 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = router.pathname;
   const [isExpanded, setIsExpanded] = useState(true);
   const [userEmail, setUserEmail] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
@@ -58,11 +58,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       if (user) {
         setUserEmail(user.email || "");
         
-        // Check if super admin
         const SUPER_ADMIN_EMAIL = "mxrioxw@gmail.com";
         setIsSuperAdmin(user.email === SUPER_ADMIN_EMAIL);
 
-        // Get profile data
         const { data: profile } = await supabase
           .from("profiles")
           .select("full_name")
@@ -75,7 +73,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           setUserName(user.email?.split("@")[0] || "Usuario");
         }
 
-        // Get business data (if not super admin)
         if (user.email !== SUPER_ADMIN_EMAIL) {
           const currentBusiness = await businessService.getCurrentBusiness();
           setBusiness(currentBusiness);
@@ -122,7 +119,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile Overlay */}
       {isOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
@@ -130,7 +126,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         />
       )}
 
-      {/* Sidebar */}
       <motion.aside
         initial={false}
         animate={{
@@ -143,7 +138,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           "md:relative md:translate-x-0 flex flex-col"
         )}
       >
-        {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <AnimatePresence>
             {isExpanded && (
@@ -184,7 +178,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </Button>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-2">
           <AnimatePresence mode="wait">
             {visibleItems.map((item) => {
@@ -224,7 +217,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </AnimatePresence>
         </nav>
 
-        {/* User Profile */}
         <div className="p-4 border-t border-border">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
