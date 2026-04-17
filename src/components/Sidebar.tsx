@@ -26,31 +26,23 @@ export interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const router = useRouter();
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Auto-collapse on mobile
   useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setIsExpanded(false);
-      } else {
-        setIsExpanded(true);
-      }
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    loadUserData();
   }, []);
 
-  const handleLogout = async () => {
+  async function loadUserData() {
     try {
-      await authService.signOut();
-      router.push("/auth/login");
+      const session = await authService.getCurrentSession();
+      if (session?.user) {
+        setUser(session.user);
+      }
     } catch (error) {
-      console.error("Error logging out:", error);
+      console.error("Error loading user:", error);
     }
-  };
+  }
 
   const navItems = [
     { name: "Inicio", href: "/home", icon: Home },
@@ -68,20 +60,20 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Mobile Overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
           onClick={onClose}
         />
       )}
 
       {/* Sidebar */}
       <aside 
-        className={cn(
-          "bg-card border-r transition-all duration-300 flex flex-col z-50 shrink-0",
-          "fixed md:static inset-y-0 left-0 h-screen",
-          isExpanded ? "w-64" : "w-20",
-          !isOpen && !isExpanded && "max-md:-translate-x-full",
-          isOpen && "translate-x-0"
-        )}
+        className={`
+          fixed top-0 left-0 h-full bg-card border-r z-50
+          transition-all duration-300 ease-in-out
+          ${isCollapsed ? "w-16" : "w-64"}
+          ${isOpen ? "translate-x-0" : "-translate-x-full"}
+          md:translate-x-0 md:relative md:z-auto
+        `}
       >
         {/* Header */}
         <div className="h-16 px-4 md:px-6 border-b flex items-center shrink-0">
