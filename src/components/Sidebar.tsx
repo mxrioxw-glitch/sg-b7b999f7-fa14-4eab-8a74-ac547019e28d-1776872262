@@ -27,7 +27,7 @@ export interface SidebarProps {
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   useEffect(() => {
     loadUserData();
@@ -43,6 +43,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       console.error("Error loading user:", error);
     }
   }
+
+  const handleLogout = async () => {
+    try {
+      await authService.signOut();
+      router.push("/");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
 
   const navItems = [
     { name: "Inicio", href: "/home", icon: Home },
@@ -69,8 +78,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       <aside 
         className={`
           fixed top-0 left-0 h-full bg-card border-r z-50
-          transition-all duration-300 ease-in-out
-          ${isCollapsed ? "w-16" : "w-64"}
+          transition-all duration-300 ease-in-out flex flex-col
+          ${isExpanded ? "w-64" : "w-16"}
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           md:translate-x-0 md:relative md:z-auto
         `}
