@@ -299,8 +299,7 @@ export default function Settings() {
     if (!businessId || !newPaymentMethod.trim()) return;
 
     try {
-      await paymentMethodService.createPaymentMethod({
-        business_id: businessId,
+      await paymentMethodService.createPaymentMethod(businessId, {
         name: newPaymentMethod.trim(),
         is_active: true,
       });
