@@ -122,9 +122,10 @@ export default function Dashboard() {
         <title>Dashboard - POS SaaS</title>
       </Head>
 
-      <div className="flex min-h-screen flex-col bg-background">
+      <div className="flex min-h-screen bg-background">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <div className="flex flex-1 flex-col md:ml-20">
+        
+        <div className="flex flex-1 flex-col">
           <Header onMenuClick={() => setSidebarOpen(true)} />
           <main className="flex-1 p-6">
             {/* Filters */}

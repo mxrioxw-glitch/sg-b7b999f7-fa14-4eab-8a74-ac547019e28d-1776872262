@@ -128,7 +128,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
         className={cn(
-          "fixed left-0 top-0 z-40 flex h-screen flex-col border-r bg-card transition-all duration-300",
+          "flex h-screen flex-col border-r bg-card transition-all duration-300",
+          "fixed left-0 top-0 z-40 md:relative md:z-auto",
           isOpen ? "translate-x-0" : "-translate-x-full",
           "md:translate-x-0"
         )}
