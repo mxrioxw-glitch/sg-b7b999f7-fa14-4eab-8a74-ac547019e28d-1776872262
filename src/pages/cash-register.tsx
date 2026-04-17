@@ -303,36 +303,13 @@ function CashRegisterContent() {
 
             {loading ? (
               <div className="flex items-center justify-center py-12">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+                  <p className="text-muted-foreground">Cargando...</p>
+                </div>
               </div>
             ) : (
-              <div className="space-y-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Corte de Caja</h1>
-                    <p className="text-muted-foreground mt-1">
-                      Gestiona la apertura y cierre de turnos
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={loadData}
-                      disabled={loading}
-                    >
-                      <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-                      Actualizar
-                    </Button>
-                    {!activeRegister && (
-                      <Button onClick={() => setOpenDialogOpen(true)}>
-                        <DollarSign className="h-4 w-4 mr-2" />
-                        Abrir Turno
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
+              <>
                 {/* Active Register Card */}
                 {activeRegister ? (
                   <Card className="border-accent">
@@ -518,7 +495,7 @@ function CashRegisterContent() {
                     )}
                   </CardContent>
                 </Card>
-              </div>
+              </>
             )}
           </main>
         </div>
