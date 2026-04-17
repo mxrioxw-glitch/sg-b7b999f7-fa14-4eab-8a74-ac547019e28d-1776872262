@@ -1,50 +1,46 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { Home, Package, Users, DollarSign, Settings, ShoppingCart, BarChart3, ChevronLeft, ChevronRight, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import {
-  LayoutDashboard,
-  ShoppingCart,
-  Package,
-  Users,
-  Wallet,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  Store,
-  BarChart3,
-  Home,
-  DollarSign
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useIsMobileOrTablet } from "@/hooks/use-mobile";
-import { businessService } from "@/services/businessService";
-import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
+import { businessService } from "@/services/businessService";
 import { motion, AnimatePresence } from "framer-motion";
 
-interface SidebarProps {
-  isOpen?: boolean;
-  onClose?: () => void;
-}
+// Export sidebar width constants
+export const SIDEBAR_WIDTH_EXPANDED = 256;
+export const SIDEBAR_WIDTH_COLLAPSED = 70;
 
-export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
+export function Sidebar() {
   const router = useRouter();
-  const isMobileOrTablet = useIsMobileOrTablet();
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(() => {
+    // Load initial state from localStorage
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("sidebar-expanded");
+      return saved ? JSON.parse(saved) : true;
+    }
+    return true;
+  });
   const [businessId, setBusinessId] = useState<string | null>(null);
+  const { hasModuleAccess, isOwner, loading } = usePermissions(businessId);
 
   useEffect(() => {
-    loadBusinessData();
+    loadBusiness();
   }, []);
 
-  async function loadBusinessData() {
+  // Save state to localStorage and update CSS variable
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("sidebar-expanded", JSON.stringify(isExpanded));
+      // Update CSS variable for main content padding
+      document.documentElement.style.setProperty(
+        "--sidebar-width",
+        `${isExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED}px`
+      );
+    }
+  }, [isExpanded]);
+
+  async function loadBusiness() {
     try {
       const business = await businessService.getCurrentBusiness();
       if (business) {
@@ -54,27 +50,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       console.error("Error loading business:", error);
     }
   }
-
-  const { hasModuleAccess, isOwner, loading } = usePermissions(businessId);
-
-  // Load saved state from localStorage (only for desktop)
-  useEffect(() => {
-    if (!isMobileOrTablet) {
-      const saved = localStorage.getItem("sidebar-expanded");
-      if (saved !== null) {
-        setIsExpanded(saved === "true");
-      }
-    }
-  }, [isMobileOrTablet]);
-
-  // Save state to localStorage (only for desktop)
-  const toggleSidebar = () => {
-    if (!isMobileOrTablet) {
-      const newState = !isExpanded;
-      setIsExpanded(newState);
-      localStorage.setItem("sidebar-expanded", String(newState));
-    }
-  };
 
   const menuItems = [
     { 
@@ -232,7 +207,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       initial={false}
       animate={{ width: isExpanded ? 256 : 70 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="fixed left-0 top-14 h-[calc(100vh-3.5rem)] bg-card border-r z-40"
+      className="fixed left-0 top-14 h-[calc(100vh-3.5rem)] bg-card border-r z-30"
     >
       <div className="flex flex-col h-full">
         {/* Header with logo and toggle */}
