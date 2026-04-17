@@ -112,7 +112,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         initial={false}
         animate={{
           width: isExpanded ? 280 : 80,
-          x: isOpen ? 0 : -280,
+          x: typeof window !== 'undefined' && window.innerWidth >= 768 ? 0 : (isOpen ? 0 : -280),
         }}
         className={cn(
           "fixed left-0 top-0 z-50 flex h-screen flex-col border-r bg-card transition-all duration-300",
