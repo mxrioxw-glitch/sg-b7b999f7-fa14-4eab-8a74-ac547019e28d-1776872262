@@ -11,8 +11,6 @@ import {
   DollarSign,
   Settings,
   Store,
-  ChevronLeft,
-  ChevronRight,
   User,
   LogOut,
   X,
