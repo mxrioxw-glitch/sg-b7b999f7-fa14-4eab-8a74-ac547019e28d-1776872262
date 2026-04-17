@@ -211,7 +211,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       transition={{ duration: 0.3, ease: "easeInOut" }}
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}
-      className="sticky top-14 left-0 h-[calc(100vh-3.5rem)] bg-card border-r z-30 flex-shrink-0"
+      className="sticky top-0 left-0 h-screen bg-card border-r z-30 flex-shrink-0"
     >
       <div className="flex flex-col h-full">
         {/* Logo + Business Name Section */}
