@@ -37,7 +37,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const router = useRouter();
   const isMobileOrTablet = useIsMobileOrTablet();
   const [isExpanded, setIsExpanded] = useState(true);
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [businessId, setBusinessId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -82,7 +81,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       href: "/", 
       icon: Home,
       module: "dashboard",
-      requirePermission: false, // Dashboard always visible
+      requirePermission: false,
       ownerOnly: false
     },
     { 
@@ -139,19 +138,17 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       icon: Settings,
       module: "settings",
       requirePermission: false,
-      ownerOnly: true // ✅ SOLO OWNERS
+      ownerOnly: true
     },
   ];
 
   // Filter menu items based on permissions
   const visibleMenuItems = menuItems.filter(item => {
-    // Owner-only items
     if (item.ownerOnly && !isOwner) return false;
-    
-    if (!item.requirePermission) return true; // Always show items that don't require permission
-    if (isOwner) return true; // Owners see everything
-    if (loading) return false; // Hide while loading permissions
-    return hasModuleAccess(item.module); // Check if employee has read permission
+    if (!item.requirePermission) return true;
+    if (isOwner) return true;
+    if (loading) return false;
+    return hasModuleAccess(item.module);
   });
 
   const isActive = (href: string) => {
@@ -177,13 +174,13 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           <Link key={item.href} href={item.href}>
             <Button
               variant={active ? "secondary" : "ghost"}
-              className={`w-full justify-start ${isCollapsed ? "justify-center px-2" : "gap-3"} ${
+              className={`w-full justify-start ${isExpanded ? "gap-3" : "justify-center px-2"} ${
                 active ? "bg-primary/10 text-primary" : ""
               }`}
-              title={isCollapsed ? item.name : undefined}
+              title={!isExpanded ? item.name : undefined}
             >
-              <Icon className={`h-5 w-5 ${!isCollapsed && "flex-shrink-0"}`} />
-              {!isCollapsed && <span>{item.name}</span>}
+              <Icon className={`h-5 w-5 ${isExpanded && "flex-shrink-0"}`} />
+              {isExpanded && <span>{item.name}</span>}
             </Button>
           </Link>
         );
@@ -191,7 +188,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     </nav>
   );
 
-  // Mobile/Tablet: Sheet (drawer) - COMPLETAMENTE OCULTO
+  // Mobile/Tablet: Sheet (drawer)
   if (isMobileOrTablet) {
     return (
       <Sheet open={isOpen} onOpenChange={onClose}>
@@ -242,7 +239,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           </div>
         )}
 
-        {/* Toggle button - only show when expanded */}
         {isExpanded && (
           <Button
             variant="ghost"
@@ -255,7 +251,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         )}
       </div>
 
-      {/* Toggle button when collapsed - positioned below header */}
       {!isExpanded && (
         <div className="relative h-16">
           <Button
@@ -271,7 +266,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
       <NavigationContent />
 
-      {/* Footer indicator */}
       <div className={cn(
         "absolute bottom-4 left-1/2 -translate-x-1/2 transition-opacity duration-200",
         isExpanded ? "opacity-0" : "opacity-100"
