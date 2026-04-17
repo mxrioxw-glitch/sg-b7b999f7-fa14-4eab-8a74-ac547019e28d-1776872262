@@ -365,23 +365,6 @@ export default function HomePage() {
           />
 
           <main className="flex-1 p-4 md:p-8 space-y-6 md:space-y-8">
-            {/* Hero Section */}
-            <section className="text-center py-20">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 text-accent mb-6">
-                <Zap className="h-4 w-4" />
-                <span className="text-sm font-medium">Sistema POS en la Nube</span>
-              </div>
-              
-              <h1 className="font-heading text-5xl md:text-6xl font-bold mb-6">
-                Nexum Cloud
-              </h1>
-              
-              <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-                El sistema punto de venta completo para tu negocio. 
-                Gestiona ventas, inventario, clientes y reportes desde cualquier lugar.
-              </p>
-            </section>
-
             {/* Cash Register Status Alert */}
             {stats.activeShift ? (
               <Card className="border-accent bg-accent/5">
