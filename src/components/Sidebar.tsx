@@ -42,7 +42,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [businessName, setBusinessName] = useState("Mi Negocio");
   const [userName, setUserName] = useState("");
-  const { hasModuleAccess } = usePermissions();
+  const { hasModuleAccess } = usePermissions(null); // Se arregla el error de TS
 
   const menuItems = [
     { name: "Inicio", href: "/dashboard", icon: LayoutDashboard, permission: null },
