@@ -343,6 +343,14 @@ export function ProductForm({
       return;
     }
 
+    // Feature coming soon message
+    toast({
+      title: "Función en desarrollo",
+      description: "La generación de imágenes con IA estará disponible próximamente. Por ahora, usa la opción de subir imagen.",
+    });
+    
+    /* 
+    // Code for when AI generation is ready
     setGeneratingImage(true);
     try {
       const business = await businessService.getCurrentBusiness();
@@ -366,6 +374,7 @@ export function ProductForm({
     } finally {
       setGeneratingImage(false);
     }
+    */
   };
 
   const handleRemoveImage = () => {
@@ -722,16 +731,16 @@ export function ProductForm({
                   type="button"
                   variant="outline"
                   onClick={handleGenerateAIImage}
-                  disabled={!name.trim() || uploadingImage || generatingImage}
+                  disabled={!name.trim()}
                   className="h-auto p-4"
                 >
                   <Sparkles className="h-5 w-5 mr-2" />
-                  {generatingImage ? "Generando..." : "Generar con IA"}
+                  Generar con IA
                 </Button>
               </div>
 
               <p className="text-xs text-muted-foreground">
-                Sube una imagen desde tu dispositivo o genera una automáticamente con IA basándose en el nombre del producto
+                Sube una imagen desde tu dispositivo. La generación automática con IA estará disponible próximamente.
               </p>
             </div>
           </div>
