@@ -64,18 +64,21 @@ export function Header({ onMenuClick }: HeaderProps) {
 
   return (
     <header className="h-16 border-b bg-card flex items-center justify-between px-4 md:px-6 shrink-0">
-      <div className="flex items-center gap-3">
-        {onMenuClick && (
-          <Button variant="ghost" size="icon" className="md:hidden mr-2" onClick={onMenuClick}>
-            <Menu className="h-5 w-5" />
-          </Button>
-        )}
-        <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center shrink-0">
-          <Store className="h-6 w-6 text-primary-foreground" />
-        </div>
-        <div className="flex flex-col justify-center">
-          <h2 className="font-heading font-bold text-lg leading-none m-0">{businessName}</h2>
-          <p className="text-xs text-muted-foreground leading-none mt-1">Sistema POS</p>
+      <div className="flex items-center gap-4">
+        {/* Mobile Menu Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          onClick={onMenuClick}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+
+        {/* Business Name */}
+        <div className="flex items-center gap-2">
+          <Store className="h-5 w-5 text-primary hidden md:block" />
+          <span className="font-semibold text-sm md:text-base">{businessName}</span>
         </div>
       </div>
 
