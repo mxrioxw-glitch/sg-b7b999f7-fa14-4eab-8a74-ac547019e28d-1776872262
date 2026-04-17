@@ -505,10 +505,7 @@ function CashRegisterContent() {
                                       <Button
                                         variant="ghost"
                                         size="icon"
-                                        onClick={() => {
-                                          setSelectedReport(register);
-                                          setReportDialogOpen(true);
-                                        }}
+                                        onClick={() => handleViewReport(register)}
                                       >
                                         <FileText className="h-4 w-4" />
                                       </Button>
