@@ -7,32 +7,29 @@ import {
   LayoutDashboard,
   ShoppingCart,
   Package,
-  Warehouse,
   Users,
   DollarSign,
-  BarChart3,
   Settings,
+  Store,
   ChevronLeft,
   ChevronRight,
   User,
   LogOut,
-  Store,
+  X,
+  Warehouse,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
+import { authService } from "@/services/authService";
 import { businessService } from "@/services/businessService";
-
-type Business = Database["public"]["Tables"]["businesses"]["Row"];
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -43,88 +40,73 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const router = useRouter();
   const pathname = router.pathname;
   const [isExpanded, setIsExpanded] = useState(true);
-  const [userEmail, setUserEmail] = useState<string>("");
-  const [userName, setUserName] = useState<string>("");
-  const [business, setBusiness] = useState<Business | null>(null);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-
-  useEffect(() => {
-    loadUserData();
-  }, []);
-
-  async function loadUserData() {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserEmail(user.email || "");
-        
-        const SUPER_ADMIN_EMAIL = "mxrioxw@gmail.com";
-        setIsSuperAdmin(user.email === SUPER_ADMIN_EMAIL);
-
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("id", user.id)
-          .single();
-
-        if (profile?.full_name) {
-          setUserName(profile.full_name);
-        } else {
-          setUserName(user.email?.split("@")[0] || "Usuario");
-        }
-
-        if (user.email !== SUPER_ADMIN_EMAIL) {
-          const currentBusiness = await businessService.getCurrentBusiness();
-          setBusiness(currentBusiness);
-        }
-      }
-    } catch (error) {
-      console.error("Error loading user data:", error);
-    }
-  }
+  const [businessName, setBusinessName] = useState("Mi Negocio");
+  const [userName, setUserName] = useState("");
+  const { hasModuleAccess } = usePermissions();
 
   const menuItems = [
-    { name: "Inicio", href: "/dashboard", icon: LayoutDashboard },
-    { name: "POS", href: "/pos", icon: ShoppingCart },
-    { name: "Productos", href: "/products", icon: Package },
-    { name: "Inventario", href: "/inventory", icon: Warehouse },
-    { name: "Clientes", href: "/customers", icon: Users },
-    { name: "Corte de Caja", href: "/cash-register", icon: DollarSign },
-    { name: "Reportes", href: "/reports", icon: BarChart3 },
-    { name: "Configuración", href: "/settings", icon: Settings },
+    { name: "Inicio", href: "/dashboard", icon: LayoutDashboard, permission: null },
+    { name: "POS", href: "/pos", icon: ShoppingCart, permission: "sales" },
+    { name: "Productos", href: "/products", icon: Package, permission: "products" },
+    { name: "Inventario", href: "/inventory", icon: Warehouse, permission: "inventory" },
+    { name: "Clientes", href: "/customers", icon: Users, permission: "customers" },
+    { name: "Caja", href: "/cash-register", icon: DollarSign, permission: "cash_register" },
+    { name: "Configuración", href: "/settings", icon: Settings, permission: "settings" },
   ];
 
-  const superAdminItems = [
-    { name: "Super Admin", href: "/super-admin", icon: LayoutDashboard },
-  ];
+  const visibleItems = menuItems.filter(
+    (item) => !item.permission || hasModuleAccess(item.permission, "read")
+  );
 
-  const visibleItems = isSuperAdmin ? superAdminItems : menuItems;
+  useEffect(() => {
+    loadBusinessInfo();
+    loadUserInfo();
+  }, []);
 
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    router.push("/auth/login");
-  }
-
-  function getUserInitials(name: string, email: string): string {
-    if (name && name !== email.split("@")[0]) {
-      return name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
+  const loadBusinessInfo = async () => {
+    try {
+      const info = await businessService.getCurrentBusiness();
+      if (info?.name) {
+        setBusinessName(info.name);
+      }
+    } catch (error) {
+      console.error("Error loading business info:", error);
     }
-    return email.slice(0, 2).toUpperCase();
-  }
+  };
+
+  const loadUserInfo = async () => {
+    try {
+      const session = await authService.getCurrentSession();
+      if (session?.user?.email) {
+        setUserName(session.user.email.split("@")[0]);
+      }
+    } catch (error) {
+      console.error("Error loading user info:", error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authService.signOut();
+      router.push("/auth/login");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
 
   return (
     <>
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={onClose}
-        />
-      )}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          />
+        )}
+      </AnimatePresence>
 
       <motion.aside
         initial={false}
@@ -132,38 +114,40 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           width: isExpanded ? 280 : 80,
           x: isOpen ? 0 : -280,
         }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
         className={cn(
-          "fixed left-0 top-0 h-full bg-card border-r border-border z-50",
-          "md:relative md:translate-x-0 flex flex-col"
+          "fixed left-0 top-0 z-50 flex h-screen flex-col border-r bg-card transition-all duration-300",
+          "md:relative md:translate-x-0"
         )}
       >
-        <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className="flex items-center justify-between border-b p-4">
           <AnimatePresence>
             {isExpanded && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
                 className="flex items-center gap-3"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <Store className="h-7 w-7" />
                 </div>
                 <div>
-                  <h1 className="font-bold text-lg">
-                    {business?.pos_name || "Mi POS"}
-                  </h1>
-                  {business && (
-                    <p className="text-xs text-muted-foreground">
-                      {business.name}
-                    </p>
-                  )}
+                  <h2 className="font-semibold">{businessName}</h2>
+                  <p className="text-xs text-muted-foreground">Sistema POS</p>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="md:hidden"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+
           <Button
             variant="ghost"
             size="icon"
@@ -178,8 +162,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </Button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
-          <AnimatePresence mode="wait">
+        <nav className="flex-1 space-y-2 overflow-y-auto p-4">
+          <div className="space-y-1">
             {visibleItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -203,8 +187,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                           initial={{ opacity: 0, width: 0 }}
                           animate={{ opacity: 1, width: "auto" }}
                           exit={{ opacity: 0, width: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="text-sm font-medium whitespace-nowrap overflow-hidden"
+                          className="font-medium"
                         >
                           {item.name}
                         </motion.span>
@@ -214,45 +197,39 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 </Link>
               );
             })}
-          </AnimatePresence>
+          </div>
         </nav>
 
-        <div className="p-4 border-t border-border">
+        <div className="border-t p-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 className={cn(
                   "w-full",
-                  isExpanded ? "justify-start gap-3" : "justify-center p-2"
+                  isExpanded ? "justify-start gap-3" : "justify-center px-2"
                 )}
               >
-                <Avatar className="h-10 w-10">
+                <Avatar className="h-8 w-8">
                   <AvatarFallback>
-                    {getUserInitials(userName, userEmail)}
+                    {userName.substring(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <AnimatePresence>
                   {isExpanded && (
-                    <motion.div
-                      initial={{ opacity: 0, width: 0 }}
-                      animate={{ opacity: 1, width: "auto" }}
-                      exit={{ opacity: 0, width: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="flex-1 text-left overflow-hidden"
+                    <motion.span
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="text-sm font-medium"
                     >
-                      <p className="text-sm font-medium truncate">{userName}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {userEmail}
-                      </p>
-                    </motion.div>
+                      {userName}
+                    </motion.span>
                   )}
                 </AnimatePresence>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
-              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => router.push("/profile")}>
                 <User className="mr-2 h-7 w-7" />
                 Perfil
