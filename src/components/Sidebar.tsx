@@ -55,9 +55,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     { name: "Configuración", href: "/settings", icon: Settings, permission: "settings" },
   ];
 
-  const visibleItems = menuItems.filter(
-    (item) => !item.permission || hasModuleAccess(item.permission, "read")
-  );
+  // Show all items for now - remove permission filtering
+  const visibleItems = menuItems;
 
   // Auto-expand on hover
   useEffect(() => {
@@ -129,7 +128,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-screen flex-col border-r bg-card transition-all duration-300",
+          "fixed left-0 top-0 z-40 flex h-screen flex-col border-r bg-card transition-all duration-300",
           isOpen ? "translate-x-0" : "-translate-x-full",
           "md:translate-x-0"
         )}

@@ -122,11 +122,11 @@ export default function Dashboard() {
         <title>Dashboard - POS SaaS</title>
       </Head>
 
-      <div className="flex h-screen bg-background">
+      <div className="flex min-h-screen flex-col bg-background">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex flex-1 flex-col md:pl-20">
           <Header onMenuClick={() => setSidebarOpen(true)} />
-          <main className="flex-1 overflow-y-auto p-6 print:p-0 print:overflow-visible">
+          <main className="flex-1 p-6">
             {/* Filters */}
             <Card className="mb-6 print:hidden">
               <CardHeader>
