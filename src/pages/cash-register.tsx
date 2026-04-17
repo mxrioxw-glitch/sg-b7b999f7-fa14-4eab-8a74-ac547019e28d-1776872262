@@ -20,6 +20,9 @@ import { DollarSign, FileText, Calendar, User, AlertCircle, CheckCircle, XCircle
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { requireAuth } from "@/middleware/auth";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import cn from "classnames";
 
 export const getServerSideProps = requireActiveSubscription;
 
@@ -659,118 +662,121 @@ function CashRegisterContent() {
       </Dialog>
 
       <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Cash Register Report</DialogTitle>
+            <DialogTitle>Detalle del Turno</DialogTitle>
+            <DialogDescription>
+              {selectedReport && format(new Date(selectedReport.opened_at), "PPpp", { locale: es })}
+            </DialogDescription>
           </DialogHeader>
 
           {selectedReport && (
             <div className="space-y-6">
+              {/* Summary Cards */}
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Employee</p>
-                  <p className="text-lg">
-                    {selectedReport.employees?.profiles?.full_name || 
-                     selectedReport.employees?.profiles?.email || 
-                     "Unknown"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Status</p>
-                  <Badge variant={selectedReport.status === "open" ? "default" : "secondary"}>
-                    {selectedReport.status}
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Opened At</p>
-                  <p className="text-lg">{new Date(selectedReport.opened_at).toLocaleString()}</p>
-                </div>
-                {selectedReport.closed_at && (
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Closed At</p>
-                    <p className="text-lg">{new Date(selectedReport.closed_at).toLocaleString()}</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t pt-4 space-y-4">
-                <h3 className="font-semibold text-lg">Financial Summary</h3>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <Card>
-                    <CardContent className="p-4">
-                      <p className="text-sm text-muted-foreground">Opening Amount</p>
-                      <p className="text-2xl font-bold">
-                        ${Number(selectedReport.opening_amount).toFixed(2)}
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardContent className="p-4">
-                      <p className="text-sm text-muted-foreground">Total Sales</p>
-                      <p className="text-2xl font-bold text-accent">
-                        ${Number(selectedReport.totalSales).toFixed(2)}
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  {selectedReport.status === "closed" && (
-                    <>
-                      <Card>
-                        <CardContent className="p-4">
-                          <p className="text-sm text-muted-foreground">Expected Amount</p>
-                          <p className="text-2xl font-bold">
-                            ${Number(selectedReport.expected_amount || 0).toFixed(2)}
-                          </p>
-                        </CardContent>
-                      </Card>
-
-                      <Card>
-                        <CardContent className="p-4">
-                          <p className="text-sm text-muted-foreground">Closing Amount</p>
-                          <p className="text-2xl font-bold">
-                            ${Number(selectedReport.closing_amount || 0).toFixed(2)}
-                          </p>
-                        </CardContent>
-                      </Card>
-
-                      <Card className="col-span-2">
-                        <CardContent className="p-4">
-                          <p className="text-sm text-muted-foreground">Difference</p>
-                          <p className={`text-3xl font-bold ${
-                            Number(selectedReport.difference) === 0
-                              ? "text-accent"
-                              : Number(selectedReport.difference) > 0
-                              ? "text-blue-600"
-                              : "text-destructive"
-                          }`}>
-                            {Number(selectedReport.difference) > 0 ? "+" : ""}
-                            ${Number(selectedReport.difference).toFixed(2)}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    </>
-                  )}
-                </div>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-sm text-muted-foreground mb-1">
+                      Total Ventas
+                    </div>
+                    <div className="text-2xl font-bold">
+                      ${Number(selectedReport.total_sales || 0).toFixed(2)}
+                    </div>
+                  </CardContent>
+                </Card>
 
                 <Card>
-                  <CardContent className="p-4">
-                    <p className="text-sm text-muted-foreground">Transaction Count</p>
-                    <p className="text-2xl font-bold">{selectedReport.transactionCount}</p>
+                  <CardContent className="pt-6">
+                    <div className="text-sm text-muted-foreground mb-1">
+                      Efectivo en Caja
+                    </div>
+                    <div className="text-2xl font-bold">
+                      ${Number(selectedReport.cash_in_drawer || 0).toFixed(2)}
+                    </div>
                   </CardContent>
                 </Card>
               </div>
 
+              {/* Details Grid */}
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-muted-foreground">Apertura</Label>
+                    <p className="text-sm font-medium">
+                      {format(new Date(selectedReport.opened_at), "PPpp", { locale: es })}
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label className="text-muted-foreground">Monto Inicial</Label>
+                    <p className="text-sm font-medium">
+                      ${Number(selectedReport.opening_amount || 0).toFixed(2)}
+                    </p>
+                  </div>
+
+                  {selectedReport.status === "closed" && selectedReport.closing_amount !== null && (
+                    <div>
+                      <Label className="text-muted-foreground">Monto de Cierre</Label>
+                      <p className="text-sm font-medium">
+                        ${Number(selectedReport.closing_amount || 0).toFixed(2)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  {selectedReport.closed_at && (
+                    <div>
+                      <Label className="text-muted-foreground">Cierre</Label>
+                      <p className="text-sm font-medium">
+                        {format(new Date(selectedReport.closed_at), "PPpp", { locale: es })}
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <Label className="text-muted-foreground">Empleado</Label>
+                    <p className="text-sm font-medium">
+                      {selectedReport.employees?.full_name || "N/A"}
+                    </p>
+                  </div>
+
+                  {selectedReport.status === "closed" && selectedReport.difference !== null && (
+                    <div>
+                      <Label className="text-muted-foreground">Diferencia</Label>
+                      <p className={cn(
+                        "text-sm font-medium",
+                        Number(selectedReport.difference) > 0 && "text-green-600",
+                        Number(selectedReport.difference) < 0 && "text-red-600"
+                      )}>
+                        ${Number(selectedReport.difference || 0).toFixed(2)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Notes */}
               {selectedReport.notes && (
-                <div className="border-t pt-4">
-                  <p className="text-sm font-medium text-muted-foreground">Notes</p>
-                  <p className="text-sm mt-1">{selectedReport.notes}</p>
+                <div>
+                  <Label className="text-muted-foreground">Notas</Label>
+                  <p className="text-sm mt-1 p-3 bg-muted rounded-lg">
+                    {selectedReport.notes}
+                  </p>
                 </div>
               )}
+
+              {/* Status Badge */}
+              <div className="flex items-center justify-between pt-4 border-t">
+                <Label className="text-muted-foreground">Estado</Label>
+                <div className={cn(
+                  "px-3 py-1 rounded-full text-xs font-medium",
+                  selectedReport.status === "open" && "bg-green-100 text-green-800",
+                  selectedReport.status === "closed" && "bg-gray-100 text-gray-800"
+                )}>
+                  {selectedReport.status === "open" ? "Abierto" : "Cerrado"}
+                </div>
+              </div>
             </div>
           )}
         </DialogContent>
