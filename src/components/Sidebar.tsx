@@ -29,6 +29,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = router.pathname;
   const [isExpanded, setIsExpanded] = useState(false); // Start collapsed
   const [isHovering, setIsHovering] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
   const [businessName, setBusinessName] = useState("Mi Negocio");
   const [userName, setUserName] = useState("");
   const { hasModuleAccess } = usePermissions(null);
@@ -47,11 +48,21 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   // Show all items for now - remove permission filtering
   const visibleItems = menuItems;
 
-  // Auto-expand on hover
+  // Detect if we're on desktop
   useEffect(() => {
-    if (isHovering) {
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 768);
+    };
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
+
+  // Auto-expand on hover - ONLY on desktop
+  useEffect(() => {
+    if (isDesktop && isHovering) {
       setIsExpanded(true);
-    } else {
+    } else if (isDesktop && !isHovering) {
       const timer = setTimeout(() => {
         setIsExpanded(false);
       }, 200);
@@ -114,8 +125,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         animate={{
           width: isExpanded ? 280 : 80,
         }}
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
+        onMouseEnter={isDesktop ? () => setIsHovering(true) : undefined}
+        onMouseLeave={isDesktop ? () => setIsHovering(false) : undefined}
         className={cn(
           "flex h-screen flex-col border-r bg-card transition-all duration-300",
           "fixed left-0 top-0 z-40 md:relative md:z-auto",
