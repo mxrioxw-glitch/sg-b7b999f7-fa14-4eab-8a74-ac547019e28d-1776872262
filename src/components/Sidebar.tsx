@@ -177,15 +177,13 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           <Link key={item.href} href={item.href}>
             <Button
               variant={active ? "secondary" : "ghost"}
-              className={`w-full ${isCollapsed ? "justify-center px-2" : "justify-start gap-3"} ${
-                active ? "bg-primary/10 text-primary font-medium" : ""
+              className={`w-full justify-start ${isCollapsed ? "justify-center px-2" : "gap-3"} ${
+                active ? "bg-primary/10 text-primary" : ""
               }`}
               title={isCollapsed ? item.name : undefined}
             >
-              <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 w-full"}`}>
-                <Icon className="h-5 w-5 flex-shrink-0" />
-                {!isCollapsed && <span className="flex-1 text-left">{item.name}</span>}
-              </div>
+              <Icon className={`h-5 w-5 ${!isCollapsed && "flex-shrink-0"}`} />
+              {!isCollapsed && <span>{item.name}</span>}
             </Button>
           </Link>
         );
