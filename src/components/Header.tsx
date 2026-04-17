@@ -1,83 +1,85 @@
 import { useState, useEffect } from "react";
-import { useRouter } from "next/router";
+import { Bell, Search, User, LogOut, Settings, Store } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { Bell, LogOut, User, CreditCard, Menu, Store } from "lucide-react";
 import { authService } from "@/services/authService";
+import { businessService } from "@/services/businessService";
+import { useRouter } from "next/router";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-interface HeaderProps {
-  onMenuClick?: () => void;
-  businessName?: string;
-  userName?: string;
-  userEmail?: string;
-  planName?: string;
-}
-
-export function Header({ onMenuClick, businessName, userName, userEmail, planName }: HeaderProps) {
+export function Header() {
   const router = useRouter();
-  const [user, setUser] = useState<{ email?: string } | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [businessName, setBusinessName] = useState("Nexum Cloud");
 
   useEffect(() => {
-    const loadUser = async () => {
-      const session = await authService.getCurrentSession();
-      if (session?.user) {
-        setUser(session.user);
-      }
-    };
-    loadUser();
+    loadUserData();
   }, []);
 
-  const handleLogout = async () => {
-    await authService.signOut();
-    router.push("/auth/login");
-  };
+  async function loadUserData() {
+    try {
+      const session = await authService.getSession();
+      if (session?.user) {
+        setUser(session.user);
+        
+        // Get business name
+        const business = await businessService.getCurrentBusiness();
+        if (business?.name) {
+          setBusinessName(business.name);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading user data:", error);
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      await authService.signOut();
+      router.push("/auth/login");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  }
+
+  const userInitials = user?.email 
+    ? user.email.substring(0, 2).toUpperCase() 
+    : "US";
 
   return (
-    <header className="sticky top-0 z-50 flex h-16 items-center border-b bg-card px-6">
-      <div className="flex flex-1 items-center gap-4">
-        {/* Mobile menu button */}
-        <button
-          onClick={onMenuClick}
-          className="md:hidden rounded-lg p-2 hover:bg-accent"
-        >
-          <Menu className="h-6 w-6" />
-        </button>
-
-        {/* Business info */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-            <Store className="h-6 w-6 text-primary-foreground" />
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold">cafeteria prueba</h1>
-            <p className="text-xs text-muted-foreground">Sistema POS</p>
-          </div>
+    <header className="h-16 border-b bg-card flex items-center justify-between px-6">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+          <Store className="h-6 w-6 text-primary-foreground" />
+        </div>
+        <div>
+          <h2 className="font-heading font-bold text-lg leading-tight">{businessName}</h2>
+          <p className="text-xs text-muted-foreground">Sistema POS</p>
         </div>
       </div>
 
-      {/* User section - right aligned */}
       <div className="flex items-center gap-4">
-        <button className="relative rounded-lg p-2 hover:bg-accent">
+        <Button variant="ghost" size="icon">
           <Bell className="h-5 w-5" />
-          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-accent" />
-        </button>
+        </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 rounded-lg p-2 hover:bg-accent">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
-                {user?.email?.[0]?.toUpperCase() || "M"}
-              </div>
-              <span className="hidden md:block text-sm font-medium">
-                {user?.email?.split("@")[0] || "mastertekmx"}
-              </span>
-            </button>
+            <Button variant="ghost" size="icon">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                  {userInitials}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
@@ -86,9 +88,9 @@ export function Header({ onMenuClick, businessName, userName, userEmail, planNam
               <User className="mr-2 h-4 w-4" />
               Perfil
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => router.push("/subscription")}>
-              <CreditCard className="mr-2 h-4 w-4" />
-              Suscripción
+            <DropdownMenuItem onClick={() => router.push("/settings")}>
+              <Settings className="mr-2 h-4 w-4" />
+              Configuración
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>

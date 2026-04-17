@@ -1,3 +1,4 @@
+import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Header } from "@/components/Header";
@@ -386,7 +387,6 @@ function POSContent() {
       
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header
-          businessName={business.name}
           userName={business.name}
           onMenuClick={() => setSidebarOpen(true)}
         />

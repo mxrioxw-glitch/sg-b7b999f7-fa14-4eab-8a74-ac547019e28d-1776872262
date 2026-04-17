@@ -1,3 +1,4 @@
+import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Header } from "@/components/Header";
@@ -133,7 +134,7 @@ function InventoryContent() {
     <div className="flex min-h-screen bg-background">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <Header />
         <SEO 
           title="Inventario - Nexum Cloud"
           description="Gestión de inventario de Nexum Cloud"

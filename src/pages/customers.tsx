@@ -1,3 +1,4 @@
+import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Header } from "@/components/Header";
@@ -184,9 +185,9 @@ function CustomersContent() {
       />
 
       <div className="flex min-h-screen bg-background">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <Sidebar />
         <div className="flex-1 flex flex-col">
-          <Header onMenuClick={() => setSidebarOpen(true)} />
+          <Header />
           <main className="flex-1 p-4 md:p-8 overflow-y-auto">
             <div className="mb-6 md:mb-8">
               <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Clientes</h1>

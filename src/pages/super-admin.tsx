@@ -1,3 +1,4 @@
+import { Header } from "@/components/Header";
 import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +12,7 @@ import { useEffect, useState } from "react";
 import { authService } from "@/services/authService";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { Shield, Users, DollarSign, CheckCircle2, AlertCircle, XCircle, Edit, LogOut, Save } from "lucide-react";
+import { Shield, Users, DollarSign, CheckCircle2, AlertCircle, XCircle, Edit, LogOut, Save, Store } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type BusinessWithSubscription = Tables<"businesses"> & {
@@ -251,26 +252,17 @@ export default function SuperAdminPage() {
       />
       
       <div className="min-h-screen bg-background">
-        <Header businessName="Nexum Cloud - Super Admin" />
-        <div className="border-b bg-card">
-          <div className="container mx-auto px-4 py-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-card">
-                  <Shield className="w-6 h-6" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold">Super Admin Dashboard</h1>
-                  <p className="text-sm text-muted">Panel de control del sistema</p>
-                </div>
-              </div>
-              <Button variant="outline" onClick={handleLogout}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Cerrar Sesión
-              </Button>
+        <header className="h-16 border-b bg-card flex items-center justify-between px-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+              <Store className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <div>
+              <h2 className="font-heading font-bold text-lg leading-tight">Nexum Cloud</h2>
+              <p className="text-xs text-muted-foreground">Super Admin</p>
             </div>
           </div>
-        </div>
+        </header>
 
         <div className="container mx-auto px-4 py-8">
           {/* Metrics */}

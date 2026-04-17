@@ -126,7 +126,7 @@ export default function Dashboard() {
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         
         <div className="flex flex-1 flex-col">
-          <Header onMenuClick={() => setSidebarOpen(true)} />
+          <Header />
           <main className="flex-1 p-6">
             {/* Filters */}
             <Card className="mb-6 print:hidden">

@@ -1,3 +1,4 @@
+import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
@@ -316,9 +317,9 @@ function CashRegisterContent() {
       />
 
       <div className="flex min-h-screen bg-background">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <Sidebar />
         <div className="flex-1 flex flex-col">
-          <Header onMenuClick={() => setSidebarOpen(true)} />
+          <Header />
           <main className="flex-1 p-4 md:p-8 overflow-y-auto">
             <div className="space-y-6">
               {/* Header */}

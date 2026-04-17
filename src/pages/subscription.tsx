@@ -1,3 +1,4 @@
+import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Header } from "@/components/Header";
@@ -329,9 +330,9 @@ export default function SubscriptionPage() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar />
       <div className="flex-1">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <Header />
         <SEO 
           title="Suscripción - Nexum Cloud"
           description="Gestiona tu suscripción de Nexum Cloud"

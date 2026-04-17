@@ -1,3 +1,4 @@
+import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Header } from "@/components/Header";
@@ -133,9 +134,9 @@ export default function KardexPage() {
         title="Kardex - Nexum Cloud"
         description="Historial de movimientos de inventario en Nexum Cloud"
       />
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar />
       <div className="flex-1 flex flex-col">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <Header />
         <main className="p-8">
           <div className="mb-8">
             <Link href="/inventory">
