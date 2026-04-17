@@ -364,16 +364,6 @@ export default function HomePage() {
             onMenuClick={() => setSidebarOpen(true)}
           />
 
-          {/* Nav */}
-          <nav className="flex items-center gap-4">
-            <Button variant="ghost" asChild>
-              <Link href="/auth/login">Iniciar Sesión</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/auth/register">Comenzar Gratis</Link>
-            </Button>
-          </nav>
-
           <main className="flex-1 p-4 md:p-8 space-y-6 md:space-y-8">
             {/* Hero Section */}
             <section className="text-center py-20">

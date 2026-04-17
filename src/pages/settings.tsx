@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { authService } from "@/services/authService";
 import { businessService } from "@/services/businessService";
 import { settingsService, type BusinessSettings } from "@/services/settingsService";
-import { employeeService } from "@/services/employeeService";
+import { employeeService, type EmployeeWithUser, type EmployeePermission } from "@/services/employeeService";
 import { paymentMethodService, type PaymentMethod } from "@/services/paymentMethodService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,32 +21,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { PermissionSelector } from "@/components/PermissionSelector";
 import { 
-  Building2, 
-  DollarSign, 
-  CreditCard, 
-  Users, 
-  Settings as SettingsIcon,
-  Save,
-  Plus,
-  Pencil,
-  Trash2,
-  Upload,
-  X,
-  Check,
-  AlertCircle,
-  Zap
+  Building2, DollarSign, CreditCard, Users, Settings as SettingsIcon, Save, Plus, Pencil, Trash2, Upload, X, Check, AlertCircle, Zap
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
-import type { EmployeeWithUser, EmployeePermission } from "@/services/employeeService";
 import type { Business } from "@/services/businessService";
 import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
