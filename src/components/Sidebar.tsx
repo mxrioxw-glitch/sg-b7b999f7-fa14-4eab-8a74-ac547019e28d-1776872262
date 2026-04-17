@@ -155,7 +155,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 }`}
                 title={!isExpanded ? item.name : undefined}
               >
-                <Icon className={`h-5 w-5 ${isExpanded && "flex-shrink-0"}`} />
+                <Icon className={`h-6 w-6 ${isExpanded && "flex-shrink-0"}`} />
                 <AnimatePresence mode="wait">
                   {isExpanded && (
                     <motion.span
