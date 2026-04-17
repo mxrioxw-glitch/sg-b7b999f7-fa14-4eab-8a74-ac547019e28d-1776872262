@@ -1,8 +1,10 @@
 import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import { loadStripe } from "@stripe/stripe-js";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,9 +14,11 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { businessService } from "@/services/businessService";
 import { subscriptionService } from "@/services/subscriptionService";
-import { Check, Crown, Zap, Star, Calendar, CreditCard, AlertCircle } from "lucide-react";
+import { Check, Crown, Zap, Star, Calendar, CreditCard, AlertCircle, CheckCircle, X, ExternalLink } from "lucide-react";
 import type { Business } from "@/services/businessService";
 import type { SubscriptionPlan } from "@/services/subscriptionService";
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
 const PLANS = [
   {
@@ -82,6 +86,10 @@ export default function SubscriptionPage() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState<any>(null);
+  const [businessName, setBusinessName] = useState("");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [processingPlan, setProcessingPlan] = useState<string | null>(null);
 
   useEffect(() => {
     checkAccess();
@@ -278,6 +286,90 @@ export default function SubscriptionPage() {
     }
   };
 
+  async function handleUpgrade(planType: string, priceId: string) {
+    try {
+      setProcessingPlan(planType);
+
+      const business = await businessService.getCurrentBusiness();
+      if (!business) {
+        throw new Error("No se encontró el negocio");
+      }
+
+      // Crear sesión de checkout
+      const response = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          priceId,
+          businessId: business.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Error al crear sesión de pago");
+      }
+
+      // Redirigir a Stripe Checkout
+      const stripe = await stripePromise;
+      if (!stripe) {
+        throw new Error("Error al cargar Stripe");
+      }
+
+      const { error } = await stripe.redirectToCheckout({
+        sessionId: data.sessionId,
+      });
+
+      if (error) {
+        throw error;
+      }
+    } catch (error: any) {
+      console.error("Error al procesar upgrade:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Error al procesar el pago",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingPlan(null);
+    }
+  }
+
+  async function handleManageSubscription() {
+    try {
+      const business = await businessService.getCurrentBusiness();
+      if (!business) {
+        throw new Error("No se encontró el negocio");
+      }
+
+      // Crear sesión del portal del cliente
+      const response = await fetch("/api/create-portal-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          businessId: business.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Error al abrir portal de gestión");
+      }
+
+      // Redirigir al portal de Stripe
+      window.location.href = data.url;
+    } catch (error: any) {
+      console.error("Error al abrir portal:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Error al abrir el portal de gestión",
+        variant: "destructive",
+      });
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
@@ -433,6 +525,26 @@ export default function SubscriptionPage() {
             </Card>
           </div>
 
+          {/* Current Plan Info */}
+              {currentPlan && currentPlan.plan_type !== "trial" && (
+                <Alert className="mb-6">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="flex items-center justify-between">
+                    <span>
+                      Tienes una suscripción activa. Puedes gestionar tu método de pago y facturación.
+                    </span>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleManageSubscription}
+                    >
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Gestionar Suscripción
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              )}
+
           {/* Available Plans */}
           <div className="mb-8">
             <h2 className="text-xl md:text-2xl font-bold mb-4">Planes Disponibles</h2>
@@ -476,14 +588,41 @@ export default function SubscriptionPage() {
                           </li>
                         ))}
                       </ul>
-                      <Button
-                        className="w-full"
-                        variant={isCurrent || isTrialPlan ? "outline" : plan.popular ? "default" : "outline"}
-                        disabled={isCurrent}
-                        onClick={() => handleUpgrade(plan.id)}
-                      >
-                        {isTrialPlan ? "Tu Plan Actual (Trial)" : isCurrent ? "Plan Actual" : "Elegir Plan"}
-                      </Button>
+                      {plan.type === currentPlan?.plan_type ? (
+                        <Button className="w-full" disabled>
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          Plan Actual
+                        </Button>
+                      ) : plan.type === "trial" ? (
+                        <Button className="w-full" variant="outline" disabled>
+                          Plan de Prueba
+                        </Button>
+                      ) : (
+                        <Button 
+                          className="w-full"
+                          onClick={() => handleUpgrade(
+                            plan.type,
+                            plan.type === "basic" 
+                              ? process.env.NEXT_PUBLIC_STRIPE_PRICE_BASIC || ""
+                              : plan.type === "professional"
+                              ? process.env.NEXT_PUBLIC_STRIPE_PRICE_PROFESSIONAL || ""
+                              : process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM || ""
+                          )}
+                          disabled={processingPlan === plan.type}
+                        >
+                          {processingPlan === plan.type ? (
+                            <>
+                              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                              Procesando...
+                            </>
+                          ) : (
+                            <>
+                              <CreditCard className="mr-2 h-4 w-4" />
+                              Seleccionar Plan
+                            </>
+                          )}
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 );
