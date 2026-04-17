@@ -13,7 +13,7 @@ import { businessService } from "@/services/businessService";
 import { subscriptionService } from "@/services/subscriptionService";
 import { Check, Crown, Zap, Star, Calendar, CreditCard, AlertCircle } from "lucide-react";
 import type { Business } from "@/services/businessService";
-import type { SubscriptionWithPlan, SubscriptionPlan } from "@/services/subscriptionService";
+import type { SubscriptionPlan } from "@/services/subscriptionService";
 
 const PLANS = [
   {
@@ -72,14 +72,14 @@ export default function SubscriptionPage() {
   const [isInTrial, setIsInTrial] = useState<boolean>(false);
   const [effectivePlan, setEffectivePlan] = useState<string>("basic");
   const [showCheckout, setShowCheckout] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<"basic" | "professional" | "premium">("basic");
   const [processingCheckout, setProcessingCheckout] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [processingPayment, setProcessingPayment] = useState(false);
   const [business, setBusiness] = useState<Business | null>(null);
   const [isOwner, setIsOwner] = useState(false);
-  const [subscription, setSubscription] = useState<SubscriptionWithPlan | null>(null);
+  const [subscription, setSubscription] = useState<any | null>(null);
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   useEffect(() => {

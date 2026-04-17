@@ -123,7 +123,7 @@ export default function Settings() {
         tax_rate: currentBusiness.tax_rate || 16,
         tax_included: currentBusiness.tax_included || false,
       });
-      setPrinterWidth(currentBusiness.printer_width || "80mm");
+      setPrinterWidth((currentBusiness.printer_width as "58mm" | "80mm") || "80mm");
       setCustomizationForm({
         pos_name: currentBusiness.pos_name || "Mi POS",
         primary_color: currentBusiness.primary_color || "#2A1810",
@@ -989,7 +989,7 @@ export default function Settings() {
 
               <PermissionSelector
                 permissions={editingPermissions}
-                onChange={setEditingPermissions}
+                onChange={(perms: any) => setEditingPermissions(perms)}
               />
 
               <div className="flex justify-end gap-2 pt-4">
