@@ -1,188 +1,103 @@
-import Link from "next/link";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/router";
-import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
-import { usePermissions } from "@/hooks/usePermissions";
-import { authService } from "@/services/authService";
-import { businessService } from "@/services/businessService";
-import {
-  LayoutDashboard,
-  ShoppingCart,
-  Package,
-  Users,
-  DollarSign,
+import { 
+  LayoutDashboard, 
+  ShoppingCart, 
+  Package, 
+  Users, 
   Settings,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
   Store,
-  X,
-  Warehouse,
-  TrendingUp,
+  DollarSign,
+  TrendingUp
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { authService } from "@/services/authService";
 
-interface SidebarProps {
-  isOpen: boolean;
-  onClose: () => void;
+export interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const router = useRouter();
-  const pathname = router.pathname;
-  const [isExpanded, setIsExpanded] = useState(false); // Start collapsed
-  const [isHovering, setIsHovering] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
-  const [businessName, setBusinessName] = useState("Mi Negocio");
-  const [userName, setUserName] = useState("");
-  const { hasModuleAccess } = usePermissions(null);
+  const [isExpanded, setIsExpanded] = useState(true);
 
-  const menuItems = [
-    { name: "Inicio", href: "/", icon: LayoutDashboard, permission: null },
-    { name: "Dashboard", href: "/dashboard", icon: TrendingUp, permission: null },
-    { name: "POS", href: "/pos", icon: ShoppingCart, permission: "sales" },
-    { name: "Productos", href: "/products", icon: Package, permission: "products" },
-    { name: "Inventario", href: "/inventory", icon: Warehouse, permission: "inventory" },
-    { name: "Clientes", href: "/customers", icon: Users, permission: "customers" },
-    { name: "Caja", href: "/cash-register", icon: DollarSign, permission: "cash_register" },
-    { name: "Configuración", href: "/settings", icon: Settings, permission: "settings" },
-  ];
-
-  // Show all items for now - remove permission filtering
-  const visibleItems = menuItems;
-
-  // Detect if we're on desktop
+  // Auto-collapse on mobile
   useEffect(() => {
-    const checkDesktop = () => {
-      setIsDesktop(window.innerWidth >= 768);
-    };
-    checkDesktop();
-    window.addEventListener('resize', checkDesktop);
-    return () => window.removeEventListener('resize', checkDesktop);
-  }, []);
-
-  // Auto-expand on hover - ONLY on desktop
-  useEffect(() => {
-    if (isDesktop && isHovering) {
-      setIsExpanded(true);
-    } else if (isDesktop && !isHovering) {
-      const timer = setTimeout(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
         setIsExpanded(false);
-      }, 200);
-      return () => clearTimeout(timer);
-    }
-  }, [isHovering]);
+      } else {
+        setIsExpanded(true);
+      }
+    };
 
-  useEffect(() => {
-    loadBusinessInfo();
-    loadUserInfo();
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  const loadBusinessInfo = async () => {
-    try {
-      const info = await businessService.getCurrentBusiness();
-      if (info?.name) {
-        setBusinessName(info.name);
-      }
-    } catch (error) {
-      console.error("Error loading business info:", error);
-    }
-  };
-
-  const loadUserInfo = async () => {
-    try {
-      const session = await authService.getCurrentSession();
-      if (session?.user?.email) {
-        setUserName(session.user.email.split("@")[0]);
-      }
-    } catch (error) {
-      console.error("Error loading user info:", error);
-    }
-  };
 
   const handleLogout = async () => {
     try {
       await authService.signOut();
       router.push("/auth/login");
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error("Error logging out:", error);
     }
   };
 
+  const navItems = [
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Punto de Venta", href: "/pos", icon: ShoppingCart },
+    { name: "Productos", href: "/products", icon: Package },
+    { name: "Inventario", href: "/inventory", icon: TrendingUp },
+    { name: "Corte de Caja", href: "/cash-register", icon: DollarSign },
+    { name: "Clientes", href: "/customers", icon: Users },
+    { name: "Configuración", href: "/settings", icon: Settings },
+  ];
+
   return (
     <>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 z-40 bg-black/50 md:hidden"
-          />
-        )}
-      </AnimatePresence>
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 md:hidden"
+          onClick={onClose}
+        />
+      )}
 
-      <motion.aside
-        initial={false}
-        animate={{
-          width: isExpanded ? 280 : 80,
-        }}
-        onMouseEnter={isDesktop ? () => setIsHovering(true) : undefined}
-        onMouseLeave={isDesktop ? () => setIsHovering(false) : undefined}
+      {/* Sidebar */}
+      <aside 
         className={cn(
-          "flex h-screen flex-col border-r bg-card transition-all duration-300",
-          "fixed left-0 top-0 z-40 md:relative md:z-auto",
-          isOpen ? "translate-x-0" : "-translate-x-full",
-          "md:translate-x-0"
+          "bg-card border-r transition-all duration-300 flex flex-col z-50 shrink-0",
+          "fixed md:static inset-y-0 left-0 h-screen",
+          isExpanded ? "w-64" : "w-20",
+          !isOpen && !isExpanded && "max-md:-translate-x-full",
+          isOpen && "translate-x-0"
         )}
       >
-        {/* Logo Section - Always visible */}
-        <div className="h-16 px-6 border-b flex items-center">
+        <div className="h-16 px-4 md:px-6 border-b flex items-center shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center shrink-0">
               <Store className="h-6 w-6 text-primary-foreground" />
             </div>
             {isExpanded && (
-              <div>
-                <h1 className="font-heading font-bold text-lg leading-tight">Nexum Cloud</h1>
-                <p className="text-xs text-muted-foreground">Sistema POS</p>
+              <div className="flex flex-col justify-center">
+                <h1 className="font-heading font-bold text-lg leading-none m-0">Nexum Cloud</h1>
+                <p className="text-xs text-muted-foreground leading-none mt-1">Sistema POS</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 space-y-1 overflow-y-auto p-2">
-          {visibleItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-
-            return (
-              <Link key={item.href} href={item.href}>
-                <div
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-3 transition-all hover:bg-accent",
-                    isActive && "bg-accent",
-                    !isExpanded && "justify-center"
-                  )}
-                >
-                  <Icon className="h-7 w-7 flex-shrink-0" />
-                  <AnimatePresence>
-                    {isExpanded && (
-                      <motion.span
-                        initial={{ opacity: 0, width: 0 }}
-                        animate={{ opacity: 1, width: "auto" }}
-                        exit={{ opacity: 0, width: 0 }}
-                        className="overflow-hidden whitespace-nowrap text-base font-medium"
-                      >
-                        {item.name}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </Link>
-            );
-          })}
-        </nav>
-      </motion.aside>
+        <div className="flex-1 py-6 flex flex-col gap-2 overflow-y-auto px-3">
+        </div>
+      </aside>
     </>
   );
 }

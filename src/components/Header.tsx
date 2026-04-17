@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, Search, User, LogOut, Settings, Store } from "lucide-react";
+import { Bell, Search, User, LogOut, Settings, Store, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,7 +15,15 @@ import { businessService } from "@/services/businessService";
 import { useRouter } from "next/router";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-export function Header() {
+interface HeaderProps {
+  businessName?: string;
+  userName?: string;
+  userEmail?: string;
+  planName?: string;
+  onMenuClick?: () => void;
+}
+
+export function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [businessName, setBusinessName] = useState("Nexum Cloud");
@@ -26,7 +34,7 @@ export function Header() {
 
   async function loadUserData() {
     try {
-      const session = await authService.getSession();
+      const session = await authService.getCurrentSession();
       if (session?.user) {
         setUser(session.user);
         
@@ -55,18 +63,23 @@ export function Header() {
     : "US";
 
   return (
-    <header className="h-16 border-b bg-card flex items-center justify-between px-6">
+    <header className="h-16 border-b bg-card flex items-center justify-between px-4 md:px-6 shrink-0">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+        {onMenuClick && (
+          <Button variant="ghost" size="icon" className="md:hidden mr-2" onClick={onMenuClick}>
+            <Menu className="h-5 w-5" />
+          </Button>
+        )}
+        <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center shrink-0">
           <Store className="h-6 w-6 text-primary-foreground" />
         </div>
-        <div>
-          <h2 className="font-heading font-bold text-lg leading-tight">{businessName}</h2>
-          <p className="text-xs text-muted-foreground">Sistema POS</p>
+        <div className="flex flex-col justify-center">
+          <h2 className="font-heading font-bold text-lg leading-none m-0">{businessName}</h2>
+          <p className="text-xs text-muted-foreground leading-none mt-1">Sistema POS</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4">
         <Button variant="ghost" size="icon">
           <Bell className="h-5 w-5" />
         </Button>
