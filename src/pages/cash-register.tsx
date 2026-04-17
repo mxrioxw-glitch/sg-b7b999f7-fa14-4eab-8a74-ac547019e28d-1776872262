@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { requireActiveSubscription } from "@/middleware/subscription";
 import { businessService } from "@/services/businessService";
@@ -22,7 +22,10 @@ import { requireAuth } from "@/middleware/auth";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import cn from "classnames";
+import { LayoutDashboard, Store, Users, ShoppingCart, Package, DollarSign, Search, Calendar, ChevronDown, Download, Eye, TrendingUp, AlertCircle, Plus } from "lucide-react";
+import { Header } from "@/components/Header";
+import { FeatureGuard } from "@/components/FeatureGuard";
+import { cn } from "@/lib/utils";
 
 export const getServerSideProps = requireActiveSubscription;
 
