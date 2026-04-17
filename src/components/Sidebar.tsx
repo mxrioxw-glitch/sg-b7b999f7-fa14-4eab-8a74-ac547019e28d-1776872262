@@ -3,6 +3,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { usePermissions } from "@/hooks/usePermissions";
+import { authService } from "@/services/authService";
+import { businessService } from "@/services/businessService";
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -11,24 +14,10 @@ import {
   DollarSign,
   Settings,
   Store,
-  User,
-  LogOut,
   X,
   Warehouse,
   TrendingUp,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { authService } from "@/services/authService";
-import { businessService } from "@/services/businessService";
-import { usePermissions } from "@/hooks/usePermissions";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -155,90 +144,39 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </div>
         </div>
 
-        <nav className="flex-1 space-y-2 overflow-y-auto p-4">
-          <div className="space-y-1">
-            {visibleItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href;
+        {/* Navigation */}
+        <nav className="flex-1 space-y-1 overflow-y-auto p-2">
+          {visibleItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
 
-              return (
-                <Link key={item.name} href={item.href}>
-                  <motion.div
-                    whileHover={{ x: 2 }}
-                    className={cn(
-                      "flex items-center rounded-lg px-3 py-3 transition-colors cursor-pointer",
-                      isExpanded ? "gap-3" : "justify-center",
-                      isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    )}
-                  >
-                    <Icon className="h-7 w-7 flex-shrink-0" />
-                    <AnimatePresence>
-                      {isExpanded && (
-                        <motion.span
-                          initial={{ opacity: 0, width: 0 }}
-                          animate={{ opacity: 1, width: "auto" }}
-                          exit={{ opacity: 0, width: 0 }}
-                          className="font-medium"
-                        >
-                          {item.name}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
-
-        <div className="border-t p-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className={cn(
-                  "w-full",
-                  isExpanded ? "justify-start gap-3" : "justify-center px-2"
-                )}
-              >
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback>
-                    {userName.substring(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <AnimatePresence>
-                  {isExpanded && (
-                    <motion.span
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="text-sm font-medium"
-                    >
-                      {userName}
-                    </motion.span>
+            return (
+              <Link key={item.href} href={item.href}>
+                <div
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-3 transition-all hover:bg-accent",
+                    isActive && "bg-accent",
+                    !isExpanded && "justify-center"
                   )}
-                </AnimatePresence>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={() => router.push("/profile")}>
-                <User className="mr-2 h-7 w-7" />
-                Perfil
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push("/subscription")}>
-                <Store className="mr-2 h-7 w-7" />
-                Suscripción
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-7 w-7" />
-                Cerrar Sesión
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+                >
+                  <Icon className="h-7 w-7 flex-shrink-0" />
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.span
+                        initial={{ opacity: 0, width: 0 }}
+                        animate={{ opacity: 1, width: "auto" }}
+                        exit={{ opacity: 0, width: 0 }}
+                        className="overflow-hidden whitespace-nowrap text-base font-medium"
+                      >
+                        {item.name}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </Link>
+            );
+          })}
+        </nav>
       </motion.aside>
     </>
   );
