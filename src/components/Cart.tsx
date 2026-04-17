@@ -46,76 +46,71 @@ export function Cart({
         <Badge variant="secondary">{items.length} items</Badge>
       </div>
 
-      <ScrollArea className="h-[calc(100vh-400px)]">
-        <div className="space-y-3 p-4">
+      <ScrollArea className="flex-1">
+        <div className="p-4 space-y-3">
           {items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <ShoppingCart className="h-12 w-12 text-muted-foreground/50" />
-              <p className="mt-4 text-sm text-muted-foreground">
-                Carrito vacío
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Agrega productos para comenzar
-              </p>
+            <div className="text-center py-8 text-muted-foreground">
+              <ShoppingCart className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p>No hay productos en el carrito</p>
             </div>
           ) : (
             items.map((item) => (
-              <div key={item.id} className="rounded-lg border border-border p-3">
-                <div className="flex items-start justify-between gap-2">
+              <Card key={item.id} className="p-3">
+                <div className="flex items-start gap-3">
                   <div className="flex-1">
-                    <h3 className="text-sm font-semibold">{item.name}</h3>
+                    <h4 className="font-medium text-sm mb-1">{item.product.name}</h4>
                     {item.variant && (
-                      <p className="text-xs text-muted-foreground">{item.variant}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Variante: {item.variant.name}
+                      </p>
                     )}
                     {item.extras && item.extras.length > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        + {item.extras.join(", ")}
-                      </p>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Extras: {item.extras.map(e => e.name).join(", ")}
+                      </div>
                     )}
                     {item.notes && (
-                      <p className="text-xs italic text-muted-foreground">
-                        Nota: {item.notes}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Notas: {item.notes}
                       </p>
                     )}
+                    <div className="flex items-center gap-2 mt-2">
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="h-6 w-6"
+                        onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="text-sm font-medium w-8 text-center">
+                        {item.quantity}
+                      </span>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="h-6 w-6"
+                        onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-destructive"
-                    onClick={() => onRemoveItem?.(item.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="mt-2 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="text-right">
+                    <p className="font-semibold text-sm">
+                      ${item.total.toFixed(2)}
+                    </p>
                     <Button
-                      variant="outline"
                       size="icon"
-                      className="h-7 w-7"
-                      onClick={() => onUpdateQuantity?.(item.id, item.quantity - 1)}
-                      disabled={item.quantity <= 1}
+                      variant="ghost"
+                      className="h-6 w-6 mt-1"
+                      onClick={() => onRemoveItem(item.id)}
                     >
-                      <Minus className="h-3 w-3" />
-                    </Button>
-                    <span className="w-8 text-center text-sm font-medium">
-                      {item.quantity}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => onUpdateQuantity?.(item.id, item.quantity + 1)}
-                    >
-                      <Plus className="h-3 w-3" />
+                      <Trash2 className="h-3 w-3 text-destructive" />
                     </Button>
                   </div>
-                  <p className="text-sm font-bold text-primary">
-                    ${(item.price * item.quantity).toFixed(2)}
-                  </p>
                 </div>
-              </div>
+              </Card>
             ))
           )}
         </div>
