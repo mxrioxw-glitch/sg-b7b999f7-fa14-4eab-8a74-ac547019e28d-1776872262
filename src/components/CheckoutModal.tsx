@@ -64,7 +64,7 @@ export function CheckoutModal({
     return value.replace(/\D/g, "").substring(0, 3);
   };
 
-  const price = planPrices[plan][billingCycle];
+  const price = planPrices[plan] ? planPrices[plan][billingCycle] : 0;
   const discount = billingCycle === "yearly" ? Math.round(((planPrices[plan].monthly * 12 - price) / (planPrices[plan].monthly * 12)) * 100) : 0;
 
   const handleSubmit = (e: React.FormEvent) => {
