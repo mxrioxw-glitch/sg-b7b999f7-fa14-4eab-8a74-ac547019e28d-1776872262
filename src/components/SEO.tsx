@@ -9,10 +9,10 @@ interface SEOProps {
 
 // SEO elements that can be used in _document.tsx (returns JSX without Head wrapper)
 export function SEOElements({
-  title = "Hello World",
-  description = "Welcome to my app",
+  title = "Nexum Cloud - Sistema POS en la Nube",
+  description = "Sistema punto de venta completo en la nube. Gestiona ventas, inventario, clientes y más desde cualquier lugar.",
   image = "/og-image.png",
-  url,
+  url = "https://nexumcloud.com"
 }: SEOProps) {
   return (
     <>
@@ -39,10 +39,10 @@ export function SEOElements({
 // SEO component for use in pages/_app.tsx or individual pages (uses next/head)
 // Note: Flattened structure (no fragment) for better Next.js Head compatibility during hot reload
 export function SEO({
-  title = "Hello World",
-  description = "Welcome to my app",
+  title = "Nexum Cloud - Sistema POS en la Nube",
+  description = "Sistema punto de venta completo en la nube. Gestiona ventas, inventario, clientes y más desde cualquier lugar.",
   image = "/og-image.png",
-  url,
+  url = "https://nexumcloud.com"
 }: SEOProps) {
   return (
     <Head>

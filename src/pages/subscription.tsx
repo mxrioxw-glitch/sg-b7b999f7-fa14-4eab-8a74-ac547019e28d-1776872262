@@ -332,6 +332,10 @@ export default function SubscriptionPage() {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1">
         <Header onMenuClick={() => setSidebarOpen(true)} />
+        <SEO 
+          title="Suscripción - Nexum Cloud"
+          description="Gestiona tu suscripción de Nexum Cloud"
+        />
         <main className="p-4 md:p-8">
           <div className="mb-6 md:mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">Suscripción</h1>

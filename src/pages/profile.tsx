@@ -160,6 +160,10 @@ export default function ProfilePage() {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col">
         <Header onMenuClick={() => setSidebarOpen(true)} />
+        <SEO 
+          title="Mi Perfil - Nexum Cloud"
+          description="Gestiona tu perfil de Nexum Cloud"
+        />
         <main className="p-8">
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-foreground mb-2">Mi Perfil</h1>

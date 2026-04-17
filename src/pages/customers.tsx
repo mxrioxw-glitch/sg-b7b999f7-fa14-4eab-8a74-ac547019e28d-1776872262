@@ -178,9 +178,10 @@ function CustomersContent() {
 
   return (
     <>
-      <Head>
-        <title>Customers - POS System</title>
-      </Head>
+      <SEO 
+        title="Clientes - Nexum Cloud"
+        description="Gestión de clientes de Nexum Cloud"
+      />
 
       <div className="flex min-h-screen bg-background">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />

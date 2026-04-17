@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Coffee, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Coffee, CheckCircle2, XCircle, Loader2, Store } from "lucide-react";
 
 export default function ConfirmEmailPage() {
   const router = useRouter();
@@ -48,17 +48,19 @@ export default function ConfirmEmailPage() {
   return (
     <>
       <SEO 
-        title="Confirmar Email - POS SaaS"
-        description="Confirma tu cuenta de email"
+        title="Confirmar Email - Nexum Cloud"
+        description="Confirma tu email en Nexum Cloud"
       />
       
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-card mb-4">
-              <Coffee className="w-8 h-8" />
+            <div className="inline-flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
+                <Store className="h-7 w-7 text-primary-foreground" />
+              </div>
+              <h1 className="font-heading text-3xl font-bold">Nexum Cloud</h1>
             </div>
-            <h1 className="text-3xl font-bold text-foreground">POS SaaS</h1>
           </div>
 
           <Card>

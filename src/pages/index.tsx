@@ -25,7 +25,8 @@ import {
   CheckCircle,
   XCircle,
   ArrowRight,
-  Clock
+  Clock,
+  Zap
 } from "lucide-react";
 
 interface DashboardStats {
@@ -345,6 +346,11 @@ export default function HomePage() {
         <title>Inicio - {businessName}</title>
       </Head>
 
+      <SEO 
+        title="Nexum Cloud - Sistema POS en la Nube"
+        description="Sistema punto de venta completo en la nube. Gestiona ventas, inventario, clientes y más desde cualquier lugar."
+      />
+
       <div className="flex min-h-screen bg-background">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 flex flex-col min-w-0">
@@ -357,15 +363,22 @@ export default function HomePage() {
           />
 
           <main className="flex-1 p-4 md:p-8 space-y-6 md:space-y-8">
-            {/* Welcome Section */}
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
-                ¡Bienvenido, {userName}! 👋
+            {/* Hero Section */}
+            <section className="text-center py-20">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 text-accent mb-6">
+                <Zap className="h-4 w-4" />
+                <span className="text-sm font-medium">Sistema POS en la Nube</span>
+              </div>
+              
+              <h1 className="font-heading text-5xl md:text-6xl font-bold mb-6">
+                Nexum Cloud
               </h1>
-              <p className="text-sm md:text-base text-muted-foreground">
-                Aquí está el resumen de tu negocio para hoy
+              
+              <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+                El sistema punto de venta completo para tu negocio. 
+                Gestiona ventas, inventario, clientes y reportes desde cualquier lugar.
               </p>
-            </div>
+            </section>
 
             {/* Cash Register Status Alert */}
             {stats.activeShift ? (

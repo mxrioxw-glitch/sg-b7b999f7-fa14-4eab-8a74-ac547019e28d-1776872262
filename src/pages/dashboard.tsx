@@ -119,7 +119,7 @@ export default function Dashboard() {
   return (
     <>
       <Head>
-        <title>Dashboard - POS SaaS</title>
+        <title>Dashboard - Nexum Cloud</title>
       </Head>
 
       <div className="flex min-h-screen bg-background">

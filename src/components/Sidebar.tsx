@@ -135,23 +135,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         )}
       >
         {/* Logo Section - Always visible */}
-        <div className="flex h-16 items-center justify-center border-b px-4">
+        <div className="p-6 border-b">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <Store className="h-7 w-7 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+              <Store className="h-6 w-6 text-primary-foreground" />
             </div>
-            <AnimatePresence>
-              {isExpanded && (
-                <motion.span
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: "auto" }}
-                  exit={{ opacity: 0, width: 0 }}
-                  className="overflow-hidden whitespace-nowrap text-lg font-semibold"
-                >
-                  {businessName}
-                </motion.span>
-              )}
-            </AnimatePresence>
+            {isExpanded && (
+              <div>
+                <h1 className="font-heading font-bold text-lg">Nexum Cloud</h1>
+                <p className="text-xs text-muted-foreground">Sistema POS</p>
+              </div>
+            )}
           </div>
         </div>
 

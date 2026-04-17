@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
 import { useState } from "react";
 import { authService } from "@/services/authService";
-import { Coffee, AlertCircle, CheckCircle2, ArrowLeft } from "lucide-react";
+import { Coffee, AlertCircle, CheckCircle2, ArrowLeft, Store } from "lucide-react";
 
 export default function RecoveryPage() {
   const [email, setEmail] = useState("");
@@ -41,18 +41,22 @@ export default function RecoveryPage() {
   return (
     <>
       <SEO 
-        title="Recuperar Contraseña - POS SaaS"
-        description="Recupera el acceso a tu cuenta de POS SaaS"
+        title="Recuperar Contraseña - Nexum Cloud"
+        description="Recupera tu contraseña de Nexum Cloud"
       />
       
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-card mb-4">
-              <Coffee className="w-8 h-8" />
+            <div className="inline-flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
+                <Store className="h-7 w-7 text-primary-foreground" />
+              </div>
+              <h1 className="font-heading text-3xl font-bold">Nexum Cloud</h1>
             </div>
-            <h1 className="text-3xl font-bold text-foreground">POS SaaS</h1>
-            <p className="text-muted mt-2">Recupera el acceso a tu cuenta</p>
+            <p className="text-muted-foreground">
+              Recupera el acceso a tu cuenta
+            </p>
           </div>
 
           <Card>

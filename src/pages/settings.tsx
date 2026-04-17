@@ -526,6 +526,10 @@ export default function Settings() {
 
   return (
     <div className="flex min-h-screen bg-background">
+      <SEO 
+        title="Configuración - Nexum Cloud"
+        description="Configuración de Nexum Cloud"
+      />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
       <div className="flex-1 flex flex-col">

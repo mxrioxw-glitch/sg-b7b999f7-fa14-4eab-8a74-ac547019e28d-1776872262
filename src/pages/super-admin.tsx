@@ -246,11 +246,12 @@ export default function SuperAdminPage() {
   return (
     <>
       <SEO 
-        title="Super Admin - POS SaaS"
-        description="Panel de administración del sistema"
+        title="Super Admin - Nexum Cloud"
+        description="Panel de administración de Nexum Cloud"
       />
       
       <div className="min-h-screen bg-background">
+        <Header businessName="Nexum Cloud - Super Admin" />
         <div className="border-b bg-card">
           <div className="container mx-auto px-4 py-6">
             <div className="flex items-center justify-between">

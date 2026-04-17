@@ -194,6 +194,10 @@ function ProductsContent() {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1">
         <Header onMenuClick={() => setSidebarOpen(true)} />
+        <SEO 
+          title="Productos - Nexum Cloud"
+          description="Gestión de productos de Nexum Cloud"
+        />
         <main className="p-4 md:p-8">
           <div className="mb-6 md:mb-8">
             <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Productos</h1>

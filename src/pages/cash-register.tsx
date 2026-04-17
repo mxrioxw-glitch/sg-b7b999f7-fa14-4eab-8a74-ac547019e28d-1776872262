@@ -310,9 +310,10 @@ function CashRegisterContent() {
 
   return (
     <>
-      <Head>
-        <title>Cash Register - POS System</title>
-      </Head>
+      <SEO 
+        title="Caja - Nexum Cloud"
+        description="Gestión de caja de Nexum Cloud"
+      />
 
       <div className="flex min-h-screen bg-background">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />

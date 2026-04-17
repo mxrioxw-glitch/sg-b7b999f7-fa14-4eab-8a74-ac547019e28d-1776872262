@@ -378,6 +378,10 @@ function POSContent() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
+      <SEO 
+        title="Punto de Venta - Nexum Cloud"
+        description="Sistema de punto de venta de Nexum Cloud"
+      />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
       <div className="flex flex-1 flex-col overflow-hidden">
