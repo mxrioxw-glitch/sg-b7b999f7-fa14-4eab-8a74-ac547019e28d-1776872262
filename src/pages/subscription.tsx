@@ -12,6 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { businessService } from "@/services/businessService";
 import { subscriptionService } from "@/services/subscriptionService";
 import { Check, Crown, Zap, Star, Calendar, CreditCard, AlertCircle } from "lucide-react";
+import type { Business } from "@/services/businessService";
+import type { SubscriptionWithPlan, SubscriptionPlan } from "@/services/subscriptionService";
 
 const PLANS = [
   {
@@ -262,7 +264,7 @@ export default function SubscriptionPage() {
       });
 
       setShowCheckout(false);
-      await loadSubscriptionData();
+      await loadSubscriptionData(businessId!);
     } catch (error: any) {
       console.error("Error upgrading subscription:", error);
       toast({

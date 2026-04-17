@@ -9,12 +9,6 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   LayoutDashboard,
   ShoppingCart,
   Package,
@@ -45,7 +39,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [businessId, setBusinessId] = useState<string | null>(null);
-  const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
     loadBusinessData();
@@ -53,30 +46,16 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
   async function loadBusinessData() {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
       const business = await businessService.getCurrentBusiness();
       if (business) {
         setBusinessId(business.id);
-        setIsOwner(business.owner_id === user.id);
       }
     } catch (error) {
       console.error("Error loading business:", error);
     }
   }
 
-  const { permissions, loading: permissionsLoading } = usePermissions(businessId);
-
-  // Helper function to check if user has access to a module
-  const hasModuleAccess = (module: string): boolean => {
-    // Owners always have access
-    if (isOwner) return true;
-    
-    // Check employee permissions
-    const perm = permissions.find(p => p.module === module);
-    return perm ? perm.can_read : false;
-  };
+  const { hasModuleAccess, isOwner, loading } = usePermissions(businessId);
 
   // Load saved state from localStorage (only for desktop)
   useEffect(() => {
@@ -162,6 +141,14 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       requirePermission: false,
       ownerOnly: true // ✅ SOLO OWNERS
     },
+    { 
+      name: "Suscripción", 
+      href: "/subscription", 
+      icon: Wallet,
+      module: "subscription",
+      requirePermission: false,
+      ownerOnly: true // ✅ SOLO OWNERS
+    },
   ];
 
   // Filter menu items based on permissions
@@ -172,7 +159,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     if (!item.requirePermission) return true; // Always show items that don't require permission
     if (isOwner) return true; // Owners see everything
     if (loading) return false; // Hide while loading permissions
-    return hasModuleAccess(item.module, "read"); // Check if employee has read permission
+    return hasModuleAccess(item.module); // Check if employee has read permission
   });
 
   const isActive = (href: string) => {
@@ -192,16 +179,17 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     <nav className="flex-1 px-2 py-4 space-y-1">
       {visibleMenuItems.map((item) => {
         const Icon = item.icon;
-        const isActive = router.pathname === item.path;
+        const active = isActive(item.href);
 
         return (
           <Link
-            key={item.path}
-            href={item.path}
+            key={item.href}
+            href={item.href}
+            onClick={handleLinkClick}
             className={cn(
               "flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors",
               isCollapsed ? "justify-center" : "gap-3",
-              isActive
+              active
                 ? "bg-primary text-primary-foreground"
                 : "text-foreground hover:bg-muted"
             )}
@@ -238,7 +226,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     <aside 
       className={cn(
         "relative bg-card border-r border-border flex-shrink-0 transition-all duration-300 ease-in-out",
-        isExpanded ? "w-64" : "w-[70px]"
+        isExpanded ? "w-64" : "w-[70px]",
+        "min-h-screen"
       )}
     >
       {/* Header with logo and toggle */}
