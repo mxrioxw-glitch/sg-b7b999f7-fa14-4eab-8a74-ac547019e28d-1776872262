@@ -54,7 +54,7 @@ export function Header({
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-card shadow-sm">
+    <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b bg-card px-6">
       <div className="flex h-14 md:h-16 items-center justify-between px-3 md:px-6">
         <div className="flex items-center gap-2 md:gap-3">
           {isMobileOrTablet && onMenuClick && (
