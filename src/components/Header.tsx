@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Bell, Settings, LogOut, User, CreditCard, Menu, Store } from "lucide-react";
 import { authService } from "@/services/authService";
@@ -87,10 +88,10 @@ export function Header({
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 rounded-lg p-2 hover:bg-accent">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
-                {user?.email?.[0].toUpperCase() || "M"}
+                {userEmail?.[0]?.toUpperCase() || userName?.[0]?.toUpperCase() || "M"}
               </div>
               <span className="hidden md:block text-sm font-medium">
-                {user?.email?.split("@")[0] || "mastertekmx"}
+                {userEmail?.split("@")[0] || userName || "mastertekmx"}
               </span>
             </button>
           </DropdownMenuTrigger>
