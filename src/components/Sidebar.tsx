@@ -6,15 +6,21 @@ import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/hooks/usePermissions";
 import { businessService } from "@/services/businessService";
 import { motion, AnimatePresence } from "framer-motion";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useIsMobileOrTablet } from "@/hooks/use-mobile";
 
 // Export sidebar width constants
 export const SIDEBAR_WIDTH_EXPANDED = 256;
 export const SIDEBAR_WIDTH_COLLAPSED = 70;
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(() => {
-    // Load initial state from localStorage
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("sidebar-expanded");
       return saved ? JSON.parse(saved) : true;
@@ -23,16 +29,15 @@ export function Sidebar() {
   });
   const [businessId, setBusinessId] = useState<string | null>(null);
   const { hasModuleAccess, isOwner, loading } = usePermissions(businessId);
+  const isMobileOrTablet = useIsMobileOrTablet();
 
   useEffect(() => {
     loadBusiness();
   }, []);
 
-  // Save state to localStorage and update CSS variable
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("sidebar-expanded", JSON.stringify(isExpanded));
-      // Update CSS variable for main content padding
       document.documentElement.style.setProperty(
         "--sidebar-width",
         `${isExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED}px`
@@ -50,6 +55,8 @@ export function Sidebar() {
       console.error("Error loading business:", error);
     }
   }
+
+  const toggleSidebar = () => setIsExpanded(!isExpanded);
 
   const menuItems = [
     { 
@@ -118,21 +125,13 @@ export function Sidebar() {
     },
   ];
 
-  // Filter menu items based on permissions
   const visibleMenuItems = menuItems.filter(item => {
     if (item.ownerOnly && !isOwner) return false;
     if (!item.requirePermission) return true;
     if (isOwner) return true;
     if (loading) return false;
-    return hasModuleAccess(item.module);
+    return hasModuleAccess(item.module, "read");
   });
-
-  const isActive = (href: string) => {
-    if (href === "/") {
-      return router.pathname === "/";
-    }
-    return router.pathname.startsWith(href);
-  };
 
   const handleLinkClick = () => {
     if (isMobileOrTablet && onClose) {
@@ -141,13 +140,13 @@ export function Sidebar() {
   };
 
   const NavigationContent = () => (
-    <div className="flex-1 py-6 px-3 space-y-2">
+    <div className="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
       {visibleMenuItems.map((item, index) => {
         const Icon = item.icon;
         const isActive = router.pathname === item.href;
         
         return (
-          <Link key={item.href} href={item.href}>
+          <Link key={item.href} href={item.href} onClick={handleLinkClick}>
             <motion.div
               initial={false}
               animate={{ opacity: 1 }}
@@ -182,11 +181,11 @@ export function Sidebar() {
     </div>
   );
 
-  // Mobile/Tablet: Sheet (drawer)
+  // Vista Móvil: Sheet (Drawer)
   if (isMobileOrTablet) {
     return (
       <Sheet open={isOpen} onOpenChange={onClose}>
-        <SheetContent side="left" className="p-0 w-64 sm:w-72">
+        <SheetContent side="left" className="p-0 w-64 sm:w-72 z-[100]">
           <SheetHeader className="p-4 md:p-6 border-b border-border">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary flex-shrink-0">
@@ -201,70 +200,34 @@ export function Sidebar() {
     );
   }
 
-  // Desktop: Fixed sidebar
+  // Vista Desktop: Sticky Sidebar
+  // Al ser sticky y estar en el flujo flex, empuja el contenido naturalmente sin superponerse.
   return (
     <motion.aside
       initial={false}
-      animate={{ width: isExpanded ? 256 : 70 }}
+      animate={{ width: isExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="fixed left-0 top-14 h-[calc(100vh-3.5rem)] bg-card border-r z-30"
+      className="hidden md:flex flex-col bg-card border-r sticky top-0 h-screen z-30"
     >
-      <div className="flex flex-col h-full">
-        {/* Header with logo and toggle */}
-        <div className={cn(
-          "relative border-b border-border flex items-center justify-between",
-          isExpanded ? "p-6" : "p-3 justify-center"
-        )}>
-          <div className={cn(
-            "flex items-center gap-3 transition-opacity duration-200",
-            isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
-          )}>
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary flex-shrink-0">
-              <span className="text-lg font-bold text-primary-foreground">☕</span>
-            </div>
-            {isExpanded && (
-              <h1 className="text-xl font-bold text-primary whitespace-nowrap">POS SaaS</h1>
-            )}
-          </div>
-
-          {!isExpanded && (
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary flex-shrink-0">
-              <span className="text-lg font-bold text-primary-foreground">☕</span>
-            </div>
-          )}
-
-          {isExpanded && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleSidebar}
-              className="absolute right-2"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-          )}
-        </div>
-
+      {/* Header invisible placeholder para alinear con el Header principal si es necesario,
+          o simplemente dejamos que empiece desde arriba. Quitamos el logo duplicado aquí. */}
+      <div className="h-14 md:h-16 flex items-center justify-center border-b border-border">
+        {/* Espacio para alinear con la altura del Header principal */}
         {!isExpanded && (
-          <div className="relative h-16">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleSidebar}
-              className="absolute left-1/2 -translate-x-1/2 top-8 z-20 h-9 w-9 rounded-full bg-card border-2 border-primary/20 shadow-lg hover:shadow-xl hover:border-primary/40 transition-all"
-            >
-              <ChevronRight className="h-5 w-5 text-primary" />
-            </Button>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 flex-shrink-0">
+            <span className="text-sm font-bold text-primary">P</span>
           </div>
         )}
+      </div>
 
+      <div className="flex flex-col h-[calc(100vh-4rem)]">
         <NavigationContent />
 
         <div className="p-3 border-t">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={toggleSidebar}
             className={`w-full ${isExpanded ? "justify-start gap-3" : "justify-center px-2"}`}
           >
             <motion.div
@@ -292,13 +255,6 @@ export function Sidebar() {
               )}
             </AnimatePresence>
           </Button>
-        </div>
-
-        <div className={cn(
-          "absolute bottom-4 left-1/2 -translate-x-1/2 transition-opacity duration-200",
-          isExpanded ? "opacity-0" : "opacity-100"
-        )}>
-          <div className="h-1 w-6 rounded-full bg-muted" />
         </div>
       </div>
     </motion.aside>
