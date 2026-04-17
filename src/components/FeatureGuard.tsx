@@ -18,7 +18,7 @@ export function FeatureGuard({ feature, children, fallback }: FeatureGuardProps)
 
   useEffect(() => {
     checkAccess();
-  }, [feature]);
+  }, [checkAccess]);
 
   async function checkAccess() {
     try {

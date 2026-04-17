@@ -1,8 +1,5 @@
-import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,47 +8,30 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { Bell, Settings, LogOut, User, CreditCard, Menu, Store } from "lucide-react";
+import { Bell, LogOut, User, CreditCard, Menu, Store } from "lucide-react";
 import { authService } from "@/services/authService";
-import { useToast } from "@/hooks/use-toast";
-import { useIsMobileOrTablet } from "@/hooks/use-mobile";
 
 interface HeaderProps {
-  businessName?: string;
-  userName?: string;
-  userEmail?: string;
-  planName?: string;
   onMenuClick?: () => void;
 }
 
-export function Header({ 
-  businessName = "Mi Negocio", 
-  userName = "Usuario",
-  userEmail,
-  planName = "Plan Básico",
-  onMenuClick
-}: HeaderProps) {
+export function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter();
-  const { toast } = useToast();
-  const isMobileOrTablet = useIsMobileOrTablet();
-  const userInitials = userName.split(" ").map(n => n[0]).join("").toUpperCase();
+  const [user, setUser] = useState<{ email: string } | null>(null);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const session = await authService.getCurrentSession();
+      if (session?.user) {
+        setUser(session.user);
+      }
+    };
+    loadUser();
+  }, []);
 
   const handleLogout = async () => {
-    try {
-      await authService.signOut();
-      toast({
-        title: "Sesión cerrada",
-        description: "Has cerrado sesión correctamente",
-      });
-      router.push("/auth/login");
-    } catch (error) {
-      console.error("Error signing out:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo cerrar la sesión",
-        variant: "destructive",
-      });
-    }
+    await authService.signOut();
+    router.push("/auth/login");
   };
 
   return (
@@ -88,10 +68,10 @@ export function Header({
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 rounded-lg p-2 hover:bg-accent">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
-                {userEmail?.[0]?.toUpperCase() || userName?.[0]?.toUpperCase() || "M"}
+                {user?.email?.[0]?.toUpperCase() || "M"}
               </div>
               <span className="hidden md:block text-sm font-medium">
-                {userEmail?.split("@")[0] || userName || "mastertekmx"}
+                {user?.email?.split("@")[0] || "mastertekmx"}
               </span>
             </button>
           </DropdownMenuTrigger>
