@@ -24,12 +24,13 @@ import { FeatureGuard } from "@/components/FeatureGuard";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
+import { SEO } from "@/components/SEO";
 
 export const getServerSideProps = requireActiveSubscription;
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [businessName, setBusinessName] = useState("Mi Negocio");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -43,7 +44,7 @@ export default function DashboardPage() {
       const business = await businessService.getCurrentBusiness();
       if (business) {
         setBusinessName(business.name || "Mi Negocio");
-        const dashboardStats = await dashboardService.getDashboardStats(business.id);
+        const dashboardStats = await getDashboardMetrics(business.id);
         setStats(dashboardStats);
       }
     } catch (error) {
@@ -55,7 +56,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <ProtectedRoute>
+      <ProtectedRoute requiredPermission="pos">
         <div className="flex h-screen items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
@@ -64,7 +65,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredPermission="pos">
       <SEO 
         title="Dashboard - Nexum Cloud"
         description="Panel de control de Nexum Cloud"
