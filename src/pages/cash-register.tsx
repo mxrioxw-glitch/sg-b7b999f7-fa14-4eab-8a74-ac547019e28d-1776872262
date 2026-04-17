@@ -440,7 +440,7 @@ function CashRegisterContent() {
                                 return (
                                   <TableRow key={register.id}>
                                     <TableCell>
-                                      {new Date(register.opening_time).toLocaleString()}
+                                      {new Date(register.opened_at).toLocaleString()}
                                     </TableCell>
                                     <TableCell className="hidden md:table-cell">
                                       ${Number(register.opening_amount).toFixed(2)}
