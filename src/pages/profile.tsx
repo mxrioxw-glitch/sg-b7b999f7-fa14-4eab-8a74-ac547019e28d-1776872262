@@ -16,7 +16,7 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<any | null>(null);
   const [formData, setFormData] = useState({ full_name: "", phone: "" });
   const [passwordData, setPasswordData] = useState({ current: "", new: "", confirm: "" });
   const [sidebarOpen, setSidebarOpen] = useState(false);
