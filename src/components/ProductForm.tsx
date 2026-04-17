@@ -43,6 +43,12 @@ interface VariantForm {
     inventory_item_id: string;
     quantity_per_unit: number;
   }[];
+  ingredients?: Array<{
+    inventory_id: string;
+    quantity: number;
+    inventory_name?: string;
+  }>;
+  price?: number;
 }
 
 interface ExtraForm {
@@ -50,6 +56,11 @@ interface ExtraForm {
   name: string;
   price: number;
   sort_order: number;
+  ingredients?: Array<{
+    inventory_id: string;
+    quantity: number;
+    inventory_name?: string;
+  }>;
 }
 
 interface ProductInventoryLink {
@@ -85,8 +96,8 @@ export function ProductForm({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState(product?.image_url || "");
 
-  const [variants, setVariants] = useState<ProductVariant[]>([]);
-  const [extras, setExtras] = useState<ProductExtra[]>([]);
+  const [variants, setVariants] = useState<VariantForm[]>([]);
+  const [extras, setExtras] = useState<ExtraForm[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableInventory, setAvailableInventory] = useState<any[]>([]);
   const [loadingInventory, setLoadingInventory] = useState(false);
@@ -150,12 +161,17 @@ export function ProductForm({
           return {
             id: v.id,
             name: v.name,
+            price: Number(v.price_modifier),
             price_modifier: Number(v.price_modifier),
             sort_order: v.sort_order || 0,
             inventory_links: (variantLinks || []).map((link) => ({
               id: link.id,
               inventory_item_id: link.inventory_item_id,
               quantity_per_unit: Number(link.quantity_per_unit),
+            })),
+            ingredients: (variantLinks || []).map((link) => ({
+              inventory_id: link.inventory_item_id,
+              quantity: Number(link.quantity_per_unit),
             })),
           };
         })
@@ -247,8 +263,10 @@ export function ProductForm({
       { 
         name: "", 
         price_modifier: 0, 
+        price: 0,
         sort_order: variants.length,
-        inventory_links: []
+        inventory_links: [],
+        ingredients: []
       },
     ]);
   };
@@ -299,7 +317,7 @@ export function ProductForm({
   };
 
   const addExtra = () => {
-    setExtras([...extras, { name: "", price: 0, sort_order: extras.length }]);
+    setExtras([...extras, { name: "", price: 0, sort_order: extras.length, ingredients: [] }]);
   };
 
   const updateExtraField = (
@@ -458,13 +476,13 @@ export function ProductForm({
           if (variant.id && existingIds.includes(variant.id)) {
             await productService.updateProductVariant(variant.id, {
               name: variant.name,
-              price_modifier: variant.price_modifier,
+              price_modifier: variant.price !== undefined ? variant.price : variant.price_modifier,
               sort_order: variant.sort_order,
             });
           } else {
             const { variant: newVariant } = await productService.createVariant(savedProduct.id, {
               name: variant.name,
-              price_modifier: variant.price_modifier,
+              price_modifier: variant.price !== undefined ? variant.price : variant.price_modifier,
               sort_order: variant.sort_order,
             });
             variantId = newVariant?.id;
@@ -479,15 +497,28 @@ export function ProductForm({
               .eq("variant_id", variantId);
 
             const existingLinkIds = (existingLinks || []).map((l) => l.id);
+            
+            // Usar ingredients si existe, de lo contrario usar inventory_links
+            const linksToSave = variant.ingredients && variant.ingredients.length > 0 
+              ? variant.ingredients.map(ing => ({
+                  inventory_item_id: ing.inventory_id,
+                  quantity_per_unit: ing.quantity,
+                  id: undefined // no sabemos el id de esta estructura
+                }))
+              : variant.inventory_links || [];
 
-            for (const link of variant.inventory_links) {
+            for (const link of linksToSave) {
               if (!link.inventory_item_id) continue;
+              
+              // Buscar si ya existe este link por inventory_item_id en lugar de por link.id
+              // ya que la estructura de ingredients no tiene link.id
+              const existingLink = existingLinks?.find(l => l.inventory_item_id === link.inventory_item_id);
 
-              if (link.id && existingLinkIds.includes(link.id)) {
+              if (existingLink) {
                 await supabase
                   .from("product_inventory_items")
                   .update({ quantity_per_unit: link.quantity_per_unit })
-                  .eq("id", link.id);
+                  .eq("id", existingLink.id);
               } else {
                 await supabase.from("product_inventory_items").insert({
                   product_id: savedProduct.id,
@@ -498,14 +529,14 @@ export function ProductForm({
               }
             }
 
-            const linkInventoryIds = variant.inventory_links
-              .filter((l) => l.id)
-              .map((l) => l.id);
-            const toDeleteLinks = existingLinkIds.filter(
-              (id) => !linkInventoryIds.includes(id)
-            );
-            for (const id of toDeleteLinks) {
-              await supabase.from("product_inventory_items").delete().eq("id", id);
+            // Eliminar links que ya no están en ingredients/inventory_links
+            const linkItemIds = linksToSave.map(l => l.inventory_item_id).filter(Boolean);
+            const toDeleteLinks = existingLinks?.filter(
+              (l) => !linkItemIds.includes(l.inventory_item_id)
+            ) || [];
+            
+            for (const link of toDeleteLinks) {
+              await supabase.from("product_inventory_items").delete().eq("id", link.id);
             }
           }
         }
@@ -824,7 +855,7 @@ export function ProductForm({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setVariants([...variants, { name: "", price: 0, is_active: true, ingredients: [] }])}
+                    onClick={() => setVariants([...variants, { name: "", price: 0, price_modifier: 0, sort_order: variants.length, inventory_links: [], ingredients: [] }])}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Agregar Variante
@@ -985,7 +1016,7 @@ export function ProductForm({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setExtras([...extras, { name: "", price: 0, sort_order: extras.length }])}
+                    onClick={() => setExtras([...extras, { name: "", price: 0, sort_order: extras.length, ingredients: [] }])}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Agregar Extra
