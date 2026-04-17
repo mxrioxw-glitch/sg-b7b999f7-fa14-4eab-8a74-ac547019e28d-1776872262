@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -53,7 +54,7 @@ export function Header({
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-card shadow-sm">
+    <header className="sticky top-0 z-30 border-b border-border bg-card shadow-sm">
       <div className="flex h-14 md:h-16 items-center justify-between px-3 md:px-6">
         <div className="flex items-center gap-2 md:gap-3">
           {isMobileOrTablet && onMenuClick && (

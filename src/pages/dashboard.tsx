@@ -124,7 +124,7 @@ export default function Dashboard() {
 
       <div className="flex min-h-screen flex-col bg-background">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <div className="flex flex-1 flex-col md:pl-20">
+        <div className="flex flex-1 flex-col pl-0 md:pl-20">
           <Header onMenuClick={() => setSidebarOpen(true)} />
           <main className="flex-1 p-6">
             {/* Filters */}
