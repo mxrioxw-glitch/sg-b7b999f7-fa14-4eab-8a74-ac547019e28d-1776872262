@@ -20,16 +20,10 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const router = useRouter();
-  const [isExpanded, setIsExpanded] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("sidebar-expanded");
-      return saved ? JSON.parse(saved) : true;
-    }
-    return true;
-  });
+  const [isExpanded, setIsExpanded] = useState(false); // Start collapsed
   const [businessId, setBusinessId] = useState<string | null>(null);
-  const [businessName, setBusinessName] = useState<string>("");
-  const [logoUrl, setLogoUrl] = useState<string>("");
+  const [businessName, setBusinessName] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
   const { hasModuleAccess, isOwner, loading } = usePermissions(businessId);
   const isMobileOrTablet = useIsMobileOrTablet();
 
@@ -37,9 +31,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     loadBusiness();
   }, []);
 
+  // Update CSS variable when expanded state changes
   useEffect(() => {
     if (typeof window !== "undefined") {
-      localStorage.setItem("sidebar-expanded", JSON.stringify(isExpanded));
       document.documentElement.style.setProperty(
         "--sidebar-width",
         `${isExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED}px`
@@ -215,73 +209,61 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       initial={false}
       animate={{ width: isExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="hidden md:flex flex-col bg-card border-r sticky top-0 h-screen z-30"
+      onMouseEnter={() => setIsExpanded(true)}
+      onMouseLeave={() => setIsExpanded(false)}
+      className="sticky top-14 left-0 h-[calc(100vh-3.5rem)] bg-card border-r z-30 flex-shrink-0"
     >
-      {/* Logo + Business Name Section */}
-      <div className="p-4 border-b h-16 flex items-center overflow-hidden">
-        <AnimatePresence mode="wait">
-          {isExpanded ? (
-            <motion.div
-              key="expanded-logo"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="flex items-center gap-3 w-full"
-            >
-              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 overflow-hidden">
-                {logoUrl ? (
-                  <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
-                ) : (
-                  <Store className="h-5 w-5 text-primary-foreground" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm truncate">{businessName || "Mi Negocio"}</p>
-                <p className="text-xs text-muted-foreground truncate">Sistema POS</p>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="collapsed-logo"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="flex justify-center w-full"
-            >
-              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center overflow-hidden">
-                {logoUrl ? (
-                  <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
-                ) : (
-                  <Store className="h-5 w-5 text-primary-foreground" />
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <div className="flex flex-col h-[calc(100vh-4rem)]">
-        <NavigationContent />
-
-        {/* Collapse Button - Original Simple Icon */}
-        <div className="p-3 border-t">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full h-9"
-            title={isExpanded ? "Contraer sidebar" : "Expandir sidebar"}
-          >
-            <motion.div
-              animate={{ rotate: isExpanded ? 0 : 180 }}
-              transition={{ duration: 0.3 }}
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </motion.div>
-          </Button>
+      <div className="flex flex-col h-full">
+        {/* Logo + Business Name Section */}
+        <div className="p-4 border-b h-16 flex items-center overflow-hidden">
+          <AnimatePresence mode="wait">
+            {isExpanded ? (
+              <motion.div
+                key="expanded-logo"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex items-center gap-3 w-full"
+              >
+                <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    <Store className="h-5 w-5 text-primary-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate">{businessName || "Mi Negocio"}</p>
+                  <p className="text-xs text-muted-foreground truncate">Sistema POS</p>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="collapsed-logo"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex justify-center w-full"
+              >
+                <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center overflow-hidden">
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    <Store className="h-5 w-5 text-primary-foreground" />
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
+
+        <div className="flex flex-col h-[calc(100vh-4rem)]">
+          <NavigationContent />
+        </div>
+
+        {/* Removed collapse button - now auto-expands on hover */}
       </div>
     </motion.aside>
   );
