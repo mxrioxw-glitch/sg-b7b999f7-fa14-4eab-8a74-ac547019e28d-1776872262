@@ -12,7 +12,8 @@ import {
   ChevronRight,
   Store,
   DollarSign,
-  TrendingUp
+  TrendingUp,
+  Home
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -52,7 +53,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   };
 
   const navItems = [
-    { name: "Inicio", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Inicio", href: "/home", icon: Home },
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Punto de Venta", href: "/pos", icon: ShoppingCart },
     { name: "Productos", href: "/products", icon: Package },
     { name: "Inventario", href: "/inventory", icon: TrendingUp },
