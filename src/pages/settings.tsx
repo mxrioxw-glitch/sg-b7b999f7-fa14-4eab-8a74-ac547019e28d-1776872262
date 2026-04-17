@@ -40,6 +40,7 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [business, setBusiness] = useState<Business | null>(null);
+  const [businessId, setBusinessId] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState(false);
 
   // Restore form state
@@ -63,20 +64,6 @@ export default function Settings() {
   const [employeeDialogOpen, setEmployeeDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<any | null>(null);
   const [editingPermissions, setEditingPermissions] = useState<EmployeePermission[]>([]);
-
-  // Stub functions for the build
-  const handleSaveBusinessInfo = async () => {};
-  const handleSaveTaxSettings = async () => {};
-  const handleCreateEmployee = async () => {};
-  const handleEditEmployeePermissions = (emp: any) => {};
-  const handleToggleEmployee = async (id: string, active: boolean) => {};
-  const handleDeleteEmployee = async (id: string) => {};
-  const handleAddPaymentMethod = async () => {};
-  const handleTogglePaymentMethod = async (id: string, active: boolean) => {};
-  const handleDeletePaymentMethod = async (id: string) => {};
-  const handleSavePrinterConfig = async () => {};
-  const handleSaveCustomization = async () => {};
-  const handleSaveEmployeePermissions = async () => {};
 
   useEffect(() => {
     checkAccess();
