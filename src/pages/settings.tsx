@@ -112,6 +112,7 @@ export default function Settings() {
       }
 
       setBusiness(currentBusiness);
+      setBusinessId(currentBusiness.id);
       setBusinessForm({
         name: currentBusiness.name || "",
         email: currentBusiness.email || "",
@@ -130,6 +131,10 @@ export default function Settings() {
         secondary_color: currentBusiness.secondary_color || "#4A3228",
         accent_color: currentBusiness.accent_color || "#4A9C64",
       });
+
+      // Load employees and payment methods
+      await loadEmployees(currentBusiness.id);
+      await loadPaymentMethods(currentBusiness.id);
     } catch (error) {
       console.error("Error checking access:", error);
       toast({
@@ -139,6 +144,382 @@ export default function Settings() {
       });
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadEmployees(businessId: string) {
+    try {
+      const employeesData = await employeeService.getEmployees(businessId);
+      setEmployees(employeesData);
+    } catch (error) {
+      console.error("Error loading employees:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los empleados.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function loadPaymentMethods(businessId: string) {
+    try {
+      const methodsData = await paymentMethodService.getPaymentMethods(businessId);
+      setPaymentMethods(methodsData);
+    } catch (error) {
+      console.error("Error loading payment methods:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los métodos de pago.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function handleCreateEmployee() {
+    if (!businessId || !newEmployeeEmail || !newEmployeePassword || !newEmployeeName) return;
+
+    setCreatingEmployee(true);
+    try {
+      const result = await employeeService.createEmployeeAccount({
+        email: newEmployeeEmail,
+        password: newEmployeePassword,
+        full_name: newEmployeeName,
+        business_id: businessId,
+        role: newEmployeeRole,
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || "Error al crear empleado");
+      }
+
+      toast({
+        title: "Empleado Creado",
+        description: `${newEmployeeName} ha sido agregado al equipo.`,
+      });
+
+      // Reset form
+      setNewEmployeeName("");
+      setNewEmployeeEmail("");
+      setNewEmployeePassword("");
+      setNewEmployeeRole("cashier");
+
+      // Reload employees
+      await loadEmployees(businessId);
+    } catch (error: any) {
+      console.error("Error creating employee:", error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo crear el empleado.",
+        variant: "destructive",
+      });
+    } finally {
+      setCreatingEmployee(false);
+    }
+  }
+
+  async function handleEditEmployeePermissions(emp: any) {
+    try {
+      const permissions = await employeeService.getEmployeePermissions(emp.id);
+      setEditingEmployee(emp);
+      setEditingPermissions(permissions);
+      setEmployeeDialogOpen(true);
+    } catch (error) {
+      console.error("Error loading permissions:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los permisos.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function handleToggleEmployee(id: string, currentActive: boolean) {
+    try {
+      await employeeService.updateEmployee(id, { is_active: !currentActive });
+      
+      toast({
+        title: currentActive ? "Empleado Desactivado" : "Empleado Activado",
+        description: "El estado del empleado se actualizó correctamente.",
+      });
+
+      if (businessId) {
+        await loadEmployees(businessId);
+      }
+    } catch (error) {
+      console.error("Error toggling employee:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el estado del empleado.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function handleDeleteEmployee(id: string) {
+    if (!confirm("¿Estás seguro de eliminar este empleado? Esta acción no se puede deshacer.")) {
+      return;
+    }
+
+    try {
+      await employeeService.deleteEmployee(id);
+      
+      toast({
+        title: "Empleado Eliminado",
+        description: "El empleado ha sido eliminado del sistema.",
+      });
+
+      if (businessId) {
+        await loadEmployees(businessId);
+      }
+    } catch (error) {
+      console.error("Error deleting employee:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el empleado.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function handleSaveEmployeePermissions() {
+    if (!editingEmployee) return;
+
+    setSaving(true);
+    try {
+      await employeeService.updateEmployeePermissions(editingEmployee.id, editingPermissions);
+      
+      toast({
+        title: "Permisos Actualizados",
+        description: "Los permisos del empleado se guardaron correctamente.",
+      });
+
+      setEmployeeDialogOpen(false);
+      setEditingEmployee(null);
+      setEditingPermissions([]);
+    } catch (error) {
+      console.error("Error saving permissions:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron guardar los permisos.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleAddPaymentMethod() {
+    if (!businessId || !newPaymentMethod.trim()) return;
+
+    try {
+      await paymentMethodService.createPaymentMethod({
+        business_id: businessId,
+        name: newPaymentMethod.trim(),
+        is_active: true,
+      });
+
+      toast({
+        title: "Método Agregado",
+        description: `${newPaymentMethod} se agregó a los métodos de pago.`,
+      });
+
+      setNewPaymentMethod("");
+      await loadPaymentMethods(businessId);
+    } catch (error) {
+      console.error("Error adding payment method:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo agregar el método de pago.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function handleTogglePaymentMethod(id: string, currentActive: boolean) {
+    try {
+      await paymentMethodService.updatePaymentMethod(id, { is_active: !currentActive });
+      
+      toast({
+        title: currentActive ? "Método Desactivado" : "Método Activado",
+        description: "El estado del método de pago se actualizó.",
+      });
+
+      if (businessId) {
+        await loadPaymentMethods(businessId);
+      }
+    } catch (error) {
+      console.error("Error toggling payment method:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el método de pago.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function handleDeletePaymentMethod(id: string) {
+    if (!confirm("¿Eliminar este método de pago?")) return;
+
+    try {
+      await paymentMethodService.deletePaymentMethod(id);
+      
+      toast({
+        title: "Método Eliminado",
+        description: "El método de pago fue eliminado.",
+      });
+
+      if (businessId) {
+        await loadPaymentMethods(businessId);
+      }
+    } catch (error) {
+      console.error("Error deleting payment method:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el método de pago.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function handleSaveBusinessInfo() {
+    if (!businessId || !businessForm.name.trim()) {
+      toast({
+        title: "Error",
+        description: "El nombre del negocio es obligatorio.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Upload logo if there's a new file
+      let logoUrl = logoPreview;
+      if (logoFile) {
+        setUploadingLogo(true);
+        const fileExt = logoFile.name.split(".").pop();
+        const fileName = `${businessId}-${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from("business-logos")
+          .upload(fileName, logoFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("business-logos")
+          .getPublicUrl(fileName);
+
+        logoUrl = publicUrl;
+        setUploadingLogo(false);
+      }
+
+      await businessService.updateBusiness(businessId, {
+        name: businessForm.name,
+        email: businessForm.email || null,
+        phone: businessForm.phone || null,
+        address: businessForm.address || null,
+        logo_url: logoUrl || null,
+      });
+
+      toast({
+        title: "Información Guardada",
+        description: "Los datos del negocio se actualizaron correctamente.",
+      });
+
+      // Reload business data
+      const updatedBusiness = await businessService.getCurrentBusiness();
+      if (updatedBusiness) {
+        setBusiness(updatedBusiness);
+      }
+    } catch (error) {
+      console.error("Error saving business info:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo guardar la información.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+      setUploadingLogo(false);
+    }
+  }
+
+  async function handleSaveTaxSettings() {
+    if (!businessId) return;
+
+    setSaving(true);
+    try {
+      await businessService.updateBusiness(businessId, {
+        tax_rate: taxForm.tax_rate,
+        tax_included: taxForm.tax_included,
+      });
+
+      toast({
+        title: "Configuración Guardada",
+        description: "Los ajustes de impuestos se actualizaron.",
+      });
+    } catch (error) {
+      console.error("Error saving tax settings:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo guardar la configuración de impuestos.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSavePrinterConfig() {
+    if (!businessId) return;
+
+    setSaving(true);
+    try {
+      await businessService.updateBusiness(businessId, {
+        printer_width: printerWidth,
+      });
+
+      toast({
+        title: "Configuración Guardada",
+        description: "El ancho de impresora se actualizó correctamente.",
+      });
+    } catch (error) {
+      console.error("Error saving printer config:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo guardar la configuración de impresora.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSaveCustomization() {
+    if (!businessId) return;
+
+    setSaving(true);
+    try {
+      await businessService.updateBusiness(businessId, {
+        pos_name: customizationForm.pos_name,
+        primary_color: customizationForm.primary_color,
+        secondary_color: customizationForm.secondary_color,
+        accent_color: customizationForm.accent_color,
+      });
+
+      toast({
+        title: "Personalización Guardada",
+        description: "Los colores y nombre del POS se actualizaron. Recarga la página para ver los cambios.",
+      });
+    } catch (error) {
+      console.error("Error saving customization:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo guardar la personalización.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
   }
 
