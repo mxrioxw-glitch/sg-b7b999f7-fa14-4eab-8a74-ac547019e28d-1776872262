@@ -18,39 +18,20 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    setNeedsConfirmation(false);
     setLoading(true);
 
     try {
-      const { error: signInError } = await authService.signIn(email, password);
-      
-      if (signInError) {
-        // Check if error is about email confirmation
-        if (signInError.message.toLowerCase().includes("email not confirmed") || 
-            signInError.message.toLowerCase().includes("email confirmation")) {
-          setNeedsConfirmation(true);
-          setError("Tu cuenta aún no está verificada. Revisa tu email para confirmarla.");
-        } else {
-          setError(signInError.message);
-        }
-        setLoading(false);
-        return;
-      }
-
-      // Check if user is super admin
-      if (email === "mxrioxw@gmail.com") {
-        router.push("/super-admin");
-      } else {
-        router.push("/");
-      }
-    } catch (err) {
-      setError("Error al iniciar sesión. Por favor intenta de nuevo.");
+      await authService.signInWithEmail(email, password);
+      router.push("/home");
+    } catch (err: any) {
+      setError(err.message || "Error al iniciar sesión");
+    } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
     <>

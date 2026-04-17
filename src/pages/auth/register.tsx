@@ -60,58 +60,54 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // 1. Create user account with full name
-      const { user, error: signUpError } = await authService.signUp(
-        formData.email, 
-        formData.password,
-        formData.fullName
-      );
+      // Registrar usuario
+      const { user } = await authService.signUpWithEmail(formData.email, formData.password);
 
-      if (signUpError || !user) {
-        setError(signUpError?.message || "Error al crear la cuenta");
-        setLoading(false);
-        return;
+      if (!user) {
+        throw new Error("No se pudo crear el usuario");
       }
 
-      const userId = user.id;
-
-      // 2. Create business
-      const { business: businessData, error: businessError } = await businessService.createBusiness({
+      // Crear business
+      const business = await businessService.createBusiness({
         name: formData.businessName,
-        email: formData.email
+        owner_id: user.id,
       });
 
-      if (businessError || !businessData) {
-        setError("Error al crear el negocio");
-        setLoading(false);
-        return;
+      if (!business) {
+        throw new Error("No se pudo crear el negocio");
       }
 
-      // 3. Create employee record (owner role)
-      const { data: employeeData, error: employeeError } = await supabase
-        .from("employees")
-        .insert({
-          business_id: businessData.id,
-          user_id: userId,
+      // Crear suscripción de prueba
+      await subscriptionService.createTrialSubscription(user.id, business.id);
+
+      // Crear empleado owner
+      const { data: employeeData, error: employeeError } = await supabase.functions.invoke("create-employee", {
+        body: {
+          businessId: business.id,
+          email: formData.email,
+          name: formData.fullName,
           role: "owner",
-          is_active: true
-        })
-        .select()
-        .single();
+          permissions: {
+            pos: true,
+            products: true,
+            inventory: true,
+            customers: true,
+            reports: true,
+            settings: true,
+            employees: true,
+          },
+        },
+      });
 
       if (employeeError) {
         console.error("Error creating employee:", employeeError);
-        // Don't block registration for this, but log it
       }
 
-      // 4. Create trial subscription
-      await subscriptionService.createTrialSubscription(businessData.id);
-
-      // Success! Redirect to verify email page
-      router.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}`);
-    } catch (err) {
+      router.push("/home");
+    } catch (err: any) {
       console.error("Registration error:", err);
-      setError("Error inesperado. Por favor intenta de nuevo.");
+      setError(err.message || "Error en el registro");
+    } finally {
       setLoading(false);
     }
   };

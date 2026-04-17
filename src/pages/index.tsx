@@ -29,6 +29,7 @@ import {
   Clock,
   Zap
 } from "lucide-react";
+import { authService } from "@/services/authService";
 
 interface DashboardStats {
   todaySales: number;
