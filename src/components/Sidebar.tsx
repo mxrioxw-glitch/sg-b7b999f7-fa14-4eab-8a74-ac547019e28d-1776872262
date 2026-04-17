@@ -54,7 +54,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   };
 
   const navItems = [
-    { name: "Inicio", href: "/home", icon: Home },
+    { name: "Inicio", href: "/", icon: Home },
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Punto de Venta", href: "/pos", icon: ShoppingCart },
     { name: "Productos", href: "/products", icon: Package },
