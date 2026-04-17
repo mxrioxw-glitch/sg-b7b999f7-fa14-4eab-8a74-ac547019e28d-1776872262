@@ -931,7 +931,7 @@ export type Database = {
       }
       has_permission:
         | {
-            Args: { p_action: string; p_business_id: string; p_module: string }
+            Args: { p_action?: string; p_business_id: string; p_module: string }
             Returns: boolean
           }
         | {

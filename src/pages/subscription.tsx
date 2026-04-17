@@ -73,12 +73,61 @@ export default function SubscriptionPage() {
   const [selectedPlan, setSelectedPlan] = useState<"basic" | "professional" | "premium">("basic");
   const [processingCheckout, setProcessingCheckout] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
+  const [business, setBusiness] = useState<Business | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
+  const [subscription, setSubscription] = useState<SubscriptionWithPlan | null>(null);
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   useEffect(() => {
-    loadSubscriptionData();
+    checkAccess();
   }, []);
 
-  async function loadSubscriptionData() {
+  async function checkAccess() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/auth/login");
+        return;
+      }
+
+      const currentBusiness = await businessService.getCurrentBusiness();
+      if (!currentBusiness) {
+        router.push("/");
+        return;
+      }
+
+      // Check if user is owner
+      const userIsOwner = currentBusiness.owner_id === user.id;
+      setIsOwner(userIsOwner);
+
+      if (!userIsOwner) {
+        // Employees cannot access subscription
+        toast({
+          title: "Acceso Denegado",
+          description: "Solo el propietario del negocio puede gestionar suscripciones.",
+          variant: "destructive",
+        });
+        router.push("/dashboard");
+        return;
+      }
+
+      setBusiness(currentBusiness);
+      await loadSubscriptionData(currentBusiness.id);
+    } catch (error) {
+      console.error("Error checking access:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo verificar el acceso. Intenta de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadSubscriptionData(businessId: string) {
     try {
       const business = await businessService.getCurrentBusiness();
       if (!business) {
@@ -258,18 +307,17 @@ export default function SubscriptionPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-background">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <div className="flex-1">
-          <Header onMenuClick={() => setSidebarOpen(true)} />
-          <main className="p-8">
-            <div className="flex items-center justify-center py-12">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-            </div>
-          </main>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Verificando acceso...</p>
         </div>
       </div>
     );
+  }
+
+  if (!isOwner) {
+    return null;
   }
 
   const currentPlan = getCurrentPlan();

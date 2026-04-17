@@ -29,515 +29,99 @@ import { subscriptionService } from "@/services/subscriptionService";
 
 export const getServerSideProps = requireActiveSubscription;
 
-export default function SettingsPage() {
+export default function Settings() {
   const router = useRouter();
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
+  const [activeTab, setActiveTab] = useState("business");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [businessId, setBusinessId] = useState<string>("");
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
   const [employees, setEmployees] = useState<EmployeeWithUser[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  
-  const [activeTab, setActiveTab] = useState("business");
-  const [editingEmployee, setEditingEmployee] = useState<EmployeeWithUser | null>(null);
-  const [employeeDialogOpen, setEmployeeDialogOpen] = useState(false);
-  const [editingPermissions, setEditingPermissions] = useState<{module: string, can_read: boolean, can_write: boolean}[]>([]);
-  
-  // Form states
-  const [businessForm, setBusinessForm] = useState({
-    name: "",
-    address: "",
-    phone: "",
-    email: ""
-  });
-
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string>("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
-  
-  const [taxForm, setTaxForm] = useState({
-    tax_rate: 0,
-    tax_included: false
-  });
-  
-  const [customizationForm, setCustomizationForm] = useState({
-    pos_name: "",
-    primary_color: "",
-    secondary_color: "",
-    accent_color: ""
-  });
-  
-  const [printerWidth, setPrinterWidth] = useState<"58mm" | "80mm">("80mm");
-  
-  const [newEmployeeName, setNewEmployeeName] = useState("");
-  const [newEmployeeEmail, setNewEmployeeEmail] = useState("");
-  const [newEmployeePassword, setNewEmployeePassword] = useState("");
-  const [newEmployeeRole, setNewEmployeeRole] = useState<"admin" | "cashier">("cashier");
-  const [newPaymentMethod, setNewPaymentMethod] = useState("");
-  const [creatingEmployee, setCreatingEmployee] = useState(false);
+  const [business, setBusiness] = useState<Business | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
-    loadData();
+    checkAccess();
   }, []);
 
-  async function loadData() {
+  async function checkAccess() {
     try {
-      const session = await authService.getCurrentSession();
-      if (!session) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         router.push("/auth/login");
         return;
       }
 
-      const biz = await businessService.getCurrentBusiness();
-      if (!biz) {
-        toast({
-          title: "Error",
-          description: "No se encontró el negocio",
-          variant: "destructive"
-        });
+      const currentBusiness = await businessService.getCurrentBusiness();
+      if (!currentBusiness) {
+        router.push("/");
         return;
       }
 
-      setBusinessId(biz.id);
-      
-      const [bizSettings, empData, pmData] = await Promise.all([
-        settingsService.getBusinessSettings(biz.id),
-        employeeService.getEmployees(biz.id),
-        paymentMethodService.getPaymentMethods(biz.id)
-      ]);
+      // Check if user is owner
+      const userIsOwner = currentBusiness.owner_id === user.id;
+      setIsOwner(userIsOwner);
 
-      setSettings(bizSettings);
+      if (!userIsOwner) {
+        // Employees cannot access settings
+        toast({
+          title: "Acceso Denegado",
+          description: "Solo el propietario del negocio puede acceder a Configuración.",
+          variant: "destructive",
+        });
+        router.push("/dashboard");
+        return;
+      }
+
+      setBusiness(currentBusiness);
       setBusinessForm({
-        name: bizSettings.name,
-        address: bizSettings.address || "",
-        phone: bizSettings.phone || "",
-        email: bizSettings.email || ""
+        name: currentBusiness.name || "",
+        email: currentBusiness.email || "",
+        phone: currentBusiness.phone || "",
+        address: currentBusiness.address || "",
       });
-      setLogoPreview(bizSettings.logo_url || "");
+      setLogoPreview(currentBusiness.logo_url || "");
       setTaxForm({
-        tax_rate: bizSettings.tax_rate,
-        tax_included: bizSettings.tax_included
+        tax_rate: currentBusiness.tax_rate || 16,
+        tax_included: currentBusiness.tax_included || false,
       });
+      setPrinterWidth(currentBusiness.printer_width || "80mm");
       setCustomizationForm({
-        pos_name: bizSettings.pos_name,
-        primary_color: bizSettings.primary_color,
-        secondary_color: bizSettings.secondary_color,
-        accent_color: bizSettings.accent_color
+        pos_name: currentBusiness.pos_name || "Mi POS",
+        primary_color: currentBusiness.primary_color || "#2A1810",
+        secondary_color: currentBusiness.secondary_color || "#4A3228",
+        accent_color: currentBusiness.accent_color || "#4A9C64",
       });
-      setPrinterWidth((bizSettings.printer_width as "58mm" | "80mm") || "80mm");
-      setEmployees(empData);
-      setPaymentMethods(pmData);
-      
     } catch (error) {
-      console.error("Error loading data:", error);
+      console.error("Error checking access:", error);
       toast({
         title: "Error",
-        description: "Error al cargar configuración",
-        variant: "destructive"
+        description: "No se pudo verificar el acceso. Intenta de nuevo.",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleLogoUpload(file: File) {
-    if (!businessId) return null;
-
-    setUploadingLogo(true);
-    try {
-      // Delete old logo if exists
-      if (logoPreview) {
-        const oldPath = logoPreview.split('/').pop();
-        if (oldPath) {
-          await supabase.storage
-            .from('business-logos')
-            .remove([`${businessId}/${oldPath}`]);
-        }
-      }
-
-      // Upload new logo
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `${businessId}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('business-logos')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('business-logos')
-        .getPublicUrl(filePath);
-
-      return publicUrl;
-    } catch (error) {
-      console.error('Error uploading logo:', error);
-      toast({
-        title: "Error",
-        description: "Error al subir el logo",
-        variant: "destructive"
-      });
-      return null;
-    } finally {
-      setUploadingLogo(false);
-    }
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Verificando acceso...</p>
+        </div>
+      </div>
+    );
   }
 
-  async function handleSaveBusinessInfo() {
-    if (!businessId) return;
-    
-    setSaving(true);
-    try {
-      let logoUrl = logoPreview;
-
-      // Upload logo if a new file was selected
-      if (logoFile) {
-        const uploadedUrl = await handleLogoUpload(logoFile);
-        if (uploadedUrl) {
-          logoUrl = uploadedUrl;
-        }
-      }
-
-      // Update business info including logo
-      const { error } = await supabase
-        .from('businesses')
-        .update({
-          name: businessForm.name,
-          address: businessForm.address || null,
-          phone: businessForm.phone || null,
-          email: businessForm.email || null,
-          logo_url: logoUrl || null
-        })
-        .eq('id', businessId);
-
-      if (error) throw error;
-
-      setLogoPreview(logoUrl);
-      setLogoFile(null);
-      
-      toast({
-        title: "Guardado",
-        description: "Información del negocio actualizada"
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Error al guardar",
-        variant: "destructive"
-      });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleSaveTaxSettings() {
-    if (!businessId) return;
-    
-    setSaving(true);
-    try {
-      await settingsService.updateTaxSettings(businessId, taxForm);
-      toast({
-        title: "Guardado",
-        description: "Configuración de impuestos actualizada"
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Error al guardar",
-        variant: "destructive"
-      });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleSaveCustomization() {
-    if (!businessId) return;
-    
-    setSaving(true);
-    try {
-      await settingsService.updateCustomization(businessId, customizationForm);
-      
-      // Aplicar colores inmediatamente
-      applyColors();
-      
-      toast({
-        title: "Guardado",
-        description: "Personalización actualizada"
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Error al guardar",
-        variant: "destructive"
-      });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleSavePrinterConfig() {
-    if (!businessId) return;
-    
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from("businesses")
-        .update({ printer_width: printerWidth })
-        .eq("id", businessId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Guardado",
-        description: "Configuración de impresora actualizada"
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Error al guardar configuración",
-        variant: "destructive"
-      });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function applyColors() {
-    const root = document.documentElement;
-    
-    // Convertir hex a HSL (simplificado)
-    const hexToHSL = (hex: string) => {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      if (!result) return "0 0% 0%";
-      
-      const r = parseInt(result[1], 16) / 255;
-      const g = parseInt(result[2], 16) / 255;
-      const b = parseInt(result[3], 16) / 255;
-      
-      const max = Math.max(r, g, b);
-      const min = Math.min(r, g, b);
-      let h = 0;
-      let s = 0;
-      const l = (max + min) / 2;
-
-      if (max !== min) {
-        const d = max - min;
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        
-        switch (max) {
-          case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-          case g: h = ((b - r) / d + 2) / 6; break;
-          case b: h = ((r - g) / d + 4) / 6; break;
-        }
-      }
-      
-      return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
-    };
-
-    root.style.setProperty("--primary", hexToHSL(customizationForm.primary_color));
-    root.style.setProperty("--secondary", hexToHSL(customizationForm.secondary_color));
-    root.style.setProperty("--accent", hexToHSL(customizationForm.accent_color));
-  }
-
-  async function handleCreateEmployee() {
-    if (!businessId || !newEmployeeEmail || !newEmployeePassword || !newEmployeeName) {
-      toast({
-        title: "Campos incompletos",
-        description: "Por favor llena nombre, email y contraseña",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    setCreatingEmployee(true);
-    try {
-      const response = await employeeService.createEmployeeAccount({
-        business_id: businessId,
-        email: newEmployeeEmail,
-        password: newEmployeePassword,
-        full_name: newEmployeeName,
-        role: newEmployeeRole
-      });
-
-      if (!response.success) {
-        throw new Error(response.error);
-      }
-
-      toast({
-        title: "Empleado creado",
-        description: `${newEmployeeName} fue agregado como ${newEmployeeRole === "admin" ? "Administrador" : "Cajero"}`
-      });
-      
-      setNewEmployeeName("");
-      setNewEmployeeEmail("");
-      setNewEmployeePassword("");
-      setNewEmployeeRole("cashier");
-      loadData();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Error al crear empleado",
-        variant: "destructive"
-      });
-    } finally {
-      setCreatingEmployee(false);
-    }
-  }
-
-  async function handleToggleEmployee(id: string, isActive: boolean) {
-    try {
-      await employeeService.updateEmployee(id, { is_active: !isActive });
-      loadData();
-      toast({
-        title: isActive ? "Empleado desactivado" : "Empleado activado"
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Error al actualizar empleado",
-        variant: "destructive"
-      });
-    }
-  }
-
-  async function handleDeleteEmployee(id: string) {
-    if (!confirm("¿Eliminar este empleado?")) return;
-    
-    try {
-      await employeeService.deleteEmployee(id);
-      loadData();
-      toast({
-        title: "Empleado eliminado"
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Error al eliminar empleado",
-        variant: "destructive"
-      });
-    }
-  }
-
-  async function handleAddPaymentMethod() {
-    if (!businessId || !newPaymentMethod) return;
-    
-    try {
-      await paymentMethodService.createPaymentMethod(businessId, {
-        name: newPaymentMethod,
-        is_active: true
-      });
-      
-      setNewPaymentMethod("");
-      loadData();
-      toast({
-        title: "Método de pago agregado"
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Error al agregar método de pago",
-        variant: "destructive"
-      });
-    }
-  }
-
-  async function handleTogglePaymentMethod(id: string, isActive: boolean) {
-    try {
-      await paymentMethodService.updatePaymentMethod(id, { is_active: !isActive });
-      loadData();
-      toast({
-        title: isActive ? "Método desactivado" : "Método activado"
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Error al actualizar método de pago",
-        variant: "destructive"
-      });
-    }
-  }
-
-  async function handleDeletePaymentMethod(id: string) {
-    if (!confirm("¿Eliminar este método de pago?")) return;
-    
-    try {
-      await paymentMethodService.deletePaymentMethod(id);
-      loadData();
-      toast({
-        title: "Método de pago eliminado"
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Error al eliminar método de pago",
-        variant: "destructive"
-      });
-    }
-  }
-
-  async function handleAddEmployee() {
-    // Check employee limit
-    const result = await subscriptionService.canAddEmployee();
-    
-    if (!result.canAdd) {
-      toast({
-        title: "Límite alcanzado",
-        description: result.reason,
-        variant: "destructive",
-      });
-      
-      // Show upgrade prompt
-      setTimeout(() => {
-        router.push("/subscription");
-      }, 2000);
-      return;
-    }
-
-    setEditingEmployee(null);
-    setEmployeeDialogOpen(true);
-  }
-
-  async function handleEditEmployeePermissions(employee: EmployeeWithUser) {
-    setEditingEmployee(employee);
-    setEditingPermissions([]); // Reset while loading
-    setEmployeeDialogOpen(true);
-    
-    try {
-      const perms = await employeeService.getEmployeePermissions(employee.id);
-      setEditingPermissions(perms);
-    } catch (error) {
-      console.error("Error loading permissions:", error);
-    }
-  }
-
-  async function handleSaveEmployeePermissions() {
-    if (!editingEmployee) return;
-    
-    setSaving(true);
-    try {
-      await employeeService.updateEmployeePermissions(editingEmployee.id, editingPermissions);
-      toast({
-        title: "Permisos actualizados",
-        description: "Los permisos del empleado se han guardado correctamente"
-      });
-      setEmployeeDialogOpen(false);
-      setEditingEmployee(null);
-      loadData();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Error al guardar permisos",
-        variant: "destructive"
-      });
-    } finally {
-      setSaving(false);
-    }
+  if (!isOwner) {
+    return null;
   }
 
   return (

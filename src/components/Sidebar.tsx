@@ -100,56 +100,80 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const menuItems = [
     { 
       name: "Inicio", 
-      icon: Home, 
-      path: "/",
-      permission: "reports" // Same as dashboard - read-only access
+      href: "/dashboard", 
+      icon: Home,
+      module: "dashboard",
+      requirePermission: false, // Dashboard always visible
+      ownerOnly: false
     },
     { 
-      name: "Dashboard", 
-      icon: LayoutDashboard, 
-      path: "/dashboard",
-      permission: "reports"
-    },
-    { 
-      name: "Punto de Venta", 
-      icon: ShoppingCart, 
-      path: "/pos",
-      permission: "pos"
+      name: "POS", 
+      href: "/pos", 
+      icon: ShoppingCart,
+      module: "pos",
+      requirePermission: true,
+      ownerOnly: false
     },
     { 
       name: "Productos", 
-      icon: Package, 
-      path: "/products",
-      permission: "products"
+      href: "/products", 
+      icon: Package,
+      module: "products",
+      requirePermission: true,
+      ownerOnly: false
     },
     { 
       name: "Inventario", 
-      icon: Store, 
-      path: "/inventory",
-      permission: "inventory"
+      href: "/inventory", 
+      icon: Store,
+      module: "inventory",
+      requirePermission: true,
+      ownerOnly: false
     },
     { 
       name: "Clientes", 
-      icon: Users, 
-      path: "/customers",
-      permission: "customers"
+      href: "/customers", 
+      icon: Users,
+      module: "customers",
+      requirePermission: true,
+      ownerOnly: false
     },
     { 
       name: "Corte de Caja", 
-      icon: Wallet, 
-      path: "/cash-register",
-      permission: "cash_register"
+      href: "/cash-register", 
+      icon: DollarSign,
+      module: "cash_register",
+      requirePermission: true,
+      ownerOnly: false
+    },
+    { 
+      name: "Reportes", 
+      href: "/dashboard", 
+      icon: BarChart3,
+      module: "reports",
+      requirePermission: true,
+      ownerOnly: false
     },
     { 
       name: "Configuración", 
-      icon: Settings, 
-      path: "/settings",
-      permission: "settings"
+      href: "/settings", 
+      icon: Settings,
+      module: "settings",
+      requirePermission: false,
+      ownerOnly: true // ✅ SOLO OWNERS
     },
   ];
 
   // Filter menu items based on permissions
-  const visibleMenuItems = menuItems.filter(item => hasModuleAccess(item.permission));
+  const visibleMenuItems = menuItems.filter(item => {
+    // Owner-only items
+    if (item.ownerOnly && !isOwner) return false;
+    
+    if (!item.requirePermission) return true; // Always show items that don't require permission
+    if (isOwner) return true; // Owners see everything
+    if (loading) return false; // Hide while loading permissions
+    return hasModuleAccess(item.module, "read"); // Check if employee has read permission
+  });
 
   const isActive = (href: string) => {
     if (href === "/") {
