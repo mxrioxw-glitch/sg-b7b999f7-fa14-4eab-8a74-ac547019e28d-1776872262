@@ -52,7 +52,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   };
 
   const navItems = [
-    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Inicio", href: "/dashboard", icon: LayoutDashboard },
     { name: "Punto de Venta", href: "/pos", icon: ShoppingCart },
     { name: "Productos", href: "/products", icon: Package },
     { name: "Inventario", href: "/inventory", icon: TrendingUp },
