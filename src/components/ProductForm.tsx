@@ -85,8 +85,11 @@ export function ProductForm({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState(product?.image_url || "");
 
-  const [variants, setVariants] = useState<VariantForm[]>([]);
-  const [extras, setExtras] = useState<ExtraForm[]>([]);
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [extras, setExtras] = useState<ProductExtra[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [availableInventory, setAvailableInventory] = useState<any[]>([]);
+  const [loadingInventory, setLoadingInventory] = useState(false);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [productInventoryLinks, setProductInventoryLinks] = useState<
     ProductInventoryLink[]
@@ -97,18 +100,31 @@ export function ProductForm({
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   useEffect(() => {
-    loadInventoryItems();
     if (product) {
-      loadProductDetails();
+      setName(product.name || "");
+      setDescription(product.description || "");
+      setCategoryId(product.category_id || "");
+      setBasePrice(product.base_price?.toString() || "");
+      setImageUrl(product.image_url || "");
+      setIsActive(product.is_active ?? true);
+      setVariants(product.variants || []);
+      setExtras(product.extras || []);
     }
+    loadInventoryItems();
   }, [product]);
 
   async function loadInventoryItems() {
     try {
-      const items = await getInventoryItems(businessId);
-      setInventoryItems(items);
+      setLoadingInventory(true);
+      const business = await businessService.getCurrentBusiness();
+      if (business) {
+        const items = await getInventoryItems(business.id);
+        setInventoryItems(items || []);
+      }
     } catch (error) {
-      console.error("Error loading inventory items:", error);
+      console.error("Error loading inventory:", error);
+    } finally {
+      setLoadingInventory(false);
     }
   }
 
@@ -800,130 +816,157 @@ export function ProductForm({
               </p>
             </CardHeader>
             <CardContent className="space-y-6">
-              {variants.map((variant, variantIndex) => (
-                <div key={variantIndex} className="border rounded-lg p-4 space-y-4">
-                  <div className="flex gap-4 items-end">
-                    <div className="flex-1">
-                      <Label>Nombre (Ej: Chico, Mediano, Grande)</Label>
-                      <Input
-                        value={variant.name}
-                        onChange={(e) =>
-                          updateVariantField(variantIndex, "name", e.target.value)
-                        }
-                        placeholder="Nombre de variante"
-                      />
-                    </div>
-                    <div className="w-[150px]">
-                      <Label>Modificador de precio</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={variant.price_modifier}
-                        onChange={(e) =>
-                          updateVariantField(
-                            variantIndex,
-                            "price_modifier",
-                            Number(e.target.value)
-                          )
-                        }
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeVariant(variantIndex)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-
-                  {/* Insumos específicos de esta variante */}
-                  <div className="ml-4 border-l-2 border-muted pl-4 space-y-3">
-                    <div className="flex items-center gap-2 text-sm font-medium">
-                      <Package className="w-4 h-4" />
-                      Insumos de esta variante
-                    </div>
-                    {variant.inventory_links.map((link, linkIndex) => (
-                      <div key={linkIndex} className="flex gap-2 items-end">
-                        <div className="flex-1">
-                          <Label className="text-xs">Insumo</Label>
-                          <Select
-                            value={link.inventory_item_id}
-                            onValueChange={(value) =>
-                              updateVariantInventoryLink(
-                                variantIndex,
-                                linkIndex,
-                                "inventory_item_id",
-                                value
-                              )
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccionar insumo" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {inventoryItems.map((item) => (
-                                <SelectItem key={item.id} value={item.id}>
-                                  {item.name} ({item.unit})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="w-[120px]">
-                          <Label className="text-xs">Cantidad</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={link.quantity_per_unit}
-                            onChange={(e) =>
-                              updateVariantInventoryLink(
-                                variantIndex,
-                                linkIndex,
-                                "quantity_per_unit",
-                                Number(e.target.value)
-                              )
-                            }
-                            placeholder="1.00"
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() =>
-                            removeVariantInventoryLink(variantIndex, linkIndex)
-                          }
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addVariantInventoryLink(variantIndex)}
-                      disabled={inventoryItems.length === 0}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Agregar Insumo
-                    </Button>
-                  </div>
+              {/* Variants Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">Variantes (Tamaños)</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setVariants([...variants, { name: "", price: 0, is_active: true, ingredients: [] }])}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Agregar Variante
+                  </Button>
                 </div>
-              ))}
-              <Button type="button" variant="outline" onClick={addVariant}>
-                <Plus className="w-4 h-4 mr-2" />
-                Agregar Variante
-              </Button>
-              {inventoryItems.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  No hay insumos disponibles. Crea insumos en el módulo de Inventario primero.
-                </p>
-              )}
+
+                <div className="space-y-4">
+                  {variants.map((variant, index) => (
+                    <Card key={index}>
+                      <CardContent className="pt-6 space-y-4">
+                        <div className="flex items-start gap-4">
+                          <div className="flex-1 grid grid-cols-2 gap-4">
+                            <div>
+                              <Label>Nombre de Variante</Label>
+                              <Input
+                                value={variant.name}
+                                onChange={(e) => {
+                                  const newVariants = [...variants];
+                                  newVariants[index].name = e.target.value;
+                                  setVariants(newVariants);
+                                }}
+                                placeholder="Ej: Pequeño, Mediano, Grande"
+                              />
+                            </div>
+                            <div>
+                              <Label>Precio Extra</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={variant.price}
+                                onChange={(e) => {
+                                  const newVariants = [...variants];
+                                  newVariants[index].price = parseFloat(e.target.value) || 0;
+                                  setVariants(newVariants);
+                                }}
+                                placeholder="0.00"
+                              />
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setVariants(variants.filter((_, i) => i !== index))}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+
+                        {/* Ingredients for this variant */}
+                        <div className="space-y-3 border-t pt-4">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-sm">Insumos para esta variante</Label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const newVariants = [...variants];
+                                if (!newVariants[index].ingredients) {
+                                  newVariants[index].ingredients = [];
+                                }
+                                newVariants[index].ingredients!.push({
+                                  inventory_id: "",
+                                  quantity: 1,
+                                });
+                                setVariants(newVariants);
+                              }}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Agregar Insumo
+                            </Button>
+                          </div>
+
+                          {variant.ingredients && variant.ingredients.length > 0 ? (
+                            <div className="space-y-2">
+                              {variant.ingredients.map((ingredient, ingIndex) => (
+                                <div key={ingIndex} className="flex items-center gap-2">
+                                  <select
+                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                                    value={ingredient.inventory_id}
+                                    onChange={(e) => {
+                                      const newVariants = [...variants];
+                                      newVariants[index].ingredients![ingIndex].inventory_id = e.target.value;
+                                      const selectedItem = availableInventory.find(item => item.id === e.target.value);
+                                      if (selectedItem) {
+                                        newVariants[index].ingredients![ingIndex].inventory_name = selectedItem.name;
+                                      }
+                                      setVariants(newVariants);
+                                    }}
+                                  >
+                                    <option value="">Seleccionar insumo...</option>
+                                    {availableInventory.map((item) => (
+                                      <option key={item.id} value={item.id}>
+                                        {item.name} ({item.quantity} {item.unit})
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    className="w-24"
+                                    value={ingredient.quantity}
+                                    onChange={(e) => {
+                                      const newVariants = [...variants];
+                                      newVariants[index].ingredients![ingIndex].quantity = parseFloat(e.target.value) || 0;
+                                      setVariants(newVariants);
+                                    }}
+                                    placeholder="Cant."
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      const newVariants = [...variants];
+                                      newVariants[index].ingredients = newVariants[index].ingredients!.filter((_, i) => i !== ingIndex);
+                                      setVariants(newVariants);
+                                    }}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">
+                              No hay insumos asignados a esta variante
+                            </p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  {variants.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No hay variantes. Agrega una para ofrecer diferentes tamaños.
+                    </p>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -934,44 +977,157 @@ export function ProductForm({
               <CardTitle className="text-lg">Extras/Modificadores</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {extras.map((extra, index) => (
-                <div key={index} className="flex gap-4 items-end">
-                  <div className="flex-1">
-                    <Label>Nombre (Ej: Leche de almendra, Shot extra)</Label>
-                    <Input
-                      value={extra.name}
-                      onChange={(e) =>
-                        updateExtraField(index, "name", e.target.value)
-                      }
-                      placeholder="Nombre del extra"
-                    />
-                  </div>
-                  <div className="w-[150px]">
-                    <Label>Precio adicional</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={extra.price}
-                      onChange={(e) =>
-                        updateExtraField(index, "price", Number(e.target.value))
-                      }
-                      placeholder="0.00"
-                    />
-                  </div>
+              {/* Extras Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">Extras (Modificadores)</Label>
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeExtra(index)}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setExtras([...extras, { name: "", price: 0, sort_order: extras.length }])}
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Plus className="h-4 w-4 mr-2" />
+                    Agregar Extra
                   </Button>
                 </div>
-              ))}
-              <Button type="button" variant="outline" onClick={addExtra}>
-                <Plus className="w-4 h-4 mr-2" />
-                Agregar Extra
-              </Button>
+
+                <div className="space-y-4">
+                  {extras.map((extra, index) => (
+                    <Card key={index}>
+                      <CardContent className="pt-6 space-y-4">
+                        <div className="flex items-start gap-4">
+                          <div className="flex-1 grid grid-cols-2 gap-4">
+                            <div>
+                              <Label>Nombre de Extra</Label>
+                              <Input
+                                value={extra.name}
+                                onChange={(e) => {
+                                  const newExtras = [...extras];
+                                  newExtras[index].name = e.target.value;
+                                  setExtras(newExtras);
+                                }}
+                                placeholder="Ej: Extra queso, Doble carne"
+                              />
+                            </div>
+                            <div>
+                              <Label>Precio Extra</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={extra.price}
+                                onChange={(e) => {
+                                  const newExtras = [...extras];
+                                  newExtras[index].price = parseFloat(e.target.value) || 0;
+                                  setExtras(newExtras);
+                                }}
+                                placeholder="0.00"
+                              />
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setExtras(extras.filter((_, i) => i !== index))}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+
+                        {/* Ingredients for this extra */}
+                        <div className="space-y-3 border-t pt-4">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-sm">Insumos para este extra</Label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const newExtras = [...extras];
+                                if (!newExtras[index].ingredients) {
+                                  newExtras[index].ingredients = [];
+                                }
+                                newExtras[index].ingredients!.push({
+                                  inventory_id: "",
+                                  quantity: 1,
+                                });
+                                setExtras(newExtras);
+                              }}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Agregar Insumo
+                            </Button>
+                          </div>
+
+                          {extra.ingredients && extra.ingredients.length > 0 ? (
+                            <div className="space-y-2">
+                              {extra.ingredients.map((ingredient, ingIndex) => (
+                                <div key={ingIndex} className="flex items-center gap-2">
+                                  <select
+                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                                    value={ingredient.inventory_id}
+                                    onChange={(e) => {
+                                      const newExtras = [...extras];
+                                      newExtras[index].ingredients![ingIndex].inventory_id = e.target.value;
+                                      const selectedItem = availableInventory.find(item => item.id === e.target.value);
+                                      if (selectedItem) {
+                                        newExtras[index].ingredients![ingIndex].inventory_name = selectedItem.name;
+                                      }
+                                      setExtras(newExtras);
+                                    }}
+                                  >
+                                    <option value="">Seleccionar insumo...</option>
+                                    {availableInventory.map((item) => (
+                                      <option key={item.id} value={item.id}>
+                                        {item.name} ({item.quantity} {item.unit})
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    className="w-24"
+                                    value={ingredient.quantity}
+                                    onChange={(e) => {
+                                      const newExtras = [...extras];
+                                      newExtras[index].ingredients![ingIndex].quantity = parseFloat(e.target.value) || 0;
+                                      setExtras(newExtras);
+                                    }}
+                                    placeholder="Cant."
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      const newExtras = [...extras];
+                                      newExtras[index].ingredients = newExtras[index].ingredients!.filter((_, i) => i !== ingIndex);
+                                      setExtras(newExtras);
+                                    }}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">
+                              No hay insumos asignados a este extra
+                            </p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  {extras.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No hay extras. Agrega uno para ofrecer modificadores.
+                    </p>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
