@@ -16,7 +16,7 @@ import { requireActiveSubscription } from "@/middleware/subscription";
 import { businessService } from "@/services/businessService";
 import { supabase } from "@/integrations/supabase/client";
 import { getCashRegisters, getActiveCashRegister, openCashRegister, closeCashRegister, getCashRegisterReport } from "@/services/cashRegisterService";
-import { DollarSign, FileText, Calendar, User, AlertCircle, CheckCircle, XCircle, Plus, Clock } from "lucide-react";
+import { DollarSign, FileText, Calendar, User, AlertCircle, CheckCircle, XCircle, Plus, Clock, RefreshCw } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { requireAuth } from "@/middleware/auth";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -60,6 +60,36 @@ function CashRegisterContent() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Auto-refresh active register data every 30 seconds
+  useEffect(() => {
+    if (!businessId || !employeeId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const employee = await businessService.getEmployeeByUserId(
+          (await supabase.auth.getUser()).data.user!.id
+        );
+        
+        if (!employee) return;
+
+        // Reload active register for owners/admins or current employee
+        let active;
+        if (employee.role === "owner" || employee.role === "admin") {
+          const registersData = await getCashRegisters(businessId);
+          active = registersData.find(r => r.status === "open");
+        } else {
+          active = await getActiveCashRegister(businessId, employee.id);
+        }
+        
+        setActiveRegister(active);
+      } catch (error) {
+        console.error("Error refreshing data:", error);
+      }
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [businessId, employeeId]);
 
   useEffect(() => {
     filterRegisters();
@@ -267,6 +297,32 @@ function CashRegisterContent() {
               </div>
             ) : (
               <div className="space-y-6">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Corte de Caja</h1>
+                    <p className="text-muted-foreground mt-1">
+                      Gestiona la apertura y cierre de turnos
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={loadData}
+                      disabled={loading}
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+                      Actualizar
+                    </Button>
+                    {!activeRegister && (
+                      <Button onClick={() => setOpenDialogOpen(true)}>
+                        <DollarSign className="h-4 w-4 mr-2" />
+                        Abrir Turno
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
                 {/* Active Register Card */}
                 {activeRegister ? (
                   <Card className="border-accent">
