@@ -16,14 +16,33 @@ import { requireActiveSubscription } from "@/middleware/subscription";
 import { businessService } from "@/services/businessService";
 import { supabase } from "@/integrations/supabase/client";
 import { getCashRegisters, getActiveCashRegister, openCashRegister, closeCashRegister, getCashRegisterReport } from "@/services/cashRegisterService";
-import { DollarSign, FileText, Calendar, User, AlertCircle, CheckCircle, XCircle, Plus, Clock, RefreshCw } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { requireAuth } from "@/middleware/auth";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { LayoutDashboard, Store, Users, ShoppingCart, Package, DollarSign, Search, Calendar, ChevronDown, Download, Eye, TrendingUp, AlertCircle, Plus } from "lucide-react";
-import { Header } from "@/components/Header";
+import { 
+  FileText, 
+  User, 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  RefreshCw,
+  LayoutDashboard, 
+  Store, 
+  Users, 
+  ShoppingCart, 
+  Package, 
+  DollarSign, 
+  Search, 
+  Calendar, 
+  ChevronDown, 
+  Download, 
+  Eye, 
+  TrendingUp, 
+  AlertCircle, 
+  Plus 
+} from "lucide-react";
 import { FeatureGuard } from "@/components/FeatureGuard";
 import { cn } from "@/lib/utils";
 
