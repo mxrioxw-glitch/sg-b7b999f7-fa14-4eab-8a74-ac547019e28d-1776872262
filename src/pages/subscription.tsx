@@ -516,13 +516,15 @@ export default function SubscriptionPage() {
       </div>
 
       {/* Checkout Modal */}
-      <CheckoutModal
-        open={showCheckout}
-        onOpenChange={setShowCheckout}
-        plan={selectedPlan}
-        onConfirm={handleCheckoutConfirm}
-        processing={processingCheckout}
-      />
+      {selectedPlan && (
+        <CheckoutModal
+          open={showCheckout}
+          onOpenChange={setShowCheckout}
+          plan={selectedPlan}
+          onConfirm={handleCheckoutConfirm}
+          processing={processingCheckout}
+        />
+      )}
     </div>
   );
 }
