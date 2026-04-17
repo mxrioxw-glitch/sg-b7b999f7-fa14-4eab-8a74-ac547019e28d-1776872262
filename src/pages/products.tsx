@@ -62,8 +62,8 @@ function ProductsContent() {
   const router = useRouter();
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -73,6 +73,7 @@ function ProductsContent() {
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -192,12 +193,12 @@ function ProductsContent() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <div className="flex-1">
-        <Header />
+        <Header onMenuClick={() => setIsSidebarOpen(true)} />
         <SEO 
           title="Productos - Nexum Cloud"
-          description="Gestión de productos de Nexum Cloud"
+          description="Gestión de productos"
         />
         <main className="p-4 md:p-8">
           <div className="mb-6 md:mb-8">

@@ -56,6 +56,7 @@ function CustomersContent() {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [detailCustomer, setDetailCustomer] = useState<Customer | null>(null);
   const [purchaseHistory, setPurchaseHistory] = useState<any[]>([]);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -181,13 +182,13 @@ function CustomersContent() {
     <>
       <SEO 
         title="Clientes - Nexum Cloud"
-        description="Gestión de clientes de Nexum Cloud"
+        description="Gestión de clientes"
       />
 
       <div className="flex min-h-screen bg-background">
-        <Sidebar />
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
         <div className="flex-1 flex flex-col">
-          <Header />
+          <Header onMenuClick={() => setIsSidebarOpen(true)} />
           <main className="flex-1 p-4 md:p-8 overflow-y-auto">
             <div className="mb-6 md:mb-8">
               <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Clientes</h1>

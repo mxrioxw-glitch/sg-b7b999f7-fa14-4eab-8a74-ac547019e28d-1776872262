@@ -40,7 +40,7 @@ function InventoryContent() {
   const router = useRouter();
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [items, setItems] = useState<InventoryItem[]>([]);
+  const [items, setItems] = useState<any[]>([]);
   const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -48,6 +48,7 @@ function InventoryContent() {
   const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [adjustingItem, setAdjustingItem] = useState<InventoryItem | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -132,12 +133,12 @@ function InventoryContent() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <div className="flex-1">
-        <Header />
+        <Header onMenuClick={() => setIsSidebarOpen(true)} />
         <SEO 
           title="Inventario - Nexum Cloud"
-          description="Gestión de inventario de Nexum Cloud"
+          description="Gestión de inventario"
         />
         <main className="p-8">
           <div className="mb-8">
