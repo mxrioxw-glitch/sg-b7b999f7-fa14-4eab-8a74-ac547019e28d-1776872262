@@ -250,6 +250,16 @@ function CashRegisterContent() {
     }
   }, [closeDialogOpen, activeRegister]);
 
+  // Calculate shift sales whenever active register changes
+  useEffect(() => {
+    if (activeRegister) {
+      loadShiftSales();
+    } else {
+      setShiftSales(0);
+      setExpectedAmount(0);
+    }
+  }, [activeRegister]);
+
   async function handleViewReport(register: any) {
     try {
       const report = await getCashRegisterReport(register.id);
