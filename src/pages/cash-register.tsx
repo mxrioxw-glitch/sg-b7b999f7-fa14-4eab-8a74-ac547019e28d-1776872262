@@ -93,12 +93,23 @@ function CashRegisterContent() {
 
       setEmployeeId(employee.id);
 
-      const active = await getActiveCashRegister(business.id, employee.id);
-      setActiveRegister(active);
-
+      // Get all registers for the business
       const registersData = await getCashRegisters(business.id);
       setRegisters(registersData);
       setFilteredRegisters(registersData);
+
+      // For owners/admins: show ANY active register
+      // For cashiers: show only THEIR active register
+      let active;
+      if (employee.role === "owner" || employee.role === "admin") {
+        // Find any open register in the business
+        active = registersData.find(r => r.status === "open");
+      } else {
+        // Find only their own open register
+        active = await getActiveCashRegister(business.id, employee.id);
+      }
+      
+      setActiveRegister(active);
     } catch (error) {
       console.error("Error loading data:", error);
       toast({
@@ -127,7 +138,7 @@ function CashRegisterContent() {
     try {
       await openCashRegister({
         businessId,
-        employeeId,
+        employeeId, // Opens register for the current logged-in user
         openingAmount: parseFloat(openForm.openingAmount),
         notes: openForm.notes || undefined,
       });
@@ -268,7 +279,8 @@ function CashRegisterContent() {
                           <div>
                             <CardTitle className="text-lg">Turno Activo</CardTitle>
                             <CardDescription>
-                              Iniciado: {new Date(activeRegister.opening_time).toLocaleString()}
+                              {activeRegister.employees?.profiles?.full_name || activeRegister.employees?.profiles?.email || "Usuario"} • 
+                              Iniciado: {new Date(activeRegister.opened_at).toLocaleString()}
                             </CardDescription>
                           </div>
                         </div>
