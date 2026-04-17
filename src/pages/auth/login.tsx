@@ -24,7 +24,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await authService.signInWithEmail(email, password);
+      await authService.signIn(email, password);
       router.push("/home");
     } catch (err: any) {
       setError(err.message || "Error al iniciar sesión");

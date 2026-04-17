@@ -61,24 +61,23 @@ export default function RegisterPage() {
 
     try {
       // Registrar usuario
-      const { user } = await authService.signUpWithEmail(formData.email, formData.password);
+      const { user } = await authService.signUp(formData.email, formData.password, formData.fullName);
 
       if (!user) {
         throw new Error("No se pudo crear el usuario");
       }
 
-      // Crear business
-      const business = await businessService.createBusiness({
+      // Crear business (businessService.createBusiness solo acepta nombre y opcionales, owner_id se saca del token/auth backend)
+      const { business, error: businessError } = await businessService.createBusiness({
         name: formData.businessName,
-        owner_id: user.id,
       });
 
-      if (!business) {
-        throw new Error("No se pudo crear el negocio");
+      if (businessError || !business) {
+        throw new Error(businessError || "No se pudo crear el negocio");
       }
 
       // Crear suscripción de prueba
-      await subscriptionService.createTrialSubscription(user.id, business.id);
+      await subscriptionService.createTrialSubscription(business.id);
 
       // Crear empleado owner
       const { data: employeeData, error: employeeError } = await supabase.functions.invoke("create-employee", {
