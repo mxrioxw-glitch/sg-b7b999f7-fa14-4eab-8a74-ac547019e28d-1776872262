@@ -294,209 +294,219 @@ function CashRegisterContent() {
         <div className="flex-1 flex flex-col">
           <Header onMenuClick={() => setSidebarOpen(true)} />
           <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-            <div className="mb-6 md:mb-8">
-              <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Corte de Caja</h1>
-              <p className="text-sm md:text-base text-muted-foreground">
-                Gestiona las aperturas y cierres de caja
-              </p>
-            </div>
-
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-                  <p className="text-muted-foreground">Cargando...</p>
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
+                    <DollarSign className="h-5 w-5 text-accent" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Corte de Caja</CardTitle>
+                    <CardDescription>
+                      Gestiona las aperturas y cierres de caja
+                    </CardDescription>
+                  </div>
                 </div>
               </div>
-            ) : (
-              <>
-                {/* Active Register Card */}
-                {activeRegister ? (
-                  <Card className="border-accent">
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
-                            <DollarSign className="h-5 w-5 text-accent" />
-                          </div>
-                          <div>
-                            <CardTitle className="text-lg">Turno Activo</CardTitle>
-                            <CardDescription>
-                              {activeRegister.employees?.profiles?.full_name || activeRegister.employees?.profiles?.email || "Usuario"} • 
-                              Iniciado: {new Date(activeRegister.opened_at).toLocaleString()}
-                            </CardDescription>
-                          </div>
-                        </div>
-                        <Badge className="bg-accent text-accent-foreground">
-                          Abierto
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-muted/50 p-4 rounded-lg">
-                          <p className="text-sm text-muted-foreground mb-1">Apertura</p>
-                          <p className="text-2xl font-bold text-foreground">
-                            ${Number(activeRegister.opening_amount).toFixed(2)}
-                          </p>
-                        </div>
-                        <div className="bg-muted/50 p-4 rounded-lg">
-                          <p className="text-sm text-muted-foreground mb-1">Ventas del Turno</p>
-                          <p className="text-2xl font-bold text-accent">
-                            ${shiftSales.toFixed(2)}
-                          </p>
-                        </div>
-                        <div className="bg-muted/50 p-4 rounded-lg">
-                          <p className="text-sm text-muted-foreground mb-1">Total Esperado</p>
-                          <p className="text-2xl font-bold text-foreground">
-                            ${expectedAmount.toFixed(2)}
-                          </p>
-                        </div>
-                      </div>
-                      {activeRegister.notes && (
-                        <div className="border-t pt-4">
-                          <p className="text-sm text-muted-foreground mb-1">Notas de apertura:</p>
-                          <p className="text-sm">{activeRegister.notes}</p>
-                        </div>
-                      )}
-                      <Button
-                        onClick={() => setCloseDialogOpen(true)}
-                        className="w-full"
-                        variant="destructive"
-                      >
-                        <XCircle className="h-4 w-4 mr-2" />
-                        Cerrar Turno
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <Card>
-                    <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mb-4">
-                        <DollarSign className="h-8 w-8 text-muted-foreground" />
-                      </div>
-                      <h3 className="text-lg font-semibold mb-2">No hay turno activo</h3>
-                      <p className="text-muted-foreground mb-6 max-w-md">
-                        Abre un nuevo turno para comenzar a registrar ventas
-                      </p>
-                      <Button onClick={() => setOpenDialogOpen(true)} size="lg">
-                        <Plus className="h-5 w-5 mr-2" />
-                        Abrir Turno
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
 
-                {/* Filters */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger className="w-full sm:w-[200px]">
-                      <SelectValue placeholder="Filtrar por estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="open">Abiertos</SelectItem>
-                      <SelectItem value="closed">Cerrados</SelectItem>
-                    </SelectContent>
-                  </Select>
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+                    <p className="text-muted-foreground">Cargando...</p>
+                  </div>
                 </div>
+              ) : (
+                <>
+                  {/* Active Register Card */}
+                  {activeRegister ? (
+                    <Card className="border-accent">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
+                              <DollarSign className="h-5 w-5 text-accent" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-lg">Turno Activo</CardTitle>
+                              <CardDescription>
+                                {activeRegister.employees?.profiles?.full_name || activeRegister.employees?.profiles?.email || "Usuario"} • 
+                                Iniciado: {new Date(activeRegister.opened_at).toLocaleString()}
+                              </CardDescription>
+                            </div>
+                          </div>
+                          <Badge className="bg-accent text-accent-foreground">
+                            Abierto
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="bg-muted/50 p-4 rounded-lg">
+                            <p className="text-sm text-muted-foreground mb-1">Apertura</p>
+                            <p className="text-2xl font-bold text-foreground">
+                              ${Number(activeRegister.opening_amount).toFixed(2)}
+                            </p>
+                          </div>
+                          <div className="bg-muted/50 p-4 rounded-lg">
+                            <p className="text-sm text-muted-foreground mb-1">Ventas del Turno</p>
+                            <p className="text-2xl font-bold text-accent">
+                              ${shiftSales.toFixed(2)}
+                            </p>
+                          </div>
+                          <div className="bg-muted/50 p-4 rounded-lg">
+                            <p className="text-sm text-muted-foreground mb-1">Total Esperado</p>
+                            <p className="text-2xl font-bold text-foreground">
+                              ${expectedAmount.toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+                        {activeRegister.notes && (
+                          <div className="border-t pt-4">
+                            <p className="text-sm text-muted-foreground mb-1">Notas de apertura:</p>
+                            <p className="text-sm">{activeRegister.notes}</p>
+                          </div>
+                        )}
+                        <Button
+                          onClick={() => setCloseDialogOpen(true)}
+                          className="w-full"
+                          variant="destructive"
+                        >
+                          <XCircle className="h-4 w-4 mr-2" />
+                          Cerrar Turno
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card>
+                      <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mb-4">
+                          <DollarSign className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2">No hay turno activo</h3>
+                        <p className="text-muted-foreground mb-6 max-w-md">
+                          Abre un nuevo turno para comenzar a registrar ventas
+                        </p>
+                        <Button onClick={() => setOpenDialogOpen(true)} size="lg">
+                          <Plus className="h-5 w-5 mr-2" />
+                          Abrir Turno
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
 
-                {/* History Table */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Historial de Turnos</CardTitle>
-                    <CardDescription>
-                      Registro de aperturas y cierres anteriores
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {filteredRegisters.length > 0 ? (
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Fecha Apertura</TableHead>
-                              <TableHead className="hidden md:table-cell">Monto Inicial</TableHead>
-                              <TableHead className="hidden lg:table-cell">Monto Final</TableHead>
-                              <TableHead className="hidden lg:table-cell">Diferencia</TableHead>
-                              <TableHead>Estado</TableHead>
-                              <TableHead className="text-right">Acciones</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {filteredRegisters.map((register) => {
-                              const diff = register.closing_amount
-                                ? Number(register.closing_amount) - Number(register.opening_amount)
-                                : 0;
-                              return (
-                                <TableRow key={register.id}>
-                                  <TableCell>
-                                    {new Date(register.opening_time).toLocaleString()}
-                                  </TableCell>
-                                  <TableCell className="hidden md:table-cell">
-                                    ${Number(register.opening_amount).toFixed(2)}
-                                  </TableCell>
-                                  <TableCell className="hidden lg:table-cell">
-                                    {register.closing_amount
-                                      ? `$${Number(register.closing_amount).toFixed(2)}`
-                                      : "-"}
-                                  </TableCell>
-                                  <TableCell className="hidden lg:table-cell">
-                                    {register.closing_amount ? (
-                                      <span
-                                        className={
-                                          diff > 0
-                                            ? "text-accent"
-                                            : diff < 0
-                                            ? "text-destructive"
-                                            : ""
+                  {/* Filters */}
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                      <SelectTrigger className="w-full sm:w-[200px]">
+                        <SelectValue placeholder="Filtrar por estado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="open">Abiertos</SelectItem>
+                        <SelectItem value="closed">Cerrados</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* History Table */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Historial de Turnos</CardTitle>
+                      <CardDescription>
+                        Registro de aperturas y cierres anteriores
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {filteredRegisters.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Fecha Apertura</TableHead>
+                                <TableHead className="hidden md:table-cell">Monto Inicial</TableHead>
+                                <TableHead className="hidden lg:table-cell">Monto Final</TableHead>
+                                <TableHead className="hidden lg:table-cell">Diferencia</TableHead>
+                                <TableHead>Estado</TableHead>
+                                <TableHead className="text-right">Acciones</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {filteredRegisters.map((register) => {
+                                const diff = register.closing_amount
+                                  ? Number(register.closing_amount) - Number(register.opening_amount)
+                                  : 0;
+                                return (
+                                  <TableRow key={register.id}>
+                                    <TableCell>
+                                      {new Date(register.opening_time).toLocaleString()}
+                                    </TableCell>
+                                    <TableCell className="hidden md:table-cell">
+                                      ${Number(register.opening_amount).toFixed(2)}
+                                    </TableCell>
+                                    <TableCell className="hidden lg:table-cell">
+                                      {register.closing_amount
+                                        ? `$${Number(register.closing_amount).toFixed(2)}`
+                                        : "-"}
+                                    </TableCell>
+                                    <TableCell className="hidden lg:table-cell">
+                                      {register.closing_amount ? (
+                                        <span
+                                          className={
+                                            diff > 0
+                                              ? "text-accent"
+                                              : diff < 0
+                                              ? "text-destructive"
+                                              : ""
+                                          }
+                                        >
+                                          ${diff.toFixed(2)}
+                                        </span>
+                                      ) : (
+                                        "-"
+                                      )}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge
+                                        variant={
+                                          register.status === "open" ? "default" : "secondary"
                                         }
                                       >
-                                        ${diff.toFixed(2)}
-                                      </span>
-                                    ) : (
-                                      "-"
-                                    )}
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge
-                                      variant={
-                                        register.status === "open" ? "default" : "secondary"
-                                      }
-                                    >
-                                      {register.status === "open" ? "Abierto" : "Cerrado"}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => {
-                                        setSelectedReport(register);
-                                        setReportDialogOpen(true);
-                                      }}
-                                    >
-                                      <FileText className="h-4 w-4" />
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center py-8 text-center">
-                        <Clock className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-                        <p className="text-muted-foreground">
-                          No hay registros de turnos
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </>
-            )}
+                                        {register.status === "open" ? "Abierto" : "Cerrado"}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => {
+                                          setSelectedReport(register);
+                                          setReportDialogOpen(true);
+                                        }}
+                                      >
+                                        <FileText className="h-4 w-4" />
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-8 text-center">
+                          <Clock className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                          <p className="text-muted-foreground">
+                            No hay registros de turnos
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+            </div>
           </main>
         </div>
       </div>
