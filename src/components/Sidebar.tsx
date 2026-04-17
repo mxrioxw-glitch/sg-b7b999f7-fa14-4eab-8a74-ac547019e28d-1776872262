@@ -39,10 +39,11 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const router = useRouter();
   const pathname = router.pathname;
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false); // Start collapsed
+  const [isHovering, setIsHovering] = useState(false);
   const [businessName, setBusinessName] = useState("Mi Negocio");
   const [userName, setUserName] = useState("");
-  const { hasModuleAccess } = usePermissions(null); // Se arregla el error de TS
+  const { hasModuleAccess } = usePermissions(null);
 
   const menuItems = [
     { name: "Inicio", href: "/dashboard", icon: LayoutDashboard, permission: null },
@@ -57,6 +58,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const visibleItems = menuItems.filter(
     (item) => !item.permission || hasModuleAccess(item.permission, "read")
   );
+
+  // Auto-expand on hover
+  useEffect(() => {
+    if (isHovering) {
+      setIsExpanded(true);
+    } else {
+      const timer = setTimeout(() => {
+        setIsExpanded(false);
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [isHovering]);
 
   useEffect(() => {
     loadBusinessInfo();
@@ -112,11 +125,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         initial={false}
         animate={{
           width: isExpanded ? 280 : 80,
-          x: typeof window !== 'undefined' && window.innerWidth >= 768 ? 0 : (isOpen ? 0 : -280),
         }}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
         className={cn(
           "fixed left-0 top-0 z-50 flex h-screen flex-col border-r bg-card transition-all duration-300",
-          "md:relative md:translate-x-0"
+          isOpen ? "translate-x-0" : "-translate-x-full",
+          "md:translate-x-0"
         )}
       >
         <div className="flex items-center justify-between border-b p-4">
