@@ -174,20 +174,19 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         const active = isActive(item.href);
 
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={handleLinkClick}
-            className={cn(
-              "flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors",
-              isCollapsed ? "justify-center" : "gap-3",
-              active
-                ? "bg-primary text-primary-foreground"
-                : "text-foreground hover:bg-muted"
-            )}
-          >
-            <Icon className="h-5 w-5 flex-shrink-0" />
-            {!isCollapsed && <span>{item.name}</span>}
+          <Link key={item.href} href={item.href}>
+            <Button
+              variant={active ? "secondary" : "ghost"}
+              className={`w-full ${isCollapsed ? "justify-center px-2" : "justify-start gap-3"} ${
+                active ? "bg-primary/10 text-primary font-medium" : ""
+              }`}
+              title={isCollapsed ? item.name : undefined}
+            >
+              <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 w-full"}`}>
+                <Icon className="h-5 w-5 flex-shrink-0" />
+                {!isCollapsed && <span className="flex-1 text-left">{item.name}</span>}
+              </div>
+            </Button>
           </Link>
         );
       })}
