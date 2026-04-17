@@ -81,6 +81,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           isOpen && "translate-x-0"
         )}
       >
+        {/* Header */}
         <div className="h-16 px-4 md:px-6 border-b flex items-center shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center shrink-0">
@@ -95,7 +96,61 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </div>
         </div>
 
+        {/* Navigation */}
         <div className="flex-1 py-6 flex flex-col gap-2 overflow-y-auto px-3">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = router.pathname === item.href;
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-3 rounded-lg transition-colors",
+                  "hover:bg-accent/50",
+                  isActive && "bg-accent text-accent-foreground",
+                  !isActive && "text-foreground/70 hover:text-foreground",
+                  !isExpanded && "justify-center"
+                )}
+                onClick={onClose}
+              >
+                <Icon className={cn("h-5 w-5 shrink-0", isActive && "text-accent-foreground")} />
+                {isExpanded && (
+                  <span className="font-medium">{item.name}</span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t space-y-2">
+          <Button
+            variant="ghost"
+            size={isExpanded ? "default" : "icon"}
+            className={cn("w-full", !isExpanded && "justify-center")}
+            onClick={handleLogout}
+          >
+            <LogOut className="h-5 w-5" />
+            {isExpanded && <span className="ml-2">Cerrar Sesión</span>}
+          </Button>
+
+          <Button
+            variant="ghost"
+            size={isExpanded ? "default" : "icon"}
+            className={cn("w-full hidden md:flex", !isExpanded && "justify-center")}
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            {isExpanded ? (
+              <>
+                <ChevronLeft className="h-5 w-5" />
+                <span className="ml-2">Contraer</span>
+              </>
+            ) : (
+              <ChevronRight className="h-5 w-5" />
+            )}
+          </Button>
         </div>
       </aside>
     </>
