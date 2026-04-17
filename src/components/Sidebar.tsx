@@ -44,7 +44,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { hasModuleAccess } = usePermissions(null);
 
   const menuItems = [
-    { name: "Inicio", href: "/dashboard", icon: LayoutDashboard, permission: null },
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, permission: null },
     { name: "POS", href: "/pos", icon: ShoppingCart, permission: "sales" },
     { name: "Productos", href: "/products", icon: Package, permission: "products" },
     { name: "Inventario", href: "/inventory", icon: Warehouse, permission: "inventory" },
