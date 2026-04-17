@@ -4,7 +4,7 @@ import { buffer } from "micro";
 import { supabase } from "@/integrations/supabase/client";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-11-20.acacia",
+  apiVersion: "2025-02-24.acacia",
 });
 
 export const config = {
@@ -139,7 +139,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   await supabase
     .from("subscriptions")
     .update({
-      status: subscription.status === "active" ? "active" : "inactive",
+      status: subscription.status === "active" ? "active" : "canceled",
       plan_type: planType,
       current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
       current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),

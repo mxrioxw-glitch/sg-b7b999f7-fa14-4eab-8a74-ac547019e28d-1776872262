@@ -877,7 +877,10 @@ export type Database = {
           current_period_start: string | null
           id: string
           plan: Database["public"]["Enums"]["subscription_plan"]
+          plan_type: string | null
           status: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           trial_end: string | null
           trial_start: string | null
           updated_at: string | null
@@ -890,7 +893,10 @@ export type Database = {
           current_period_start?: string | null
           id?: string
           plan?: Database["public"]["Enums"]["subscription_plan"]
+          plan_type?: string | null
           status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           trial_end?: string | null
           trial_start?: string | null
           updated_at?: string | null
@@ -903,7 +909,10 @@ export type Database = {
           current_period_start?: string | null
           id?: string
           plan?: Database["public"]["Enums"]["subscription_plan"]
+          plan_type?: string | null
           status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           trial_end?: string | null
           trial_start?: string | null
           updated_at?: string | null

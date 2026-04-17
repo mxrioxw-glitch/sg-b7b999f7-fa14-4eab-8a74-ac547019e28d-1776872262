@@ -231,7 +231,7 @@ export default function SubscriptionPage() {
     return PLANS.find(p => p.id === effectivePlan) || PLANS[0];
   };
 
-  const handleUpgrade = (planId: string) => {
+  const handleUpgradeModal = (planId: string) => {
     setSelectedPlan(planId as "basic" | "professional" | "premium");
     setShowCheckout(true);
   };
@@ -415,7 +415,7 @@ export default function SubscriptionPage() {
     return null;
   }
 
-  const currentPlan = getCurrentPlan();
+  const activePlan = getCurrentPlan();
   const trialProgress = isInTrial && daysRemaining > 0
     ? ((7 - daysRemaining) / 7) * 100 
     : 100;
@@ -442,8 +442,8 @@ export default function SubscriptionPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <CardTitle className="flex items-center gap-2 mb-2">
-                      {currentPlan && <currentPlan.icon className="h-6 w-6" />}
-                      Plan {currentPlan?.name || "Básico"}
+                      {activePlan && <activePlan.icon className="h-6 w-6" />}
+                      Plan {activePlan?.name || "Básico"}
                     </CardTitle>
                     <CardDescription>
                       {isInTrial 
@@ -515,7 +515,7 @@ export default function SubscriptionPage() {
                         <CreditCard className="h-5 w-5 text-muted-foreground" />
                         <div>
                           <p className="text-sm text-muted-foreground">Precio mensual</p>
-                          <p className="font-medium">${currentPlan?.price || 0} MXN</p>
+                          <p className="font-medium">${activePlan?.price || 0} MXN</p>
                         </div>
                       </div>
                     </div>
@@ -526,23 +526,23 @@ export default function SubscriptionPage() {
           </div>
 
           {/* Current Plan Info */}
-              {currentPlan && currentPlan.plan_type !== "trial" && (
-                <Alert className="mb-6">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="flex items-center justify-between">
+              {activePlan && activePlan.id !== "trial" && (
+                <div className="mb-6 rounded-lg border p-4 flex items-center justify-between bg-card text-card-foreground shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
                     <span>
                       Tienes una suscripción activa. Puedes gestionar tu método de pago y facturación.
                     </span>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={handleManageSubscription}
-                    >
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      Gestionar Suscripción
-                    </Button>
-                  </AlertDescription>
-                </Alert>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleManageSubscription}
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Gestionar Suscripción
+                  </Button>
+                </div>
               )}
 
           {/* Available Plans */}
@@ -551,7 +551,7 @@ export default function SubscriptionPage() {
             <div className="grid md:grid-cols-3 gap-4 md:gap-6">
               {PLANS.map((plan) => {
                 const Icon = plan.icon;
-                const isCurrent = currentPlan?.id === plan.id && !isInTrial;
+                const isCurrent = activePlan?.id === plan.id && !isInTrial;
                 const isTrialPlan = isInTrial && plan.id === "premium";
 
                 return (
@@ -588,29 +588,25 @@ export default function SubscriptionPage() {
                           </li>
                         ))}
                       </ul>
-                      {plan.type === currentPlan?.plan_type ? (
+                      {plan.id === activePlan?.id ? (
                         <Button className="w-full" disabled>
                           <CheckCircle className="mr-2 h-4 w-4" />
                           Plan Actual
-                        </Button>
-                      ) : plan.type === "trial" ? (
-                        <Button className="w-full" variant="outline" disabled>
-                          Plan de Prueba
                         </Button>
                       ) : (
                         <Button 
                           className="w-full"
                           onClick={() => handleUpgrade(
-                            plan.type,
-                            plan.type === "basic" 
+                            plan.id,
+                            plan.id === "basic" 
                               ? process.env.NEXT_PUBLIC_STRIPE_PRICE_BASIC || ""
-                              : plan.type === "professional"
+                              : plan.id === "professional"
                               ? process.env.NEXT_PUBLIC_STRIPE_PRICE_PROFESSIONAL || ""
                               : process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM || ""
                           )}
-                          disabled={processingPlan === plan.type}
+                          disabled={processingPlan === plan.id}
                         >
-                          {processingPlan === plan.type ? (
+                          {processingPlan === plan.id ? (
                             <>
                               <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                               Procesando...
