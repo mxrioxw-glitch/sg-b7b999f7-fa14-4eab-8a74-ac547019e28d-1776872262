@@ -79,7 +79,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const menuItems = [
     { 
       name: "Inicio", 
-      href: "/dashboard", 
+      href: "/", 
       icon: Home,
       module: "dashboard",
       requirePermission: false, // Dashboard always visible
@@ -138,14 +138,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       href: "/settings", 
       icon: Settings,
       module: "settings",
-      requirePermission: false,
-      ownerOnly: true // ✅ SOLO OWNERS
-    },
-    { 
-      name: "Suscripción", 
-      href: "/subscription", 
-      icon: Wallet,
-      module: "subscription",
       requirePermission: false,
       ownerOnly: true // ✅ SOLO OWNERS
     },
