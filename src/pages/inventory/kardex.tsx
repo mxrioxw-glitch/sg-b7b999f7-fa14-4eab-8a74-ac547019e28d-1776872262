@@ -43,6 +43,7 @@ export default function KardexPage() {
   const [selectedItemId, setSelectedItemId] = useState<string>("");
   const [movements, setMovements] = useState<InventoryMovement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     loadItems();
@@ -127,10 +128,10 @@ export default function KardexPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-      <div className="flex-1">
-        <Header />
+    <div className="min-h-screen bg-background flex">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="flex-1 flex flex-col">
+        <Header onMenuClick={() => setSidebarOpen(true)} />
         <main className="p-8">
           <div className="mb-8">
             <Link href="/inventory">

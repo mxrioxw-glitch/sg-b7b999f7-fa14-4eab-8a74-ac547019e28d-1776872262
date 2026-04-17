@@ -16,22 +16,21 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [formData, setFormData] = useState({ full_name: "", phone: "" });
+  const [passwordData, setPasswordData] = useState({ current: "", new: "", confirm: "" });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userData, setUserData] = useState({
     id: "",
     email: "",
     fullName: "",
   });
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
 
   useEffect(() => {
-    loadUserData();
+    loadProfile();
   }, []);
 
-  async function loadUserData() {
+  async function loadProfile() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -94,7 +93,7 @@ export default function ProfilePage() {
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
 
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
+    if (passwordData.new !== passwordData.confirm) {
       toast({
         title: "Error",
         description: "Las contraseñas no coinciden",
@@ -103,7 +102,7 @@ export default function ProfilePage() {
       return;
     }
 
-    if (passwordData.newPassword.length < 6) {
+    if (passwordData.new.length < 6) {
       toast({
         title: "Error",
         description: "La contraseña debe tener al menos 6 caracteres",
@@ -115,7 +114,7 @@ export default function ProfilePage() {
     setSaving(true);
     try {
       const { error } = await supabase.auth.updateUser({
-        password: passwordData.newPassword
+        password: passwordData.new
       });
 
       if (error) throw error;
@@ -126,9 +125,9 @@ export default function ProfilePage() {
       });
 
       setPasswordData({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
+        current: "",
+        new: "",
+        confirm: "",
       });
     } catch (error: any) {
       console.error("Error changing password:", error);
@@ -144,23 +143,23 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-background">
-        <Sidebar />
-        <div className="flex-1">
-          <Header />
-          <main className="p-8">
-            <p>Cargando...</p>
-          </main>
+      <div className="min-h-screen bg-background flex">
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground">Cargando perfil...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-      <div className="flex-1">
-        <Header userName={userData.fullName} userEmail={userData.email} />
+    <div className="min-h-screen bg-background flex">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="flex-1 flex flex-col">
+        <Header onMenuClick={() => setSidebarOpen(true)} />
         <main className="p-8">
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-foreground mb-2">Mi Perfil</h1>
@@ -245,8 +244,8 @@ export default function ProfilePage() {
                     <Input
                       id="newPassword"
                       type="password"
-                      value={passwordData.newPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                      value={passwordData.new}
+                      onChange={(e) => setPasswordData({ ...passwordData, new: e.target.value })}
                       placeholder="Mínimo 6 caracteres"
                     />
                   </div>
@@ -256,8 +255,8 @@ export default function ProfilePage() {
                     <Input
                       id="confirmPassword"
                       type="password"
-                      value={passwordData.confirmPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                      value={passwordData.confirm}
+                      onChange={(e) => setPasswordData({ ...passwordData, confirm: e.target.value })}
                       placeholder="Repite la contraseña"
                     />
                   </div>
@@ -265,7 +264,7 @@ export default function ProfilePage() {
                   <div className="flex justify-end">
                     <Button
                       type="submit"
-                      disabled={saving || !passwordData.newPassword || !passwordData.confirmPassword}
+                      disabled={saving || !passwordData.new || !passwordData.confirm}
                     >
                       {saving ? "Cambiando..." : "Cambiar Contraseña"}
                     </Button>

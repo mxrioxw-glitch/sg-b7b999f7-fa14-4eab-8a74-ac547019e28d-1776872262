@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -28,9 +29,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
-import type { Business } from "@/integrations/supabase/types";
+import type { Database } from "@/integrations/supabase/types";
 import { businessService } from "@/services/businessService";
 import { Badge } from "@/components/ui/badge";
+
+type Business = Database["public"]["Tables"]["businesses"]["Row"];
 
 interface SidebarProps {
   isOpen: boolean;
