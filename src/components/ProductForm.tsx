@@ -13,11 +13,12 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Package } from "lucide-react";
+import { Plus, Trash2, Package, Upload, Sparkles, X } from "lucide-react";
 import { productService } from "@/services/productService";
 import { categoryService } from "@/services/categoryService";
 import { getInventoryItems } from "@/services/inventoryService";
 import { businessService } from "@/services/businessService";
+import { storageService } from "@/services/storageService";
 import { supabase } from "@/integrations/supabase/client";
 import type { Product, ProductVariant, ProductExtra } from "@/services/productService";
 import type { Category } from "@/services/categoryService";
@@ -79,6 +80,11 @@ export function ProductForm({
   const [generatesPoints, setGeneratesPoints] = useState(product?.generates_points || false);
   const [pointsValue, setPointsValue] = useState(product?.points_value || 0);
 
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [generatingImage, setGeneratingImage] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState(product?.image_url || "");
+
   const [variants, setVariants] = useState<VariantForm[]>([]);
   const [extras, setExtras] = useState<ExtraForm[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
@@ -88,6 +94,7 @@ export function ProductForm({
 
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   useEffect(() => {
     loadInventoryItems();
@@ -314,6 +321,71 @@ export function ProductForm({
     setProductInventoryLinks(productInventoryLinks.filter((_, i) => i !== index));
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleGenerateAIImage = async () => {
+    if (!name.trim()) {
+      toast({
+        title: "Error",
+        description: "Primero ingresa el nombre del producto",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGeneratingImage(true);
+    try {
+      const business = await businessService.getCurrentBusiness();
+      if (!business) throw new Error("No business found");
+
+      const { url, path } = await storageService.generateAIImage(name, business.id);
+      setImageUrl(url);
+      setPreviewUrl(url);
+      
+      toast({
+        title: "Imagen generada",
+        description: "La imagen se generó correctamente con IA",
+      });
+    } catch (error) {
+      console.error("Error generating AI image:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo generar la imagen con IA",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingImage(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageUrl("");
+    setPreviewUrl("");
+    setImageFile(null);
+  };
+
+  const uploadImageToStorage = async (businessId: string): Promise<string> => {
+    if (!imageFile) return imageUrl;
+
+    try {
+      const { url } = await storageService.uploadProductImage(imageFile, businessId);
+      return url;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -322,12 +394,15 @@ export function ProductForm({
       const business = await businessService.getCurrentBusiness();
       if (!business) throw new Error("No business found");
 
+      // Upload image if there's a file selected
+      const finalImageUrl = await uploadImageToStorage(business.id);
+
       const productData = {
         category_id: categoryId || undefined,
         name,
         description,
         base_price: basePrice,
-        image_url: imageUrl || undefined,
+        image_url: finalImageUrl || undefined,
         has_variants: hasVariants,
         has_extras: hasExtras,
         generates_points: generatesPoints,
@@ -601,15 +676,63 @@ export function ProductForm({
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="image_url">URL de Imagen</Label>
-              <Input
-                id="image_url"
-                type="url"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://..."
-              />
+            <div className="space-y-4">
+              <Label>Imagen del Producto</Label>
+              
+              {/* Image Preview */}
+              {previewUrl && (
+                <div className="relative w-full h-48 rounded-lg border overflow-hidden">
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute top-2 right-2 p-1 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
+              {/* Upload and AI Buttons */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    disabled={uploadingImage || generatingImage}
+                  />
+                  <Label htmlFor="image-upload">
+                    <div className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/25 p-4 cursor-pointer hover:border-primary hover:bg-accent transition-colors">
+                      <Upload className="h-5 w-5" />
+                      <span className="text-sm font-medium">
+                        {uploadingImage ? "Subiendo..." : "Subir Imagen"}
+                      </span>
+                    </div>
+                  </Label>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleGenerateAIImage}
+                  disabled={!name.trim() || uploadingImage || generatingImage}
+                  className="h-auto p-4"
+                >
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  {generatingImage ? "Generando..." : "Generar con IA"}
+                </Button>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                Sube una imagen desde tu dispositivo o genera una automáticamente con IA basándose en el nombre del producto
+              </p>
             </div>
           </div>
 
