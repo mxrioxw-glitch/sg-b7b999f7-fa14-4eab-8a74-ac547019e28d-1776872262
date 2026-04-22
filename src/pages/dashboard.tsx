@@ -4,6 +4,9 @@ import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   TrendingUp, 
   DollarSign, 
@@ -13,13 +16,18 @@ import {
   ArrowDown,
   Package,
   Clock,
-  TrendingDown
+  TrendingDown,
+  Calendar as CalendarIcon,
+  ChevronDown
 } from "lucide-react";
 import { businessService } from "@/services/businessService";
 import { getDashboardMetrics, type DashboardMetrics } from "@/services/dashboardService";
 import { requireActiveSubscription } from "@/middleware/subscription";
 import { SEO } from "@/components/SEO";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
+import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfDay, endOfDay } from "date-fns";
+import { es } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 export const getServerSideProps = requireActiveSubscription;
 
@@ -33,23 +41,81 @@ const CHART_COLORS = {
   orange: "#f97316",
 };
 
+type DateRange = {
+  from: Date;
+  to: Date;
+};
+
+type DateRangePreset = {
+  label: string;
+  getValue: () => DateRange;
+};
+
+const DATE_RANGE_PRESETS: DateRangePreset[] = [
+  {
+    label: "Hoy",
+    getValue: () => ({
+      from: startOfDay(new Date()),
+      to: endOfDay(new Date()),
+    }),
+  },
+  {
+    label: "Ayer",
+    getValue: () => ({
+      from: startOfDay(subDays(new Date(), 1)),
+      to: endOfDay(subDays(new Date(), 1)),
+    }),
+  },
+  {
+    label: "Últimos 7 días",
+    getValue: () => ({
+      from: startOfDay(subDays(new Date(), 6)),
+      to: endOfDay(new Date()),
+    }),
+  },
+  {
+    label: "Esta semana",
+    getValue: () => ({
+      from: startOfWeek(new Date(), { locale: es }),
+      to: endOfWeek(new Date(), { locale: es }),
+    }),
+  },
+  {
+    label: "Este mes",
+    getValue: () => ({
+      from: startOfMonth(new Date()),
+      to: endOfMonth(new Date()),
+    }),
+  },
+  {
+    label: "Últimos 30 días",
+    getValue: () => ({
+      from: startOfDay(subDays(new Date(), 29)),
+      to: endOfDay(new Date()),
+    }),
+  },
+];
+
 export default function DashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [businessName, setBusinessName] = useState("Mi Negocio");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange>(() => DATE_RANGE_PRESETS[0].getValue());
+  const [selectedPreset, setSelectedPreset] = useState<string>("Hoy");
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [dateRange]);
 
   async function loadDashboardData() {
     try {
       const business = await businessService.getCurrentBusiness();
       if (business) {
         setBusinessName(business.name || "Mi Negocio");
-        const dashboardStats = await getDashboardMetrics(business.id);
+        const dashboardStats = await getDashboardMetrics(business.id, dateRange.from, dateRange.to);
         setStats(dashboardStats);
       }
     } catch (error) {
@@ -57,6 +123,31 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handlePresetSelect(preset: DateRangePreset) {
+    const range = preset.getValue();
+    setDateRange(range);
+    setSelectedPreset(preset.label);
+    setIsCalendarOpen(false);
+  }
+
+  function handleCustomDateSelect(range: { from?: Date; to?: Date } | undefined) {
+    if (range?.from && range?.to) {
+      setDateRange({
+        from: startOfDay(range.from),
+        to: endOfDay(range.to),
+      });
+      setSelectedPreset("Personalizado");
+      setIsCalendarOpen(false);
+    }
+  }
+
+  function formatDateRange(): string {
+    if (selectedPreset !== "Personalizado") {
+      return selectedPreset;
+    }
+    return `${format(dateRange.from, "dd MMM", { locale: es })} - ${format(dateRange.to, "dd MMM", { locale: es })}`;
   }
 
   // Calculate growth percentage
@@ -94,12 +185,67 @@ export default function DashboardPage() {
           
           <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
             <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
-              {/* Page Header */}
-              <div className="space-y-2">
-                <h1 className="font-heading text-3xl md:text-4xl font-bold">Dashboard Ejecutivo</h1>
-                <p className="text-base md:text-lg text-muted-foreground">
-                  Análisis en tiempo real de {businessName}
-                </p>
+              {/* Page Header with Date Selector */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="space-y-2">
+                  <h1 className="font-heading text-3xl md:text-4xl font-bold">Dashboard Ejecutivo</h1>
+                  <p className="text-base md:text-lg text-muted-foreground">
+                    Análisis en tiempo real de {businessName}
+                  </p>
+                </div>
+
+                {/* Date Range Selector */}
+                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className={cn(
+                        "w-full sm:w-[280px] justify-start text-left font-normal border-2",
+                        !dateRange && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      <span className="flex-1">{formatDateRange()}</span>
+                      <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <div className="flex">
+                      {/* Presets */}
+                      <div className="border-r p-2 space-y-1 min-w-[140px]">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase px-2 py-1">
+                          Rápido
+                        </p>
+                        {DATE_RANGE_PRESETS.map((preset) => (
+                          <Button
+                            key={preset.label}
+                            variant="ghost"
+                            size="sm"
+                            className={cn(
+                              "w-full justify-start text-sm",
+                              selectedPreset === preset.label && "bg-accent text-accent-foreground"
+                            )}
+                            onClick={() => handlePresetSelect(preset)}
+                          >
+                            {preset.label}
+                          </Button>
+                        ))}
+                      </div>
+
+                      {/* Calendar */}
+                      <div className="p-3">
+                        <Calendar
+                          mode="range"
+                          selected={{ from: dateRange.from, to: dateRange.to }}
+                          onSelect={handleCustomDateSelect}
+                          numberOfMonths={1}
+                          locale={es}
+                          disabled={(date) => date > new Date()}
+                        />
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {/* Enhanced Stats Cards */}
