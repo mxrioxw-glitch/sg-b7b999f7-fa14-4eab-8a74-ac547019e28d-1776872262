@@ -172,40 +172,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         {/* Footer Actions */}
         <div className={`border-t border-border space-y-2 transition-all duration-300 ${isCollapsed ? "p-2" : "p-3"}`}>
-          <Link href="/subscription">
-            <Button 
-              variant="outline" 
-              className={`transition-all duration-300 ${isCollapsed ? "w-full px-0" : "w-full"}`}
-              title={isCollapsed ? "Suscripción" : undefined}
-            >
-              <CreditCard className="h-4 w-4 shrink-0" />
-              {!isCollapsed && <span className="ml-2">Suscripción</span>}
-            </Button>
-          </Link>
-          <Link href="/profile">
-            <Button 
-              variant="outline" 
-              className={`transition-all duration-300 ${isCollapsed ? "w-full px-0" : "w-full"}`}
-              title={isCollapsed ? "Perfil" : undefined}
-            >
-              <User className="h-4 w-4 shrink-0" />
-              {!isCollapsed && <span className="ml-2">Perfil</span>}
-            </Button>
-          </Link>
-          <Link href="/settings">
-            <Button 
-              variant="outline" 
-              className={`transition-all duration-300 ${isCollapsed ? "w-full px-0" : "w-full"}`}
-              title={isCollapsed ? "Configuración" : undefined}
-            >
-              <Settings className="h-4 w-4 shrink-0" />
-              {!isCollapsed && <span className="ml-2">Configuración</span>}
-            </Button>
-          </Link>
           <Button 
             variant="ghost" 
             onClick={handleLogout}
-            className={`text-destructive hover:text-destructive hover:bg-destructive/10 transition-all duration-300 ${isCollapsed ? "w-full px-0" : "w-full"}`}
+            className={`text-destructive hover:text-destructive hover:bg-destructive/10 transition-all duration-300 ${isCollapsed ? "w-full justify-center px-2" : "w-full justify-start"}`}
             title={isCollapsed ? "Cerrar Sesión" : undefined}
           >
             <LogOut className="h-4 w-4 shrink-0" />
