@@ -26,6 +26,8 @@ export default function ProfilePage() {
     email: "",
     fullName: "",
   });
+  const [businessName, setBusinessName] = useState("");
+  const [planName, setPlanName] = useState("");
 
   useEffect(() => {
     loadProfile();
@@ -54,6 +56,41 @@ export default function ProfilePage() {
         email: user.email || "",
         fullName: profile?.full_name || "",
       });
+
+      // Get business info for Header
+      const { data: employee } = await supabase
+        .from("employees")
+        .select("business_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (employee) {
+        const { data: business } = await supabase
+          .from("businesses")
+          .select("name")
+          .eq("id", employee.business_id)
+          .single();
+
+        if (business) {
+          setBusinessName(business.name);
+        }
+
+        // Get subscription for plan name
+        const { data: subscription } = await supabase
+          .from("subscriptions")
+          .select("plan")
+          .eq("business_id", employee.business_id)
+          .maybeSingle();
+
+        if (subscription) {
+          const planNames: Record<string, string> = {
+            basic: "Plan Básico",
+            professional: "Plan Profesional",
+            premium: "Plan Premium",
+          };
+          setPlanName(planNames[subscription.plan] || "Plan Básico");
+        }
+      }
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -158,9 +195,15 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col">
-        <Header />
+        <Header 
+          businessName={businessName}
+          userName={userData.fullName}
+          userEmail={userData.email}
+          planName={planName}
+          onMenuClick={() => setSidebarOpen(true)}
+        />
         <SEO 
           title="Mi Perfil - Nexum Cloud"
           description="Gestiona tu perfil de Nexum Cloud"

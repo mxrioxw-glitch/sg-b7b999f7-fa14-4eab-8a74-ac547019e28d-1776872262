@@ -90,6 +90,9 @@ export default function SubscriptionPage() {
   const [businessName, setBusinessName] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [planName, setPlanName] = useState("");
 
   useEffect(() => {
     checkAccess();
@@ -102,6 +105,17 @@ export default function SubscriptionPage() {
         router.push("/auth/login");
         return;
       }
+
+      setUserEmail(user.email || "");
+
+      // Get profile for user name
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      setUserName(profile?.full_name || user.email?.split("@")[0] || "Usuario");
 
       const currentBusiness = await businessService.getCurrentBusiness();
       if (!currentBusiness) {
@@ -125,6 +139,7 @@ export default function SubscriptionPage() {
       }
 
       setBusiness(currentBusiness);
+      setBusinessName(currentBusiness.name);
       await loadSubscriptionData(currentBusiness.id);
     } catch (error) {
       console.error("Error checking access:", error);
@@ -422,9 +437,15 @@ export default function SubscriptionPage() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1">
-        <Header />
+        <Header 
+          businessName={businessName}
+          userName={userName}
+          userEmail={userEmail}
+          planName={planName}
+          onMenuClick={() => setSidebarOpen(true)}
+        />
         <SEO 
           title="Suscripción - Nexum Cloud"
           description="Gestiona tu suscripción de Nexum Cloud"
