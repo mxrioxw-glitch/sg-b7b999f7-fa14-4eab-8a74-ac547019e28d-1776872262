@@ -519,8 +519,8 @@ export function ProductForm({ product, onSuccess, trigger }: ProductFormProps) {
         <DialogTrigger asChild>
           {trigger}
         </DialogTrigger>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+          <DialogHeader className="px-6 py-4 border-b">
             <DialogTitle className="text-2xl font-bold">
               {product ? "Editar Producto" : "Nuevo Producto"}
             </DialogTitle>
@@ -532,820 +532,264 @@ export function ProductForm({ product, onSuccess, trigger }: ProductFormProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="grid w-full grid-cols-4 mb-4">
-              <TabsTrigger value="basic" className="flex items-center gap-2">
-                <Package className="h-4 w-4" />
-                <span className="hidden sm:inline">Básico</span>
-              </TabsTrigger>
-              <TabsTrigger value="variants" className="flex items-center gap-2">
-                <Tag className="h-4 w-4" />
-                <span className="hidden sm:inline">Variantes</span>
-              </TabsTrigger>
-              <TabsTrigger value="extras" className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Extras</span>
-              </TabsTrigger>
-              <TabsTrigger value="inventory" className="flex items-center gap-2">
-                <Package className="h-4 w-4" />
-                <span className="hidden sm:inline">Insumos</span>
-              </TabsTrigger>
-            </TabsList>
+          <div className="flex-1 overflow-hidden">
+            <form onSubmit={handleSubmit} className="h-full flex flex-col">
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+                <Tabs defaultValue="basic" className="w-full">
+                  <TabsList className="grid w-full grid-cols-4 mb-6">
+                    <TabsTrigger value="basic" className="text-xs md:text-sm">
+                      <Info className="h-4 w-4 mr-1.5" />
+                      <span className="hidden sm:inline">Información</span>
+                      <span className="sm:hidden">Info</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="variants" className="text-xs md:text-sm">
+                      <DollarSign className="h-4 w-4 mr-1.5" />
+                      <span className="hidden sm:inline">Variantes</span>
+                      <span className="sm:hidden">Var</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="extras" className="text-xs md:text-sm">
+                      <Plus className="h-4 w-4 mr-1.5" />
+                      Extras
+                    </TabsTrigger>
+                    <TabsTrigger value="inventory" className="text-xs md:text-sm">
+                      <Package className="h-4 w-4 mr-1.5" />
+                      <span className="hidden sm:inline">Insumos</span>
+                      <span className="sm:hidden">Inv</span>
+                    </TabsTrigger>
+                  </TabsList>
 
-            <div className="flex-1 overflow-y-auto pr-2">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="flex-1 overflow-y-auto px-6">
-                  <Tabs defaultValue="basic" className="w-full">
-                    <TabsList className="grid w-full grid-cols-4 mb-6">
-                      <TabsTrigger value="basic" className="text-xs md:text-sm">
-                        <Info className="h-4 w-4 mr-1.5" />
-                        <span className="hidden sm:inline">Información</span>
-                        <span className="sm:hidden">Info</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="variants" className="text-xs md:text-sm">
-                        <DollarSign className="h-4 w-4 mr-1.5" />
-                        <span className="hidden sm:inline">Variantes</span>
-                        <span className="sm:hidden">Var</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="extras" className="text-xs md:text-sm">
-                        <Plus className="h-4 w-4 mr-1.5" />
-                        Extras
-                      </TabsTrigger>
-                      <TabsTrigger value="inventory" className="text-xs md:text-sm">
-                        <Package className="h-4 w-4 mr-1.5" />
-                        <span className="hidden sm:inline">Insumos</span>
-                        <span className="sm:hidden">Inv</span>
-                      </TabsTrigger>
-                    </TabsList>
+                  {/* BASIC TAB */}
+                  <TabsContent value="basic" className="space-y-6 mt-0">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Información Básica</CardTitle>
+                        <CardDescription>Datos principales del producto</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="name" className="flex items-center gap-2">
+                              Nombre del Producto <span className="text-destructive">*</span>
+                            </Label>
+                            <Input
+                              id="name"
+                              value={name}
+                              onChange={(e) => setName(e.target.value)}
+                              placeholder="Ej: Café Americano"
+                              required
+                            />
+                          </div>
 
-                    {/* BASIC TAB */}
-                    <TabsContent value="basic" className="space-y-6 mt-0">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-lg">Información Básica</CardTitle>
-                          <CardDescription>Datos principales del producto</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="name" className="flex items-center gap-2">
-                                Nombre del Producto <span className="text-destructive">*</span>
-                              </Label>
+                          <div className="space-y-2">
+                            <Label htmlFor="category">Categoría</Label>
+                            {isCreatingCategory ? (
+                              <div className="flex gap-2">
+                                <Input
+                                  placeholder="Nueva categoría"
+                                  value={newCategoryName}
+                                  onChange={(e) => setNewCategoryName(e.target.value)}
+                                />
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={handleCreateCategory}
+                                  disabled={!newCategoryName.trim()}
+                                >
+                                  <CheckCircle2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setIsCreatingCategory(false);
+                                    setNewCategoryName("");
+                                  }}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex gap-2">
+                                <Select value={categoryId} onValueChange={setCategoryId}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Seleccionar categoría" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {categories.map((cat) => (
+                                      <SelectItem key={cat.id} value={cat.id}>
+                                        {cat.icon} {cat.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setIsCreatingCategory(true)}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="description">Descripción</Label>
+                          <Textarea
+                            id="description"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="Descripción del producto (opcional)"
+                            rows={3}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="base_price" className="flex items-center gap-2">
+                              Precio Base <span className="text-destructive">*</span>
+                            </Label>
+                            <div className="relative">
+                              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                               <Input
-                                id="name"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                placeholder="Ej: Café Americano"
+                                id="base_price"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={basePrice}
+                                onChange={(e) => setBasePrice(Number(e.target.value))}
+                                className="pl-10"
+                                placeholder="0.00"
                                 required
                               />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label htmlFor="category">Categoría</Label>
-                              {isCreatingCategory ? (
-                                <div className="flex gap-2">
-                                  <Input
-                                    placeholder="Nueva categoría"
-                                    value={newCategoryName}
-                                    onChange={(e) => setNewCategoryName(e.target.value)}
-                                  />
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    onClick={handleCreateCategory}
-                                    disabled={!newCategoryName.trim()}
-                                  >
-                                    <CheckCircle2 className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setIsCreatingCategory(false);
-                                      setNewCategoryName("");
-                                    }}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              ) : (
-                                <div className="flex gap-2">
-                                  <Select value={categoryId} onValueChange={setCategoryId}>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Seleccionar categoría" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {categories.map((cat) => (
-                                        <SelectItem key={cat.id} value={cat.id}>
-                                          {cat.icon} {cat.name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => setIsCreatingCategory(true)}
-                                  >
-                                    <Plus className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              )}
                             </div>
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="description">Descripción</Label>
-                            <Textarea
-                              id="description"
-                              value={description}
-                              onChange={(e) => setDescription(e.target.value)}
-                              placeholder="Descripción del producto (opcional)"
-                              rows={3}
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="base_price" className="flex items-center gap-2">
-                                Precio Base <span className="text-destructive">*</span>
+                            <Label>Estado del Producto</Label>
+                            <div className="flex items-center space-x-3 h-10 px-3 rounded-md border">
+                              <Switch checked={isActive} onCheckedChange={setIsActive} />
+                              <Label className="cursor-pointer">
+                                {isActive ? (
+                                  <Badge className="bg-green-500">Activo</Badge>
+                                ) : (
+                                  <Badge variant="secondary">Inactivo</Badge>
+                                )}
                               </Label>
-                              <div className="relative">
-                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                  id="base_price"
-                                  type="number"
-                                  step="0.01"
-                                  min="0"
-                                  value={basePrice}
-                                  onChange={(e) => setBasePrice(Number(e.target.value))}
-                                  className="pl-10"
-                                  placeholder="0.00"
-                                  required
-                                />
-                              </div>
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>Estado del Producto</Label>
-                              <div className="flex items-center space-x-3 h-10 px-3 rounded-md border">
-                                <Switch checked={isActive} onCheckedChange={setIsActive} />
-                                <Label className="cursor-pointer">
-                                  {isActive ? (
-                                    <Badge className="bg-green-500">Activo</Badge>
-                                  ) : (
-                                    <Badge variant="secondary">Inactivo</Badge>
-                                  )}
-                                </Label>
-                              </div>
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-lg">Imagen del Producto</CardTitle>
-                          <CardDescription>Agrega una foto que represente tu producto</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          {previewUrl && (
-                            <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-dashed">
-                              <img
-                                src={previewUrl}
-                                alt="Preview"
-                                className="w-full h-full object-cover"
-                              />
-                              <button
-                                type="button"
-                                onClick={handleRemoveImage}
-                                className="absolute top-2 right-2 p-2 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-lg"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
-                          )}
-
-                          <div className="grid grid-cols-1 gap-3">
-                            <Input
-                              ref={imageInputRef}
-                              id="image-upload"
-                              type="file"
-                              accept="image/*"
-                              onChange={handleImageUpload}
-                              className="hidden"
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Imagen del Producto</CardTitle>
+                        <CardDescription>Agrega una foto que represente tu producto</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {previewUrl && (
+                          <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-dashed">
+                            <img
+                              src={previewUrl}
+                              alt="Preview"
+                              className="w-full h-full object-cover"
                             />
-                            <Label htmlFor="image-upload">
-                              <div className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/25 p-6 cursor-pointer hover:border-primary hover:bg-accent/50 transition-all">
-                                <Upload className="h-5 w-5" />
-                                <span className="text-sm font-medium">
-                                  {previewUrl ? "Cambiar imagen" : "Seleccionar imagen"}
-                                </span>
-                              </div>
-                            </Label>
+                            <button
+                              type="button"
+                              onClick={handleRemoveImage}
+                              className="absolute top-2 right-2 p-2 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-lg"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
                           </div>
+                        )}
 
-                          <p className="text-xs text-muted-foreground text-center">
-                            Recomendado: JPG, PNG (máx. 5MB)
-                          </p>
-                        </CardContent>
-                      </Card>
+                        <div className="grid grid-cols-1 gap-3">
+                          <Input
+                            ref={imageInputRef}
+                            id="image-upload"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="hidden"
+                          />
+                          <Label htmlFor="image-upload">
+                            <div className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/25 p-6 cursor-pointer hover:border-primary hover:bg-accent/50 transition-all">
+                              <Upload className="h-5 w-5" />
+                              <span className="text-sm font-medium">
+                                {previewUrl ? "Cambiar imagen" : "Seleccionar imagen"}
+                              </span>
+                            </div>
+                          </Label>
+                        </div>
 
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-lg">Configuración Adicional</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
+                        <p className="text-xs text-muted-foreground text-center">
+                          Recomendado: JPG, PNG (máx. 5MB)
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Configuración Adicional</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between p-3 rounded-lg border">
+                          <div className="space-y-0.5">
+                            <Label className="text-base">Tiene variantes (tamaños)</Label>
+                            <p className="text-sm text-muted-foreground">Ej: Chico, Mediano, Grande</p>
+                          </div>
+                          <Switch checked={hasVariants} onCheckedChange={setHasVariants} />
+                        </div>
+
+                        <div className="flex items-center justify-between p-3 rounded-lg border">
+                          <div className="space-y-0.5">
+                            <Label className="text-base">Tiene extras/modificadores</Label>
+                            <p className="text-sm text-muted-foreground">Ej: Extra queso, Doble carne</p>
+                          </div>
+                          <Switch checked={hasExtras} onCheckedChange={setHasExtras} />
+                        </div>
+
+                        <Separator />
+
+                        <div className="space-y-4">
                           <div className="flex items-center justify-between p-3 rounded-lg border">
                             <div className="space-y-0.5">
-                              <Label className="text-base">Tiene variantes (tamaños)</Label>
-                              <p className="text-sm text-muted-foreground">Ej: Chico, Mediano, Grande</p>
-                            </div>
-                            <Switch checked={hasVariants} onCheckedChange={setHasVariants} />
-                          </div>
-
-                          <div className="flex items-center justify-between p-3 rounded-lg border">
-                            <div className="space-y-0.5">
-                              <Label className="text-base">Tiene extras/modificadores</Label>
-                              <p className="text-sm text-muted-foreground">Ej: Extra queso, Doble carne</p>
-                            </div>
-                            <Switch checked={hasExtras} onCheckedChange={setHasExtras} />
-                          </div>
-
-                          <Separator />
-
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between p-3 rounded-lg border">
-                              <div className="space-y-0.5">
-                                <Label className="text-base">Genera puntos de lealtad</Label>
-                                <p className="text-sm text-muted-foreground">
-                                  Recompensa a tus clientes frecuentes
-                                </p>
-                              </div>
-                              <Switch checked={generatesPoints} onCheckedChange={setGeneratesPoints} />
-                            </div>
-
-                            {generatesPoints && (
-                              <div className="ml-4 space-y-2 animate-in fade-in-50 duration-300">
-                                <Label htmlFor="points_value">Puntos por venta</Label>
-                                <Input
-                                  id="points_value"
-                                  type="number"
-                                  min="0"
-                                  value={pointsValue}
-                                  onChange={(e) => setPointsValue(Number(e.target.value))}
-                                  placeholder="0"
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                  Cantidad de puntos que gana el cliente al comprar este producto
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-
-                    {/* VARIANTS TAB */}
-                    <TabsContent value="variants" className="space-y-6 mt-0">
-                      <Card>
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <CardTitle className="text-lg">Variantes del Producto</CardTitle>
-                              <CardDescription>
-                                Define diferentes tamaños o versiones del producto
-                              </CardDescription>
-                            </div>
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() =>
-                                setVariants([
-                                  ...variants,
-                                  {
-                                    name: "",
-                                    price: 0,
-                                    price_modifier: 0,
-                                    sort_order: variants.length,
-                                    inventory_links: [],
-                                    ingredients: [],
-                                  },
-                                ])
-                              }
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              Agregar Variante
-                            </Button>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          {variants.length === 0 ? (
-                            <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                              <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                              <p className="text-muted-foreground mb-4">No hay variantes agregadas</p>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() =>
-                                  setVariants([
-                                    {
-                                      name: "",
-                                      price: 0,
-                                      price_modifier: 0,
-                                      sort_order: 0,
-                                      inventory_links: [],
-                                      ingredients: [],
-                                    },
-                                  ])
-                                }
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Crear primera variante
-                              </Button>
-                            </div>
-                          ) : (
-                            variants.map((variant, index) => (
-                              <Card key={index} className="border-l-4 border-l-accent">
-                                <CardContent className="pt-6 space-y-4">
-                                  <div className="flex items-start gap-4">
-                                    <Badge variant="outline" className="mt-2">
-                                      {index + 1}
-                                    </Badge>
-                                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                      <div className="space-y-2">
-                                        <Label>Nombre de Variante</Label>
-                                        <Input
-                                          value={variant.name}
-                                          onChange={(e) => {
-                                            const newVariants = [...variants];
-                                            newVariants[index].name = e.target.value;
-                                            setVariants(newVariants);
-                                          }}
-                                          placeholder="Ej: Pequeño, Mediano, Grande"
-                                        />
-                                      </div>
-                                      <div className="space-y-2">
-                                        <Label>Precio Extra</Label>
-                                        <div className="relative">
-                                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                          <Input
-                                            type="number"
-                                            step="0.01"
-                                            value={variant.price}
-                                            onChange={(e) => {
-                                              const newVariants = [...variants];
-                                              newVariants[index].price = parseFloat(e.target.value) || 0;
-                                              setVariants(newVariants);
-                                            }}
-                                            className="pl-10"
-                                            placeholder="0.00"
-                                          />
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => setVariants(variants.filter((_, i) => i !== index))}
-                                    >
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                  </div>
-
-                                  <Separator />
-
-                                  <div className="space-y-3">
-                                    <div className="flex items-center justify-between">
-                                      <Label className="text-sm font-semibold">
-                                        Insumos de esta variante
-                                      </Label>
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => {
-                                          const newVariants = [...variants];
-                                          if (!newVariants[index].ingredients) {
-                                            newVariants[index].ingredients = [];
-                                          }
-                                          newVariants[index].ingredients!.push({
-                                            inventory_id: "",
-                                            quantity: 1,
-                                          });
-                                          setVariants(newVariants);
-                                        }}
-                                      >
-                                        <Plus className="h-3 w-3 mr-1" />
-                                        Agregar Insumo
-                                      </Button>
-                                    </div>
-
-                                    {variant.ingredients && variant.ingredients.length > 0 ? (
-                                      <div className="space-y-2">
-                                        {variant.ingredients.map((ingredient, ingIndex) => (
-                                          <div
-                                            key={ingIndex}
-                                            className="flex items-center gap-2 p-2 rounded-lg bg-muted/50"
-                                          >
-                                            <Select
-                                              value={ingredient.inventory_id}
-                                              onValueChange={(value) => {
-                                                const newVariants = [...variants];
-                                                newVariants[index].ingredients![ingIndex].inventory_id = value;
-                                                const selectedItem = inventoryItems.find(
-                                                  (item) => item.id === value
-                                                );
-                                                if (selectedItem) {
-                                                  newVariants[index].ingredients![ingIndex].inventory_name =
-                                                    selectedItem.name;
-                                                }
-                                                setVariants(newVariants);
-                                              }}
-                                            >
-                                              <SelectTrigger className="flex-1">
-                                                <SelectValue placeholder="Seleccionar insumo" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                {inventoryItems.map((item) => (
-                                                  <SelectItem key={item.id} value={item.id}>
-                                                    {item.name} ({item.current_stock} {item.unit})
-                                                  </SelectItem>
-                                                ))}
-                                              </SelectContent>
-                                            </Select>
-                                            <Input
-                                              type="number"
-                                              step="0.01"
-                                              className="w-24"
-                                              value={ingredient.quantity}
-                                              onChange={(e) => {
-                                                const newVariants = [...variants];
-                                                newVariants[index].ingredients![ingIndex].quantity =
-                                                  parseFloat(e.target.value) || 0;
-                                                setVariants(newVariants);
-                                              }}
-                                              placeholder="Cant."
-                                            />
-                                            <Button
-                                              type="button"
-                                              variant="ghost"
-                                              size="icon"
-                                              onClick={() => {
-                                                const newVariants = [...variants];
-                                                newVariants[index].ingredients = newVariants[
-                                                  index
-                                                ].ingredients!.filter((_, i) => i !== ingIndex);
-                                                setVariants(newVariants);
-                                              }}
-                                            >
-                                              <X className="h-4 w-4" />
-                                            </Button>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <p className="text-sm text-muted-foreground text-center py-4 border-2 border-dashed rounded-lg">
-                                        No hay insumos asignados a esta variante
-                                      </p>
-                                    )}
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            ))
-                          )}
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-
-                    {/* EXTRAS TAB */}
-                    <TabsContent value="extras" className="space-y-6 mt-0">
-                      <Card>
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <CardTitle className="text-lg">Extras y Modificadores</CardTitle>
-                              <CardDescription>
-                                Complementos adicionales que pueden agregar al producto
-                              </CardDescription>
-                            </div>
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() =>
-                                setExtras([
-                                  ...extras,
-                                  {
-                                    name: "",
-                                    price: 0,
-                                    sort_order: extras.length,
-                                    ingredients: [],
-                                  },
-                                ])
-                              }
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              Agregar Extra
-                            </Button>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          {extras.length === 0 ? (
-                            <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                              <Plus className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                              <p className="text-muted-foreground mb-4">No hay extras agregados</p>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() =>
-                                  setExtras([
-                                    { name: "", price: 0, sort_order: 0, ingredients: [] },
-                                  ])
-                                }
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Crear primer extra
-                              </Button>
-                            </div>
-                          ) : (
-                            extras.map((extra, index) => (
-                              <Card key={index} className="border-l-4 border-l-blue-500">
-                                <CardContent className="pt-6 space-y-4">
-                                  <div className="flex items-start gap-4">
-                                    <Badge variant="outline" className="mt-2">
-                                      {index + 1}
-                                    </Badge>
-                                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                      <div className="space-y-2">
-                                        <Label>Nombre del Extra</Label>
-                                        <Input
-                                          value={extra.name}
-                                          onChange={(e) => {
-                                            const newExtras = [...extras];
-                                            newExtras[index].name = e.target.value;
-                                            setExtras(newExtras);
-                                          }}
-                                          placeholder="Ej: Extra queso, Doble carne"
-                                        />
-                                      </div>
-                                      <div className="space-y-2">
-                                        <Label>Precio del Extra</Label>
-                                        <div className="relative">
-                                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                          <Input
-                                            type="number"
-                                            step="0.01"
-                                            value={extra.price}
-                                            onChange={(e) => {
-                                              const newExtras = [...extras];
-                                              newExtras[index].price = parseFloat(e.target.value) || 0;
-                                              setExtras(newExtras);
-                                            }}
-                                            className="pl-10"
-                                            placeholder="0.00"
-                                          />
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => setExtras(extras.filter((_, i) => i !== index))}
-                                    >
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                  </div>
-
-                                  <Separator />
-
-                                  <div className="space-y-3">
-                                    <div className="flex items-center justify-between">
-                                      <Label className="text-sm font-semibold">
-                                        Insumos de este extra
-                                      </Label>
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => {
-                                          const newExtras = [...extras];
-                                          if (!newExtras[index].ingredients) {
-                                            newExtras[index].ingredients = [];
-                                          }
-                                          newExtras[index].ingredients!.push({
-                                            inventory_id: "",
-                                            quantity: 1,
-                                          });
-                                          setExtras(newExtras);
-                                        }}
-                                      >
-                                        <Plus className="h-3 w-3 mr-1" />
-                                        Agregar Insumo
-                                      </Button>
-                                    </div>
-
-                                    {extra.ingredients && extra.ingredients.length > 0 ? (
-                                      <div className="space-y-2">
-                                        {extra.ingredients.map((ingredient, ingIndex) => (
-                                          <div
-                                            key={ingIndex}
-                                            className="flex items-center gap-2 p-2 rounded-lg bg-muted/50"
-                                          >
-                                            <Select
-                                              value={ingredient.inventory_id}
-                                              onValueChange={(value) => {
-                                                const newExtras = [...extras];
-                                                newExtras[index].ingredients![ingIndex].inventory_id = value;
-                                                const selectedItem = inventoryItems.find(
-                                                  (item) => item.id === value
-                                                );
-                                                if (selectedItem) {
-                                                  newExtras[index].ingredients![ingIndex].inventory_name =
-                                                    selectedItem.name;
-                                                }
-                                                setExtras(newExtras);
-                                              }}
-                                            >
-                                              <SelectTrigger className="flex-1">
-                                                <SelectValue placeholder="Seleccionar insumo" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                {inventoryItems.map((item) => (
-                                                  <SelectItem key={item.id} value={item.id}>
-                                                    {item.name} ({item.current_stock} {item.unit})
-                                                  </SelectItem>
-                                                ))}
-                                              </SelectContent>
-                                            </Select>
-                                            <Input
-                                              type="number"
-                                              step="0.01"
-                                              className="w-24"
-                                              value={ingredient.quantity}
-                                              onChange={(e) => {
-                                                const newExtras = [...extras];
-                                                newExtras[index].ingredients![ingIndex].quantity =
-                                                  parseFloat(e.target.value) || 0;
-                                                setExtras(newExtras);
-                                              }}
-                                              placeholder="Cant."
-                                            />
-                                            <Button
-                                              type="button"
-                                              variant="ghost"
-                                              size="icon"
-                                              onClick={() => {
-                                                const newExtras = [...extras];
-                                                newExtras[index].ingredients = newExtras[
-                                                  index
-                                                ].ingredients!.filter((_, i) => i !== ingIndex);
-                                                setExtras(newExtras);
-                                              }}
-                                            >
-                                              <X className="h-4 w-4" />
-                                            </Button>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <p className="text-sm text-muted-foreground text-center py-4 border-2 border-dashed rounded-lg">
-                                        No hay insumos asignados a este extra
-                                      </p>
-                                    )}
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            ))
-                          )}
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-
-                    {/* INVENTORY TAB */}
-                    <TabsContent value="inventory" className="space-y-6 mt-0">
-                      <Card>
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <CardTitle className="text-lg">Insumos del Producto Base</CardTitle>
-                              <CardDescription>
-                                Insumos que se consumen independientemente de la variante
-                              </CardDescription>
-                            </div>
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() =>
-                                setProductInventoryLinks([
-                                  ...productInventoryLinks,
-                                  { inventory_item_id: "", quantity_per_unit: 1 },
-                                ])
-                              }
-                              disabled={inventoryItems.length === 0}
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              Agregar Insumo
-                            </Button>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          {inventoryItems.length === 0 ? (
-                            <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                              <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                              <p className="text-muted-foreground mb-2">
-                                No hay insumos disponibles
-                              </p>
+                              <Label className="text-base">Genera puntos de lealtad</Label>
                               <p className="text-sm text-muted-foreground">
-                                Crea insumos en el módulo de Inventario primero
+                                Recompensa a tus clientes frecuentes
                               </p>
                             </div>
-                          ) : productInventoryLinks.length === 0 ? (
-                            <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                              <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                              <p className="text-muted-foreground mb-4">
-                                No hay insumos base agregados
+                            <Switch checked={generatesPoints} onCheckedChange={setGeneratesPoints} />
+                          </div>
+
+                          {generatesPoints && (
+                            <div className="ml-4 space-y-2 animate-in fade-in-50 duration-300">
+                              <Label htmlFor="points_value">Puntos por venta</Label>
+                              <Input
+                                id="points_value"
+                                type="number"
+                                min="0"
+                                value={pointsValue}
+                                onChange={(e) => setPointsValue(Number(e.target.value))}
+                                placeholder="0"
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Cantidad de puntos que gana el cliente al comprar este producto
                               </p>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() =>
-                                  setProductInventoryLinks([
-                                    { inventory_item_id: "", quantity_per_unit: 1 },
-                                  ])
-                                }
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Agregar primer insumo
-                              </Button>
                             </div>
-                          ) : (
-                            productInventoryLinks.map((link, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center gap-4 p-3 rounded-lg border bg-card"
-                              >
-                                <Badge variant="outline">{index + 1}</Badge>
-                                <div className="flex-1">
-                                  <Select
-                                    value={link.inventory_item_id}
-                                    onValueChange={(value) => {
-                                      const updated = [...productInventoryLinks];
-                                      updated[index].inventory_item_id = value;
-                                      setProductInventoryLinks(updated);
-                                    }}
-                                  >
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Seleccionar insumo" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {inventoryItems.map((item) => (
-                                        <SelectItem key={item.id} value={item.id}>
-                                          {item.name} ({item.unit})
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                <div className="w-[150px]">
-                                  <Input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={link.quantity_per_unit}
-                                    onChange={(e) => {
-                                      const updated = [...productInventoryLinks];
-                                      updated[index].quantity_per_unit = Number(e.target.value);
-                                      setProductInventoryLinks(updated);
-                                    }}
-                                    placeholder="Cantidad"
-                                  />
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() =>
-                                    setProductInventoryLinks(
-                                      productInventoryLinks.filter((_, i) => i !== index)
-                                    )
-                                  }
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </div>
-                            ))
                           )}
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </Tabs>
                 </div>
 
-                <div className="px-6 py-4 border-t bg-muted/50 flex justify-end gap-3">
+                <div className="px-6 py-4 border-t bg-muted/50 flex justify-end gap-3 shrink-0">
                   <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                     Cancelar
                   </Button>
@@ -1365,18 +809,18 @@ export function ProductForm({ product, onSuccess, trigger }: ProductFormProps) {
                 </div>
               </form>
             </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-        <UpgradePlanModal
-          isOpen={showUpgradeModal}
-          onClose={() => setShowUpgradeModal(false)}
-          limitType="products"
-          currentPlan={currentPlan}
-          currentLimit={productCount}
-          suggestedPlan={currentPlan === "basic" ? "professional" : "premium"}
-        />
-      </>
+      <UpgradePlanModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        limitType="products"
+        currentPlan={currentPlan}
+        currentLimit={productCount}
+        suggestedPlan={currentPlan === "basic" ? "professional" : "premium"}
+      />
     </>
   );
 }
