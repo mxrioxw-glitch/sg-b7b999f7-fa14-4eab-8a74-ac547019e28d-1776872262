@@ -17,6 +17,17 @@ export function ProtectedRoute({ children, requiredPermission, requireWrite = fa
 
   useEffect(() => {
     checkAccess();
+    
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        router.push('/auth/login');
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   async function checkAccess() {
