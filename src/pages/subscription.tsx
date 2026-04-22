@@ -31,7 +31,12 @@ const PLANS = [
       "Hasta 50 productos",
       "2 empleados",
       "Punto de Venta (POS)",
-      "Reportes básicos",
+      "Gestión de Productos",
+      "Inventario Básico",
+      "Gestión de Clientes",
+      "Corte de Caja",
+      "Dashboard con Reportes",
+      "Soporte por Email",
     ],
   },
   {
@@ -43,11 +48,16 @@ const PLANS = [
     features: [
       "3 sucursales",
       "Hasta 200 productos",
-      "5 empleados",
-      "Inventario completo",
-      "Gestión de clientes",
-      "Corte de caja",
-      "Dashboard y reportes avanzados",
+      "Empleados ilimitados",
+      "Todo lo del Plan Básico",
+      "Inventario Completo con Kardex",
+      "Dashboard Ejecutivo Avanzado",
+      "Reportes Detallados",
+      "Gestión de Empleados",
+      "🔜 Módulo Comedor (Próximamente)",
+      "🔜 Pantalla de Pedidos (Próximamente)",
+      "🔜 Órdenes por WhatsApp (Próximamente)",
+      "Soporte Prioritario",
     ],
   },
   {
@@ -55,13 +65,18 @@ const PLANS = [
     name: "Premium",
     price: 999,
     icon: Crown,
+    badge: "Contactar",
     features: [
+      "Solución 100% Personalizada",
       "Sucursales ilimitadas",
       "Productos ilimitados",
       "Empleados ilimitados",
       "Todas las funcionalidades",
-      "Soporte prioritario 24/7",
-      "API access",
+      "Características a medida",
+      "Integraciones personalizadas",
+      "Soporte 24/7 Dedicado",
+      "Capacitación personalizada",
+      "Consultoría especializada",
     ],
   },
 ];
@@ -585,6 +600,13 @@ export default function SubscriptionPage() {
                         <Badge className="bg-accent text-white">Más Popular</Badge>
                       </div>
                     )}
+                    {plan.badge && (
+                      <div className="absolute -top-3 right-4">
+                        <Badge variant="outline" className="bg-background border-primary text-primary">
+                          {plan.badge}
+                        </Badge>
+                      </div>
+                    )}
                     <CardHeader>
                       <div className="flex items-center justify-between mb-2">
                         <Icon className="h-8 w-8 text-primary" />
@@ -602,14 +624,28 @@ export default function SubscriptionPage() {
                     </CardHeader>
                     <CardContent>
                       <ul className="space-y-3 mb-6">
-                        {plan.features.map((feature, i) => (
-                          <li key={i} className="flex items-start gap-2">
-                            <Check className="h-5 w-5 text-accent shrink-0 mt-0.5" />
-                            <span className="text-sm">{feature}</span>
-                          </li>
-                        ))}
+                        {plan.features.map((feature, i) => {
+                          const isComingSoon = feature.startsWith("🔜");
+                          const cleanFeature = isComingSoon ? feature.replace("🔜 ", "") : feature;
+                          
+                          return (
+                            <li key={i} className="flex items-start gap-2">
+                              <Check className={`h-5 w-5 shrink-0 mt-0.5 ${isComingSoon ? "text-muted-foreground" : "text-accent"}`} />
+                              <span className={`text-sm ${isComingSoon ? "text-muted-foreground italic" : ""}`}>
+                                {cleanFeature}
+                              </span>
+                            </li>
+                          );
+                        })}
                       </ul>
-                      {plan.id === activePlan?.id ? (
+                      {plan.id === "premium" ? (
+                        <Button className="w-full" variant="outline" asChild>
+                          <a href="mailto:soporte@nexumcloud.com?subject=Consulta Plan Premium">
+                            <Crown className="mr-2 h-4 w-4" />
+                            Contactar Ventas
+                          </a>
+                        </Button>
+                      ) : plan.id === activePlan?.id ? (
                         <Button className="w-full" disabled>
                           <CheckCircle className="mr-2 h-4 w-4" />
                           Plan Actual
