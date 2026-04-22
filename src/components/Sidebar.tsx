@@ -6,22 +6,16 @@ import {
   ShoppingCart, 
   Package, 
   Users, 
+  DollarSign, 
+  BarChart3, 
   Settings,
   LogOut,
-  ChevronLeft,
-  ChevronRight,
-  Store,
-  DollarSign,
-  TrendingUp,
-  Home,
-  BarChart3,
   X,
   CreditCard,
   User,
   UtensilsCrossed,
   ChefHat,
-  MessageSquare,
-  Sparkles
+  MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -71,35 +65,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     { icon: Users, label: "Clientes", href: "/customers" },
     { icon: DollarSign, label: "Corte de Caja", href: "/cash-register" },
     { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
-    { 
-      icon: UtensilsCrossed, 
-      label: "Comedor", 
-      href: "/comedor",
-      badge: "Próximamente",
-      badgeVariant: "outline" as const
-    },
-    { 
-      icon: ChefHat, 
-      label: "Pantalla de Cocina", 
-      href: "/kitchen-display",
-      badge: "Próximamente",
-      badgeVariant: "outline" as const
-    },
-    { 
-      icon: MessageSquare, 
-      label: "WhatsApp", 
-      href: "/whatsapp-orders",
-      badge: "Próximamente",
-      badgeVariant: "outline" as const
-    },
+    { icon: UtensilsCrossed, label: "Comedor", href: "/comedor" },
+    { icon: ChefHat, label: "Pantalla de Cocina", href: "/kitchen-display" },
+    { icon: MessageSquare, label: "WhatsApp", href: "/whatsapp-orders" },
   ];
 
   const navItems = [
-    { name: "Inicio", href: "/", icon: Home },
+    { name: "Inicio", href: "/", icon: LayoutDashboard },
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Punto de Venta", href: "/pos", icon: ShoppingCart },
     { name: "Productos", href: "/products", icon: Package },
-    { name: "Inventario", href: "/inventory", icon: TrendingUp },
+    { name: "Inventario", href: "/inventory", icon: BarChart3 },
     { name: "Corte de Caja", href: "/cash-register", icon: DollarSign },
     { name: "Clientes", href: "/customers", icon: Users },
     { name: "Configuración", href: "/settings", icon: Settings },
@@ -110,38 +86,36 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Mobile Overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={onClose}
         />
       )}
 
       {/* Sidebar */}
-      <aside 
-        className={`
-          fixed top-0 left-0 h-full bg-card border-r z-50
-          transition-all duration-300 ease-in-out flex flex-col
-          ${isExpanded ? "w-64" : "w-16"}
-          ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          md:translate-x-0 md:relative md:z-auto
-        `}
-      >
+      <aside className={`
+        fixed lg:sticky top-0 left-0 z-50 lg:z-0
+        h-screen w-64 bg-card border-r border-border
+        flex flex-col
+        transition-transform duration-300 ease-in-out
+        ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+      `}>
         {/* Header */}
-        <div className="h-16 px-4 md:px-6 border-b flex items-center shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center shrink-0">
-              <Store className="h-6 w-6 text-primary-foreground" />
-            </div>
-            {isExpanded && (
-              <div className="flex flex-col justify-center">
-                <h1 className="font-heading font-bold text-lg leading-none m-0">Nexum Cloud</h1>
-                <p className="text-xs text-muted-foreground leading-none mt-1">Sistema POS</p>
-              </div>
-            )}
-          </div>
+        <div className="h-16 flex items-center justify-between px-4 border-b border-border">
+          <h1 className="font-heading text-xl font-bold text-foreground">
+            Nexum Cloud
+          </h1>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="lg:hidden"
+            onClick={onClose}
+          >
+            <X className="h-5 w-5" />
+          </Button>
         </div>
 
-        {/* Navigation */}
-        <div className="flex-1 py-6 flex flex-col gap-2 overflow-y-auto px-3">
+        {/* Navigation - con scroll personalizado */}
+        <div className="flex-1 overflow-y-auto py-4 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
           <nav className="space-y-1 px-3">
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -152,32 +126,23 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   key={item.href}
                   href={item.href}
                   className={`
-                    flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                    flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
                     ${isActive 
-                      ? "bg-accent text-accent-foreground" 
+                      ? "bg-accent text-accent-foreground shadow-sm" 
                       : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
                     }
                   `}
                 >
                   <Icon className="h-5 w-5 shrink-0" />
-                  <span className="flex-1">{item.label}</span>
-                  {item.badge && (
-                    <Badge 
-                      variant={item.badgeVariant || "default"} 
-                      className="text-[10px] px-1.5 py-0 h-5"
-                    >
-                      <Sparkles className="h-2.5 w-2.5 mr-0.5" />
-                      {item.badge}
-                    </Badge>
-                  )}
+                  <span className="truncate">{item.label}</span>
                 </Link>
               );
             })}
           </nav>
         </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t space-y-2">
+        {/* Footer Actions */}
+        <div className="border-t border-border p-3 space-y-2">
           <Button
             variant="ghost"
             size={isExpanded ? "default" : "icon"}
