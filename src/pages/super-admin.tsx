@@ -20,9 +20,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 type BusinessWithSubscription = Tables<"businesses"> & {
-  subscriptions: (Tables<"subscriptions"> & {
-    subscription_plans?: Tables<"subscription_plans">;
-  })[];
+  subscriptions: Tables<"subscriptions">[];
   profiles?: Tables<"profiles">;
 };
 
@@ -109,10 +107,7 @@ export default function SuperAdminPage() {
           .from("businesses")
           .select(`
             *,
-            subscriptions (
-              *,
-              subscription_plans:plan (*)
-            ),
+            subscriptions (*),
             profiles:owner_id (*)
           `)
           .order("created_at", { ascending: false }),
@@ -125,7 +120,7 @@ export default function SuperAdminPage() {
       if (businessesData.error) throw businessesData.error;
       if (plansData.error) throw plansData.error;
 
-      const loadedBusinesses = businessesData.data as BusinessWithSubscription[];
+      const loadedBusinesses = businessesData.data as unknown as BusinessWithSubscription[];
       setBusinesses(loadedBusinesses);
       setPlans(plansData.data || []);
 
