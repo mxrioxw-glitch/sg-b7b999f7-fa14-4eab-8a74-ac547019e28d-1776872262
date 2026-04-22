@@ -13,27 +13,51 @@ export interface PlanFeatures {
   description: string;
 }
 
-export const PLAN_LIMITS: Record<SubscriptionPlan, PlanFeatures> = {
+export const PLAN_LIMITS = {
   basic: {
-    products: 50,
-    employees: 2,
-    features: ["pos", "products", "basic_reports"],
-    name: "Básico",
-    description: "Ideal para negocios pequeños que inician"
+    max_products: 50,
+    max_employees: 2,
+    max_locations: 1,
+    features: [
+      "pos",
+      "products",
+      "inventory_basic",
+      "customers",
+      "cash_register",
+      "dashboard_basic",
+      "reports_basic"
+    ],
   },
   professional: {
-    products: 200,
-    employees: 5,
-    features: ["pos", "products", "inventory", "customers", "cash_register", "reports", "dashboard"],
-    name: "Profesional",
-    description: "Para negocios en crecimiento"
+    max_products: 200,
+    max_employees: -1, // unlimited
+    max_locations: 3,
+    features: [
+      "pos",
+      "products",
+      "inventory_advanced",
+      "customers",
+      "cash_register",
+      "dashboard_advanced",
+      "reports_advanced",
+      "employees",
+      "kardex",
+      "comedor", // coming soon
+      "kitchen_display", // coming soon
+      "whatsapp_orders" // coming soon
+    ],
   },
   premium: {
-    products: -1, // unlimited
-    employees: -1, // unlimited
-    features: ["all"],
-    name: "Premium",
-    description: "Acceso completo sin restricciones"
+    max_products: -1, // unlimited
+    max_employees: -1, // unlimited
+    max_locations: -1, // unlimited
+    features: [
+      "all",
+      "custom_integrations",
+      "priority_support",
+      "training",
+      "consulting"
+    ],
   },
 };
 
@@ -121,158 +145,127 @@ export const subscriptionService = {
     return PLAN_LIMITS[plan];
   },
 
-  async hasFeatureAccess(feature: string): Promise<{ hasAccess: boolean; reason?: string; plan?: SubscriptionPlan }> {
-    const subscription = await this.getCurrentSubscription();
+  async hasFeatureAccess(feature: string): Promise<{ hasAccess: boolean; reason?: string }> {
+    const plan = await this.getCurrentPlan();
+    if (!plan) {
+      return { hasAccess: false, reason: "No se encontró un plan activo" };
+    }
+
+    const limits = PLAN_LIMITS[plan];
+    if (!limits) {
+      return { hasAccess: false, reason: "Plan no válido" };
+    }
+
+    // Premium has all features
+    if (limits.features.includes("all")) {
+      return { hasAccess: true };
+    }
+
+    // Check if feature is in plan
+    const hasAccess = limits.features.includes(feature);
     
-    if (!subscription) {
+    if (!hasAccess) {
+      // Check if it's a "coming soon" feature
+      if (["comedor", "kitchen_display", "whatsapp_orders"].includes(feature)) {
+        return { 
+          hasAccess: false, 
+          reason: "Esta funcionalidad estará disponible próximamente en el Plan Profesional" 
+        };
+      }
+      
       return { 
         hasAccess: false, 
-        reason: "No tienes una suscripción activa" 
+        reason: "Esta funcionalidad no está disponible en tu plan actual. Actualiza tu plan para acceder." 
       };
     }
 
-    const now = new Date();
-    const endDate = new Date(subscription.current_period_end);
-    const isActive = subscription.status === "active" || 
-                    (subscription.status === "trialing" && endDate > now);
-
-    if (!isActive) {
-      return { 
-        hasAccess: false, 
-        reason: "Tu suscripción ha expirado" 
-      };
-    }
-
-    const plan = subscription.plan as SubscriptionPlan;
-    const planLimits = PLAN_LIMITS[plan];
-
-    // Durante trial con plan premium, acceso total
-    if (subscription.status === "trialing" && plan === "premium") {
-      return { hasAccess: true, plan };
-    }
-
-    // Plan premium tiene acceso a todo
-    if (planLimits.features.includes("all")) {
-      return { hasAccess: true, plan };
-    }
-
-    // Verificar si el plan incluye la funcionalidad
-    if (planLimits.features.includes(feature)) {
-      return { hasAccess: true, plan };
-    }
-
-    // Determinar qué plan se necesita
-    let requiredPlan = "professional";
-    if (PLAN_LIMITS.basic.features.includes(feature)) {
-      requiredPlan = "basic";
-    } else if (PLAN_LIMITS.premium.features.includes("all")) {
-      requiredPlan = "premium";
-    }
-
-    return { 
-      hasAccess: false, 
-      reason: `Esta funcionalidad requiere el plan ${PLAN_LIMITS[requiredPlan as SubscriptionPlan].name}`,
-      plan
-    };
+    return { hasAccess: true };
   },
 
-  async canAddProduct(): Promise<{ canAdd: boolean; reason?: string; current?: number; limit?: number }> {
-    const subscription = await this.getCurrentSubscription();
-    if (!subscription) {
-      return { canAdd: false, reason: "No tienes una suscripción activa" };
+  async canAddProduct(): Promise<{ canAdd: boolean; reason?: string }> {
+    const plan = await this.getCurrentPlan();
+    if (!plan) {
+      return { canAdd: false, reason: "No se encontró un plan activo" };
     }
 
-    const plan = subscription.plan as SubscriptionPlan;
-    const planLimits = PLAN_LIMITS[plan];
+    const limits = PLAN_LIMITS[plan];
+    if (!limits) {
+      return { canAdd: false, reason: "Plan no válido" };
+    }
 
-    // Premium o ilimitado
-    if (planLimits.products === -1) {
+    // Unlimited products
+    if (limits.max_products === -1) {
       return { canAdd: true };
     }
 
-    // Durante trial, usar límites del plan
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { canAdd: false, reason: "Usuario no autenticado" };
+    const business = await businessService.getCurrentBusiness();
+    if (!business) {
+      return { canAdd: false, reason: "No se encontró el negocio" };
+    }
 
-    const { data: business } = await supabase
-      .from("businesses")
-      .select("id")
-      .eq("owner_id", user.id)
-      .maybeSingle();
-
-    if (!business) return { canAdd: false, reason: "Negocio no encontrado" };
-
-    // Contar productos actuales
-    const { count } = await supabase
+    const { count, error } = await supabase
       .from("products")
       .select("*", { count: "exact", head: true })
       .eq("business_id", business.id);
 
-    const currentCount = count || 0;
+    if (error) {
+      console.error("Error counting products:", error);
+      return { canAdd: false, reason: "Error al verificar límite de productos" };
+    }
 
-    if (currentCount >= planLimits.products) {
+    const currentCount = count || 0;
+    
+    if (currentCount >= limits.max_products) {
       return { 
         canAdd: false, 
-        reason: `Has alcanzado el límite de ${planLimits.products} productos de tu plan ${planLimits.name}`,
-        current: currentCount,
-        limit: planLimits.products
+        reason: `Has alcanzado el límite de ${limits.max_products} productos de tu plan ${plan === "basic" ? "Básico" : "Profesional"}. Actualiza tu plan para agregar más productos.` 
       };
     }
 
-    return { 
-      canAdd: true,
-      current: currentCount,
-      limit: planLimits.products
-    };
+    return { canAdd: true };
   },
 
-  async canAddEmployee(): Promise<{ canAdd: boolean; reason?: string; current?: number; limit?: number }> {
-    const subscription = await this.getCurrentSubscription();
-    if (!subscription) {
-      return { canAdd: false, reason: "No tienes una suscripción activa" };
+  async canAddEmployee(): Promise<{ canAdd: boolean; reason?: string }> {
+    const plan = await this.getCurrentPlan();
+    if (!plan) {
+      return { canAdd: false, reason: "No se encontró un plan activo" };
     }
 
-    const plan = subscription.plan as SubscriptionPlan;
-    const planLimits = PLAN_LIMITS[plan];
+    const limits = PLAN_LIMITS[plan];
+    if (!limits) {
+      return { canAdd: false, reason: "Plan no válido" };
+    }
 
-    // Premium o ilimitado
-    if (planLimits.employees === -1) {
+    // Unlimited employees
+    if (limits.max_employees === -1) {
       return { canAdd: true };
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { canAdd: false, reason: "Usuario no autenticado" };
+    const business = await businessService.getCurrentBusiness();
+    if (!business) {
+      return { canAdd: false, reason: "No se encontró el negocio" };
+    }
 
-    const { data: business } = await supabase
-      .from("businesses")
-      .select("id")
-      .eq("owner_id", user.id)
-      .maybeSingle();
-
-    if (!business) return { canAdd: false, reason: "Negocio no encontrado" };
-
-    // Contar empleados actuales
-    const { count } = await supabase
+    const { count, error } = await supabase
       .from("employees")
       .select("*", { count: "exact", head: true })
       .eq("business_id", business.id);
 
-    const currentCount = count || 0;
+    if (error) {
+      console.error("Error counting employees:", error);
+      return { canAdd: false, reason: "Error al verificar límite de empleados" };
+    }
 
-    if (currentCount >= planLimits.employees) {
+    const currentCount = count || 0;
+    
+    if (currentCount >= limits.max_employees) {
       return { 
         canAdd: false, 
-        reason: `Has alcanzado el límite de ${planLimits.employees} empleados de tu plan ${planLimits.name}`,
-        current: currentCount,
-        limit: planLimits.employees
+        reason: `Has alcanzado el límite de ${limits.max_employees} empleados de tu plan Básico. Actualiza a plan Profesional para empleados ilimitados.` 
       };
     }
 
-    return { 
-      canAdd: true,
-      current: currentCount,
-      limit: planLimits.employees
-    };
+    return { canAdd: true };
   },
 
   async createTrialSubscription(businessId: string): Promise<void> {
