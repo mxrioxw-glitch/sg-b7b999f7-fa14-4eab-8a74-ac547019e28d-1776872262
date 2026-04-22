@@ -193,15 +193,15 @@ function POSContent() {
   function addToCart(item: CartItem) {
     setCart(prev => {
       const existing = prev.find(i => 
-        i.product_id === item.product_id && 
-        i.variant_id === item.variant_id &&
+        i.productId === item.productId && 
+        i.variant === item.variant &&
         JSON.stringify(i.extras) === JSON.stringify(item.extras)
       );
 
       if (existing) {
         toast({
           title: "🛒 Cantidad actualizada",
-          description: `${item.product_name} (${existing.quantity + 1})`,
+          description: `${item.name} (${existing.quantity + 1})`,
           duration: 2000,
         });
         return prev.map(i => 
@@ -213,7 +213,7 @@ function POSContent() {
 
       toast({
         title: "➕ Producto agregado",
-        description: item.product_name,
+        description: item.name,
         duration: 2000,
       });
       return [...prev, item];
@@ -224,14 +224,16 @@ function POSContent() {
     setCart(cart.map(item => item.id === itemId ? { ...item, quantity } : item));
   };
 
-  function removeFromCart(index: number) {
-    const item = cart[index];
-    toast({
-      title: "🗑️ Producto eliminado",
-      description: item.product_name,
-      duration: 2000,
-    });
-    setCart(prev => prev.filter((_, i) => i !== index));
+  function removeFromCart(id: string) {
+    const item = cart.find(i => i.id === id);
+    if (item) {
+      toast({
+        title: "🗑️ Producto eliminado",
+        description: item.name,
+        duration: 2000,
+      });
+      setCart(prev => prev.filter(i => i.id !== id));
+    }
   };
 
   const cartSubtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
