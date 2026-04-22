@@ -91,46 +91,55 @@ function POSContent() {
   const [mobileView, setMobileView] = useState<"products" | "cart">("products");
 
   useEffect(() => {
-    loadPOSData();
-  }, []);
+    async function checkSubscriptionAndLoadData() {
+      try {
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.push("/auth/login");
+          return;
+        }
 
-  async function loadPOSData() {
-    try {
-      // Check subscription but don't block - just warn
-      const isActive = await subscriptionService.isSubscriptionActive();
-      if (!isActive) {
-        toast({
-          title: "Suscripción inactiva",
-          description: "Tu período de prueba ha expirado. Por favor, actualiza tu suscripción.",
-          variant: "destructive",
-        });
-        // Don't redirect, just warn
+        // Get user's business
+        const business = await businessService.getCurrentBusiness();
+        if (!business) {
+          router.push("/");
+          return;
+        }
+
+        // SOLO verificar suscripción si el usuario es el DUEÑO del negocio
+        // Los empleados/cajeros NO deben ver mensajes de suscripción
+        const isOwner = business.owner_id === user.id;
+        
+        if (isOwner) {
+          // Solo el dueño ve notificaciones de suscripción
+          const isActive = await subscriptionService.isSubscriptionActive();
+          if (!isActive) {
+            toast({
+              title: "⚠️ Suscripción Requerida",
+              description: "Tu período de prueba ha expirado. Por favor, actualiza tu suscripción.",
+              variant: "destructive",
+              duration: 5000,
+            });
+            router.push("/subscription");
+            return;
+          }
+        }
+        // Si es empleado, continuar normalmente SIN verificar suscripción
+
+        // Load data
+        await Promise.all([
+          loadCategories(),
+          loadProducts(),
+          loadPaymentMethods(),
+        ]);
+      } catch (error) {
+        console.error("Error in POS initialization:", error);
       }
-
-      const currentBusiness = await businessService.getCurrentBusiness();
-      if (!currentBusiness) {
-        router.push("/");
-        return;
-      }
-
-      setBusiness(currentBusiness);
-      await Promise.all([
-        loadCategories(currentBusiness.id),
-        loadProducts(currentBusiness.id),
-        loadActiveCashRegister(currentBusiness.id),
-        loadCustomers(currentBusiness.id)
-      ]);
-    } catch (error) {
-      console.error("Error loading POS:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo cargar el punto de venta",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
     }
-  }
+
+    checkSubscriptionAndLoadData();
+  }, []);
 
   async function loadActiveCashRegister(businessId: string) {
     try {
