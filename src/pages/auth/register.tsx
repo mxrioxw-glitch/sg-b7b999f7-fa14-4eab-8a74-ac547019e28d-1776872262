@@ -70,7 +70,10 @@ export default function RegisterPage() {
       );
 
       if (signUpError || !user) {
-        throw new Error(signUpError || "No se pudo crear el usuario");
+        const errorMsg = typeof signUpError === 'string' 
+          ? signUpError 
+          : (signUpError as any)?.message || "No se pudo crear el usuario";
+        throw new Error(errorMsg);
       }
 
       // Esperar un momento para que el perfil se cree
