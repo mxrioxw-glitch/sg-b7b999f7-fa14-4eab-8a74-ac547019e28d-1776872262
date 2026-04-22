@@ -115,14 +115,15 @@ export default function RegisterPage() {
         console.error("Error inserting employee record:", employeeErr);
       }
 
-      // 5. Redirigir al inicio
+      // 5. Redirigir a la página de verificación de email
       toast({
         title: "✅ ¡Cuenta creada exitosamente!",
-        description: "Bienvenido a Nexum Cloud",
+        description: "Por favor, verifica tu correo electrónico",
         className: "bg-accent text-accent-foreground border-accent",
       });
 
-      router.push("/");
+      // Redirigir a página de verificación con el email
+      router.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}`);
     } catch (err: any) {
       console.error("Registration error:", err);
       setError(err.message || "Error en el registro. Por favor, intenta de nuevo.");

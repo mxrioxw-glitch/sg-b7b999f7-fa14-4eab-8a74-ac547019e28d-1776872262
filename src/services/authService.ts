@@ -177,6 +177,27 @@ export const authService = {
     }
   },
 
+  async resendVerificationEmail(email: string): Promise<{ error: string | null }> {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: email,
+        options: {
+          emailRedirectTo: `${getRedirectUrl()}/auth/confirm-email`,
+        },
+      });
+
+      if (error) {
+        return { error: error.message };
+      }
+
+      return { error: null };
+    } catch (err: any) {
+      console.error("Error resending verification email:", err);
+      return { error: err.message || "Error al reenviar el correo" };
+    }
+  },
+
   // Listen to auth state changes
   onAuthStateChange(callback: (event: string, session: Session | null) => void) {
     return supabase.auth.onAuthStateChange(callback);
