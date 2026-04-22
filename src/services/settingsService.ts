@@ -97,6 +97,8 @@ export const settingsService = {
     secondary_color?: string;
     accent_color?: string;
   }): Promise<Business> {
+    console.log("Updating customization with:", updates);
+    
     const { data, error } = await supabase
       .from("businesses")
       .update(updates)
@@ -109,6 +111,7 @@ export const settingsService = {
       throw error;
     }
 
+    console.log("Customization updated:", data);
     return data;
   }
 };
