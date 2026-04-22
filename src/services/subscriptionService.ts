@@ -269,11 +269,11 @@ export const subscriptionService = {
     return { canAdd: true };
   },
 
-  async createTrialSubscription(businessId: string): Promise<void> {
+  async createTrialSubscription(businessId: string): Promise<{ error: string | null }> {
     const trialEnd = new Date();
     trialEnd.setDate(trialEnd.getDate() + 7); // 7 days trial
 
-    await supabase.from("subscriptions").insert({
+    const { error } = await supabase.from("subscriptions").insert({
       business_id: businessId,
       plan: "premium", // Full access during trial
       status: "trialing",
@@ -282,5 +282,7 @@ export const subscriptionService = {
       trial_start: new Date().toISOString(),
       trial_end: trialEnd.toISOString(),
     });
+
+    return { error: error?.message || null };
   },
 };
