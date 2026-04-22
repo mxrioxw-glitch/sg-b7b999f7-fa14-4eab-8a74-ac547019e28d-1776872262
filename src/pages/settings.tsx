@@ -30,6 +30,42 @@ export const getServerSideProps = requireActiveSubscription;
 
 type SettingsView = "menu" | "business" | "employees" | "payments" | "taxes" | "printer" | "customization";
 
+// Color palettes
+const COLOR_PALETTES = [
+  {
+    id: "coffee",
+    name: "Coffee House",
+    description: "Cálido y acogedor, perfecto para cafeterías",
+    primary: "#2A1810",
+    secondary: "#4A3228",
+    accent: "#4A9C64",
+  },
+  {
+    id: "ocean",
+    name: "Ocean Blue",
+    description: "Profesional y confiable, ideal para negocios modernos",
+    primary: "#0F4C81",
+    secondary: "#1E3A5F",
+    accent: "#00B4D8",
+  },
+  {
+    id: "sunset",
+    name: "Sunset Glow",
+    description: "Energético y vibrante, perfecto para comida rápida",
+    primary: "#D84315",
+    secondary: "#BF360C",
+    accent: "#FF6F00",
+  },
+  {
+    id: "forest",
+    name: "Forest Green",
+    description: "Natural y fresco, ideal para negocios saludables",
+    primary: "#2E7D32",
+    secondary: "#1B5E20",
+    accent: "#66BB6A",
+  },
+];
+
 export default function SettingsPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -53,6 +89,7 @@ export default function SettingsPage() {
   const [taxForm, setTaxForm] = useState({ tax_rate: 16, tax_included: false });
   const [printerWidth, setPrinterWidth] = useState<"58mm" | "80mm">("80mm");
   const [customizationForm, setCustomizationForm] = useState({ pos_name: "Mi POS", primary_color: "#2A1810", secondary_color: "#4A3228", accent_color: "#4A9C64" });
+  const [selectedPalette, setSelectedPalette] = useState<string>("coffee");
   
   const [newEmployeeName, setNewEmployeeName] = useState("");
   const [newEmployeeEmail, setNewEmployeeEmail] = useState("");
@@ -71,6 +108,19 @@ export default function SettingsPage() {
   useEffect(() => {
     checkAccess();
   }, []);
+
+  function handlePaletteSelect(paletteId: string) {
+    const palette = COLOR_PALETTES.find((p) => p.id === paletteId);
+    if (palette) {
+      setSelectedPalette(paletteId);
+      setCustomizationForm({
+        ...customizationForm,
+        primary_color: palette.primary,
+        secondary_color: palette.secondary,
+        accent_color: palette.accent,
+      });
+    }
+  }
 
   async function checkAccess() {
     try {
@@ -130,6 +180,15 @@ export default function SettingsPage() {
         secondary_color: currentBusiness.secondary_color || "#4A3228",
         accent_color: currentBusiness.accent_color || "#4A9C64",
       });
+
+      // Detectar paleta actual
+      const currentPalette = COLOR_PALETTES.find(
+        (p) =>
+          p.primary === currentBusiness.primary_color &&
+          p.secondary === currentBusiness.secondary_color &&
+          p.accent === currentBusiness.accent_color
+      );
+      setSelectedPalette(currentPalette?.id || "custom");
 
       await loadEmployees(currentBusiness.id);
       await loadPaymentMethods(currentBusiness.id);
@@ -1111,90 +1170,90 @@ export default function SettingsPage() {
                         onChange={(e) => setCustomizationForm({ ...customizationForm, pos_name: e.target.value })}
                         placeholder="Mi Sistema POS"
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Este nombre aparecerá en el sistema y en los tickets
+                      </p>
                     </div>
                     
-                    <div className="space-y-4">
-                      <Label>Colores del Sistema</Label>
-                      
-                      <div className="space-y-3">
-                        <div className="space-y-2">
-                          <Label htmlFor="primary_color" className="text-sm">Color Primario</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              id="primary_color"
-                              type="color"
-                              value={customizationForm.primary_color}
-                              onChange={(e) => setCustomizationForm({ ...customizationForm, primary_color: e.target.value })}
-                              className="w-16 h-10 flex-shrink-0"
-                            />
-                            <Input
-                              value={customizationForm.primary_color}
-                              onChange={(e) => setCustomizationForm({ ...customizationForm, primary_color: e.target.value })}
-                              placeholder="#2A1810"
-                              className="flex-1"
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="secondary_color" className="text-sm">Color Secundario</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              id="secondary_color"
-                              type="color"
-                              value={customizationForm.secondary_color}
-                              onChange={(e) => setCustomizationForm({ ...customizationForm, secondary_color: e.target.value })}
-                              className="w-16 h-10 flex-shrink-0"
-                            />
-                            <Input
-                              value={customizationForm.secondary_color}
-                              onChange={(e) => setCustomizationForm({ ...customizationForm, secondary_color: e.target.value })}
-                              placeholder="#4A3228"
-                              className="flex-1"
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="accent_color" className="text-sm">Color de Acento</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              id="accent_color"
-                              type="color"
-                              value={customizationForm.accent_color}
-                              onChange={(e) => setCustomizationForm({ ...customizationForm, accent_color: e.target.value })}
-                              className="w-16 h-10 flex-shrink-0"
-                            />
-                            <Input
-                              value={customizationForm.accent_color}
-                              onChange={(e) => setCustomizationForm({ ...customizationForm, accent_color: e.target.value })}
-                              placeholder="#4A9C64"
-                              className="flex-1"
-                            />
-                          </div>
-                        </div>
+                    <div className="border-t pt-6 space-y-4">
+                      <div>
+                        <Label className="text-base">Paleta de Colores</Label>
+                        <p className="text-sm text-muted-foreground mt-1 mb-4">
+                          Selecciona una paleta de colores predefinida para tu sistema
+                        </p>
                       </div>
-                    </div>
-                    
-                    <div className="p-4 border rounded-lg bg-muted/50">
-                      <p className="text-sm font-medium mb-3">Vista Previa</p>
-                      <div className="flex gap-2">
-                        <div
-                          className="w-20 h-20 rounded-lg border-2 flex-shrink-0"
-                          style={{ backgroundColor: customizationForm.primary_color }}
-                        />
-                        <div
-                          className="w-20 h-20 rounded-lg border-2 flex-shrink-0"
-                          style={{ backgroundColor: customizationForm.secondary_color }}
-                        />
-                        <div
-                          className="w-20 h-20 rounded-lg border-2 flex-shrink-0"
-                          style={{ backgroundColor: customizationForm.accent_color }}
-                        />
+
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        {COLOR_PALETTES.map((palette) => (
+                          <div
+                            key={palette.id}
+                            className={`
+                              relative cursor-pointer rounded-lg border-2 p-4 transition-all
+                              ${selectedPalette === palette.id 
+                                ? "border-primary shadow-md" 
+                                : "border-border hover:border-primary/50"
+                              }
+                            `}
+                            onClick={() => handlePaletteSelect(palette.id)}
+                          >
+                            {selectedPalette === palette.id && (
+                              <div className="absolute top-2 right-2">
+                                <div className="rounded-full bg-primary p-1">
+                                  <Check className="h-3 w-3 text-white" />
+                                </div>
+                              </div>
+                            )}
+                            
+                            <div className="space-y-3">
+                              <div>
+                                <h4 className="font-semibold text-foreground">{palette.name}</h4>
+                                <p className="text-xs text-muted-foreground mt-1">{palette.description}</p>
+                              </div>
+                              
+                              <div className="flex gap-2">
+                                <div className="flex-1 space-y-1">
+                                  <div
+                                    className="h-12 rounded border"
+                                    style={{ backgroundColor: palette.primary }}
+                                  />
+                                  <p className="text-[10px] text-center text-muted-foreground">Primario</p>
+                                </div>
+                                <div className="flex-1 space-y-1">
+                                  <div
+                                    className="h-12 rounded border"
+                                    style={{ backgroundColor: palette.secondary }}
+                                  />
+                                  <p className="text-[10px] text-center text-muted-foreground">Secundario</p>
+                                </div>
+                                <div className="flex-1 space-y-1">
+                                  <div
+                                    className="h-12 rounded border"
+                                    style={{ backgroundColor: palette.accent }}
+                                  />
+                                  <p className="text-[10px] text-center text-muted-foreground">Acento</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
+
+                      {selectedPalette !== "custom" && (
+                        <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <Palette className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium">Vista Previa</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Los cambios se aplicarán al guardar. Recarga la página después para ver los colores en todo el sistema.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
-                    <div className="flex justify-end gap-2 pt-4">
+                    <div className="flex justify-end gap-2 pt-4 border-t">
                       <Button variant="outline" onClick={() => setCurrentView("menu")}>
                         Cancelar
                       </Button>
