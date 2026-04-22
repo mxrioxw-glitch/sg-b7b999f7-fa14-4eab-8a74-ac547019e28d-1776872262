@@ -15,22 +15,19 @@ export interface AuthError {
 
 // Dynamic URL Helper
 const getURL = () => {
-  let url = process?.env?.NEXT_PUBLIC_VERCEL_URL ?? 
-           process?.env?.NEXT_PUBLIC_SITE_URL ?? 
-           'http://localhost:3000'
+  // In Next.js, NEXT_PUBLIC_ vars are available at build time
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
   
-  // Handle undefined or null url
-  if (!url) {
-    url = 'http://localhost:3000';
+  if (siteUrl) {
+    // Ensure url has protocol
+    let url = siteUrl.startsWith('http') ? siteUrl : `https://${siteUrl}`;
+    // Ensure url ends with slash
+    url = url.endsWith('/') ? url : `${url}/`;
+    return url;
   }
   
-  // Ensure url has protocol
-  url = url.startsWith('http') ? url : `https://${url}`
-  
-  // Ensure url ends with slash
-  url = url.endsWith('/') ? url : `${url}/`
-  
-  return url
+  // Fallback for local development
+  return 'http://localhost:3000/';
 }
 
 export const authService = {
