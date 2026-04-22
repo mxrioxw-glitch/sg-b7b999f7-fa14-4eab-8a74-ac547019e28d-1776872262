@@ -117,25 +117,29 @@ function ProductsContent() {
     setDeleteDialogOpen(true);
   }
 
-  async function handleDeleteConfirm() {
-    if (!productToDelete) return;
+  async function handleConfirmDelete() {
+    if (!productToDelete || !businessId) return;
 
+    setDeleting(productToDelete.id);
     try {
       await productService.deleteProduct(productToDelete.id);
       toast({
-        title: "Producto eliminado",
-        description: "El producto se ha eliminado correctamente",
+        title: "🗑️ Producto eliminado",
+        description: productToDelete.name,
+        duration: 3000,
       });
       await loadProducts(businessId);
       setDeleteDialogOpen(false);
       setProductToDelete(null);
     } catch (error) {
-      console.error("Error deleting product:", error);
+      console.error("Error:", error);
       toast({
-        title: "Error",
+        title: "❌ Error",
         description: "No se pudo eliminar el producto",
         variant: "destructive",
       });
+    } finally {
+      setDeleting(null);
     }
   }
 
@@ -340,7 +344,7 @@ function ProductsContent() {
               </Button>
               <Button
                 variant="destructive"
-                onClick={handleDeleteConfirm}
+                onClick={handleConfirmDelete}
               >
                 Eliminar
               </Button>

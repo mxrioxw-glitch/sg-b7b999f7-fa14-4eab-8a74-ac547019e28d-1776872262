@@ -80,20 +80,22 @@ function InventoryContent() {
     }
   }
 
-  const handleDelete = async (itemId: string) => {
-    if (!confirm("¿Estás seguro de eliminar este insumo?")) return;
+  async function handleDelete(id: string) {
+    if (!confirm("¿Eliminar este insumo?")) return;
 
     try {
-      await deleteInventoryItem(itemId);
+      const item = items.find(i => i.id === id);
+      await inventoryService.deleteInventoryItem(id);
       toast({
-        title: "Insumo eliminado",
-        description: "El insumo se eliminó correctamente",
+        title: "🗑️ Insumo eliminado",
+        description: item?.name || "Insumo eliminado del inventario",
+        duration: 3000,
       });
-      loadData();
+      await loadInventoryItems(businessId!);
     } catch (error) {
-      console.error("Error deleting item:", error);
+      console.error("Error:", error);
       toast({
-        title: "Error",
+        title: "❌ Error",
         description: "No se pudo eliminar el insumo",
         variant: "destructive",
       });
@@ -129,6 +131,76 @@ function InventoryContent() {
   const isLowStock = (item: InventoryItem) => {
     return Number(item.current_stock) <= Number(item.min_stock);
   };
+
+  async function handleSave() {
+    if (!businessId) return;
+
+    try {
+      if (editingItem) {
+        await inventoryService.updateInventoryItem(editingItem.id, formData);
+        toast({
+          title: "✅ Insumo actualizado",
+          description: `${formData.name} - Stock: ${formData.current_stock} ${formData.unit}`,
+          className: "bg-accent text-accent-foreground border-accent",
+        });
+      } else {
+        await inventoryService.createInventoryItem(businessId, formData);
+        toast({
+          title: "✅ Insumo creado",
+          description: `${formData.name} agregado al inventario`,
+          className: "bg-accent text-accent-foreground border-accent",
+        });
+      }
+      await loadInventoryItems(businessId);
+      setShowForm(false);
+      resetForm();
+    } catch (error) {
+      console.error("Error:", error);
+      toast({
+        title: "❌ Error",
+        description: "No se pudo guardar el insumo",
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function handleAdjustmentSave(data: { reason: string; quantity: number; type: "add" | "subtract" }) {
+    if (!adjustingItem || !businessId) return;
+
+    try {
+      const newStock = data.type === "add"
+        ? adjustingItem.current_stock + data.quantity
+        : adjustingItem.current_stock - data.quantity;
+
+      await inventoryService.updateInventoryItem(adjustingItem.id, {
+        current_stock: newStock,
+      });
+
+      await inventoryService.createInventoryAdjustment({
+        business_id: businessId,
+        inventory_item_id: adjustingItem.id,
+        adjustment_type: data.type,
+        quantity: data.quantity,
+        reason: data.reason,
+      });
+
+      toast({
+        title: `${data.type === "add" ? "📈" : "📉"} Ajuste registrado`,
+        description: `${adjustingItem.name}: ${data.type === "add" ? "+" : "-"}${data.quantity} ${adjustingItem.unit}`,
+        className: "bg-accent text-accent-foreground border-accent",
+      });
+
+      await loadInventoryItems(businessId);
+      setAdjustingItem(null);
+    } catch (error) {
+      console.error("Error:", error);
+      toast({
+        title: "❌ Error",
+        description: "No se pudo registrar el ajuste",
+        variant: "destructive",
+      });
+    }
+  }
 
   return (
     <div className="flex min-h-screen bg-background">

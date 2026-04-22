@@ -190,30 +190,48 @@ function POSContent() {
     }
   };
 
-  const addToCart = (item: CartItem) => {
-    const existingIndex = cart.findIndex(c => 
-      c.productId === item.productId && 
-      c.variant === item.variant && 
-      JSON.stringify(c.extras) === JSON.stringify(item.extras) &&
-      c.notes === item.notes
-    );
-    
-    if (existingIndex >= 0) {
-      const newCart = [...cart];
-      newCart[existingIndex].quantity += item.quantity;
-      setCart(newCart);
-    } else {
-      setCart([...cart, item]);
-    }
-    setShowProductModal(false);
+  function addToCart(item: CartItem) {
+    setCart(prev => {
+      const existing = prev.find(i => 
+        i.product_id === item.product_id && 
+        i.variant_id === item.variant_id &&
+        JSON.stringify(i.extras) === JSON.stringify(item.extras)
+      );
+
+      if (existing) {
+        toast({
+          title: "🛒 Cantidad actualizada",
+          description: `${item.product_name} (${existing.quantity + 1})`,
+          duration: 2000,
+        });
+        return prev.map(i => 
+          i === existing 
+            ? { ...i, quantity: i.quantity + 1 }
+            : i
+        );
+      }
+
+      toast({
+        title: "➕ Producto agregado",
+        description: item.product_name,
+        duration: 2000,
+      });
+      return [...prev, item];
+    });
   };
 
   const updateQuantity = (itemId: string, quantity: number) => {
     setCart(cart.map(item => item.id === itemId ? { ...item, quantity } : item));
   };
 
-  const removeFromCart = (itemId: string) => {
-    setCart(cart.filter(item => item.id !== itemId));
+  function removeFromCart(index: number) {
+    const item = cart[index];
+    toast({
+      title: "🗑️ Producto eliminado",
+      description: item.product_name,
+      duration: 2000,
+    });
+    setCart(prev => prev.filter((_, i) => i !== index));
   };
 
   const cartSubtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
