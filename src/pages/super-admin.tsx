@@ -1,4 +1,3 @@
-import { Header } from "@/components/Header";
 import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,28 +5,46 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { authService } from "@/services/authService";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { Shield, Users, DollarSign, CheckCircle2, AlertCircle, XCircle, Edit, LogOut, Save, Store } from "lucide-react";
+import { 
+  Shield, Users, DollarSign, CheckCircle2, AlertCircle, XCircle, 
+  Edit, Store, TrendingUp, TrendingDown, Clock, Search,
+  Calendar, Filter, BarChart3, PieChart, Activity
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type BusinessWithSubscription = Tables<"businesses"> & {
-  subscriptions: Tables<"subscriptions">[];
+  subscriptions: (Tables<"subscriptions"> & {
+    subscription_plans?: Tables<"subscription_plans">;
+  })[];
+  profiles?: Tables<"profiles">;
 };
 
-type SubscriptionPlan = {
-  id: string;
-  name: string;
-  price_monthly: number;
-  price_yearly: number;
-  features: string[];
-  max_branches: number;
-  max_products: number;
-  max_employees: number;
+type SubscriptionPlan = Tables<"subscription_plans">;
+
+type MetricsData = {
+  totalBusinesses: number;
+  activeBusinesses: number;
+  trialingBusinesses: number;
+  canceledBusinesses: number;
+  mrr: number;
+  arr: number;
+  conversionRate: number;
+  growthRate: number;
+};
+
+type PlanStats = {
+  planId: string;
+  planName: string;
+  count: number;
+  revenue: number;
+  percentage: number;
 };
 
 export default function SuperAdminPage() {
@@ -36,19 +53,33 @@ export default function SuperAdminPage() {
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
   const [businesses, setBusinesses] = useState<BusinessWithSubscription[]>([]);
+  const [filteredBusinesses, setFilteredBusinesses] = useState<BusinessWithSubscription[]>([]);
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [metrics, setMetrics] = useState({
+  const [metrics, setMetrics] = useState<MetricsData>({
     totalBusinesses: 0,
     activeBusinesses: 0,
     trialingBusinesses: 0,
-    mrr: 0
+    canceledBusinesses: 0,
+    mrr: 0,
+    arr: 0,
+    conversionRate: 0,
+    growthRate: 0
   });
+  const [planStats, setPlanStats] = useState<PlanStats[]>([]);
+  
+  // Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
     checkAuthorization();
   }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [businesses, searchQuery, statusFilter]);
 
   const checkAuthorization = async () => {
     try {
@@ -76,7 +107,14 @@ export default function SuperAdminPage() {
       const [businessesData, plansData] = await Promise.all([
         supabase
           .from("businesses")
-          .select(`*, subscriptions (*)`)
+          .select(`
+            *,
+            subscriptions (
+              *,
+              subscription_plans:plan (*)
+            ),
+            profiles:owner_id (*)
+          `)
           .order("created_at", { ascending: false }),
         supabase
           .from("subscription_plans")
@@ -89,42 +127,148 @@ export default function SuperAdminPage() {
 
       const loadedBusinesses = businessesData.data as BusinessWithSubscription[];
       setBusinesses(loadedBusinesses);
-      
-      const loadedPlans: SubscriptionPlan[] = (plansData.data || []).map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        price_monthly: Number(p.price_monthly),
-        price_yearly: Number(p.price_yearly),
-        features: Array.isArray(p.features) ? p.features.map(String) : [],
-        max_branches: p.max_branches,
-        max_products: p.max_products,
-        max_employees: p.max_employees
-      }));
-      setPlans(loadedPlans);
+      setPlans(plansData.data || []);
 
-      const totalBusinesses = loadedBusinesses.length;
-      const activeBusinesses = loadedBusinesses.filter(b => 
-        b.subscriptions[0]?.status === "active"
-      ).length;
-      const trialingBusinesses = loadedBusinesses.filter(b => 
-        b.subscriptions[0]?.status === "trialing"
-      ).length;
-
-      const mrr = loadedBusinesses.reduce((sum, b) => {
-        const subscription = b.subscriptions[0];
-        if (subscription?.status === "active" && subscription.plan) {
-          const plan = plansData.data?.find((p: any) => p.id === subscription.plan);
-          return sum + (plan?.price_monthly || 0);
-        }
-        return sum;
-      }, 0);
-
-      setMetrics({ totalBusinesses, activeBusinesses, trialingBusinesses, mrr });
+      calculateMetrics(loadedBusinesses, plansData.data || []);
       setLoading(false);
     } catch (err) {
       console.error("Error loading data:", err);
+      toast({
+        title: "❌ Error",
+        description: "No se pudieron cargar los datos",
+        variant: "destructive",
+      });
       setLoading(false);
     }
+  };
+
+  const calculateMetrics = (businessList: BusinessWithSubscription[], plansList: SubscriptionPlan[]) => {
+    const totalBusinesses = businessList.length;
+    const activeBusinesses = businessList.filter(b => 
+      b.subscriptions[0]?.status === "active"
+    ).length;
+    const trialingBusinesses = businessList.filter(b => 
+      b.subscriptions[0]?.status === "trialing"
+    ).length;
+    const canceledBusinesses = businessList.filter(b => 
+      b.subscriptions[0]?.status === "canceled"
+    ).length;
+
+    // Calculate MRR
+    let mrr = 0;
+    let arr = 0;
+    businessList.forEach(b => {
+      const subscription = b.subscriptions[0];
+      if (subscription?.status === "active" && subscription.plan) {
+        const plan = plansList.find(p => p.id === subscription.plan);
+        if (plan) {
+          if (subscription.billing_cycle === "yearly") {
+            const monthlyEquivalent = Number(plan.price_yearly) / 12;
+            mrr += monthlyEquivalent;
+            arr += Number(plan.price_yearly);
+          } else {
+            mrr += Number(plan.price_monthly);
+            arr += Number(plan.price_monthly) * 12;
+          }
+        }
+      }
+    });
+
+    // Calculate conversion rate
+    const totalCompleted = activeBusinesses + canceledBusinesses;
+    const conversionRate = totalCompleted > 0 
+      ? (activeBusinesses / totalCompleted) * 100 
+      : 0;
+
+    // Calculate growth rate (this month vs last month - simplified)
+    const thisMonth = businessList.filter(b => {
+      const createdDate = new Date(b.created_at);
+      const now = new Date();
+      return createdDate.getMonth() === now.getMonth() && 
+             createdDate.getFullYear() === now.getFullYear();
+    }).length;
+    
+    const lastMonth = businessList.filter(b => {
+      const createdDate = new Date(b.created_at);
+      const now = new Date();
+      const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1);
+      return createdDate.getMonth() === lastMonthDate.getMonth() && 
+             createdDate.getFullYear() === lastMonthDate.getFullYear();
+    }).length;
+
+    const growthRate = lastMonth > 0 ? ((thisMonth - lastMonth) / lastMonth) * 100 : 0;
+
+    setMetrics({
+      totalBusinesses,
+      activeBusinesses,
+      trialingBusinesses,
+      canceledBusinesses,
+      mrr,
+      arr,
+      conversionRate,
+      growthRate
+    });
+
+    // Calculate plan stats
+    const stats: { [key: string]: PlanStats } = {};
+    plansList.forEach(plan => {
+      stats[plan.id] = {
+        planId: plan.id,
+        planName: plan.name,
+        count: 0,
+        revenue: 0,
+        percentage: 0
+      };
+    });
+
+    businessList.forEach(b => {
+      const subscription = b.subscriptions[0];
+      if (subscription?.plan && stats[subscription.plan]) {
+        stats[subscription.plan].count++;
+        
+        if (subscription.status === "active") {
+          const plan = plansList.find(p => p.id === subscription.plan);
+          if (plan) {
+            if (subscription.billing_cycle === "yearly") {
+              stats[subscription.plan].revenue += Number(plan.price_yearly) / 12;
+            } else {
+              stats[subscription.plan].revenue += Number(plan.price_monthly);
+            }
+          }
+        }
+      }
+    });
+
+    const totalCount = Object.values(stats).reduce((sum, s) => sum + s.count, 0);
+    Object.values(stats).forEach(s => {
+      s.percentage = totalCount > 0 ? (s.count / totalCount) * 100 : 0;
+    });
+
+    setPlanStats(Object.values(stats).sort((a, b) => b.count - a.count));
+  };
+
+  const applyFilters = () => {
+    let filtered = [...businesses];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(b => 
+        b.name.toLowerCase().includes(query) ||
+        b.email?.toLowerCase().includes(query) ||
+        b.profiles?.email?.toLowerCase().includes(query)
+      );
+    }
+
+    // Status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(b => {
+        const subscription = b.subscriptions[0];
+        return subscription?.status === statusFilter;
+      });
+    }
+
+    setFilteredBusinesses(filtered);
   };
 
   const toggleBusinessStatus = async (businessId: string, currentStatus: boolean) => {
@@ -137,15 +281,16 @@ export default function SuperAdminPage() {
       if (error) throw error;
 
       toast({
-        title: "Estado actualizado",
-        description: `Negocio ${!currentStatus ? "activado" : "desactivado"} correctamente`,
+        title: "✅ Estado actualizado",
+        description: `Negocio ${!currentStatus ? "activado" : "desactivado"}`,
+        className: "bg-accent text-accent-foreground border-accent",
       });
 
       await loadData();
     } catch (err) {
-      console.error("Error updating business status:", err);
+      console.error("Error:", err);
       toast({
-        title: "Error",
+        title: "❌ Error",
         description: "No se pudo actualizar el estado",
         variant: "destructive",
       });
@@ -173,36 +318,19 @@ export default function SuperAdminPage() {
       if (error) throw error;
 
       toast({
-        title: "Plan actualizado",
-        description: `Los precios del plan ${editingPlan.name} se actualizaron correctamente`,
+        title: "✅ Plan actualizado",
+        description: `Los precios de ${editingPlan.name} se actualizaron`,
+        className: "bg-accent text-accent-foreground border-accent",
       });
 
       setEditDialogOpen(false);
       setEditingPlan(null);
       await loadData();
     } catch (err) {
-      console.error("Error updating plan:", err);
+      console.error("Error:", err);
       toast({
-        title: "Error",
+        title: "❌ Error",
         description: "No se pudo actualizar el plan",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await authService.signOut();
-      toast({
-        title: "Sesión cerrada",
-        description: "Has cerrado sesión como super admin",
-      });
-      router.push("/auth/login");
-    } catch (error) {
-      console.error("Error signing out:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo cerrar la sesión",
         variant: "destructive",
       });
     }
@@ -217,7 +345,7 @@ export default function SuperAdminPage() {
       case "canceled":
         return <Badge variant="destructive">Cancelado</Badge>;
       case "past_due":
-        return <Badge variant="outline" className="border-destructive text-destructive">Vencido</Badge>;
+        return <Badge variant="outline" className="border-yellow-500 text-yellow-600">Vencido</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -229,12 +357,28 @@ export default function SuperAdminPage() {
     return plan ? plan.name : planId;
   };
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN'
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "-";
+    return new Date(dateString).toLocaleDateString('es-MX', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <Shield className="w-12 h-12 animate-pulse text-primary mx-auto mb-4" />
-          <p className="text-muted">Cargando...</p>
+          <p className="text-muted-foreground">Cargando dashboard...</p>
         </div>
       </div>
     );
@@ -247,175 +391,316 @@ export default function SuperAdminPage() {
   return (
     <>
       <SEO 
-        title="Super Admin - Nexum Cloud"
+        title="Super Admin Dashboard - Nexum Cloud"
         description="Panel de administración de Nexum Cloud"
       />
       
       <div className="min-h-screen bg-background">
-        <header className="h-16 border-b bg-card flex items-center justify-between px-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <Store className="h-6 w-6 text-primary-foreground" />
+        {/* Header */}
+        <header className="h-16 border-b bg-card sticky top-0 z-10">
+          <div className="container mx-auto px-6 h-full flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                <Shield className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <div>
+                <h2 className="font-heading font-bold text-lg leading-tight">Super Admin</h2>
+                <p className="text-xs text-muted-foreground">Nexum Cloud Dashboard</p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-heading font-bold text-lg leading-tight">Nexum Cloud</h2>
-              <p className="text-xs text-muted-foreground">Super Admin</p>
+            
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="gap-1">
+                <Activity className="h-3 w-3" />
+                En vivo
+              </Badge>
             </div>
           </div>
         </header>
 
-        <div className="container mx-auto px-4 py-8">
-          {/* Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Negocios</CardTitle>
-                <Users className="h-4 w-4 text-muted" />
+        <div className="container mx-auto px-6 py-8">
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {/* MRR */}
+            <Card className="border-l-4 border-l-accent">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    MRR
+                  </CardTitle>
+                  <DollarSign className="h-4 w-4 text-accent" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{metrics.totalBusinesses}</div>
+                <div className="text-3xl font-bold">{formatCurrency(metrics.mrr)}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  ARR: {formatCurrency(metrics.arr)}
+                </p>
               </CardContent>
             </Card>
 
+            {/* Total Businesses */}
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Activos</CardTitle>
-                <CheckCircle2 className="h-4 w-4 text-accent" />
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Total Negocios
+                  </CardTitle>
+                  <Store className="h-4 w-4 text-muted" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{metrics.activeBusinesses}</div>
+                <div className="text-3xl font-bold">{metrics.totalBusinesses}</div>
+                <div className="flex items-center gap-2 mt-1">
+                  {metrics.growthRate >= 0 ? (
+                    <TrendingUp className="h-3 w-3 text-accent" />
+                  ) : (
+                    <TrendingDown className="h-3 w-3 text-destructive" />
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {metrics.growthRate >= 0 ? "+" : ""}{metrics.growthRate.toFixed(1)}% este mes
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">En Prueba</CardTitle>
-                <AlertCircle className="h-4 w-4 text-muted" />
+            {/* Active Businesses */}
+            <Card className="border-l-4 border-l-green-500">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Negocios Activos
+                  </CardTitle>
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{metrics.trialingBusinesses}</div>
+                <div className="text-3xl font-bold">{metrics.activeBusinesses}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {((metrics.activeBusinesses / metrics.totalBusinesses) * 100 || 0).toFixed(1)}% del total
+                </p>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">MRR</CardTitle>
-                <DollarSign className="h-4 w-4 text-accent" />
+            {/* Trial Businesses */}
+            <Card className="border-l-4 border-l-yellow-500">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    En Prueba
+                  </CardTitle>
+                  <Clock className="h-4 w-4 text-yellow-500" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${metrics.mrr.toFixed(2)}</div>
-                <p className="text-xs text-muted">Ingresos mensuales recurrentes</p>
+                <div className="text-3xl font-bold">{metrics.trialingBusinesses}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Conversión: {metrics.conversionRate.toFixed(1)}%
+                </p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Subscription Plans */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Planes de Suscripción</CardTitle>
-              <CardDescription>Configura los precios de cada plan</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Precio Mensual</TableHead>
-                    <TableHead>Precio Anual</TableHead>
-                    <TableHead>Límites</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {plans.map((plan) => (
-                    <TableRow key={plan.id}>
-                      <TableCell className="font-medium">{plan.name}</TableCell>
-                      <TableCell className="text-accent font-semibold">
-                        ${plan.price_monthly}/mes
-                      </TableCell>
-                      <TableCell className="text-accent font-semibold">
-                        ${plan.price_yearly}/año
-                      </TableCell>
-                      <TableCell className="text-sm text-muted">
-                        {plan.max_branches === 999999 ? "∞" : plan.max_branches} sucursales · {" "}
-                        {plan.max_products === 999999 ? "∞" : plan.max_products} productos · {" "}
-                        {plan.max_employees === 999999 ? "∞" : plan.max_employees} empleados
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleEditPlan(plan)}
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          Editar
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+          {/* Plan Distribution & Management */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Plan Stats */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Distribución por Plan</CardTitle>
+                    <CardDescription>Usuarios activos en cada plan</CardDescription>
+                  </div>
+                  <PieChart className="h-5 w-5 text-muted" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {planStats.map((stat) => (
+                    <div key={stat.planId} className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium">{stat.planName}</span>
+                        <span className="text-muted-foreground">{stat.count} usuarios</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-accent rounded-full transition-all"
+                            style={{ width: `${stat.percentage}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground min-w-[3rem] text-right">
+                          {stat.percentage.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        MRR: {formatCurrency(stat.revenue)}
+                      </div>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Businesses List */}
+            {/* Plan Management */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Configuración de Planes</CardTitle>
+                    <CardDescription>Editar precios y características</CardDescription>
+                  </div>
+                  <BarChart3 className="h-5 w-5 text-muted" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {plans.map((plan) => (
+                    <div 
+                      key={plan.id}
+                      className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/5 transition-colors"
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium">{plan.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {formatCurrency(Number(plan.price_monthly))}/mes · {formatCurrency(Number(plan.price_yearly))}/año
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleEditPlan(plan)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Businesses Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Clientes</CardTitle>
-              <CardDescription>Lista de todos los negocios registrados</CardDescription>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <CardTitle>Gestión de Clientes</CardTitle>
+                  <CardDescription>Lista completa de negocios registrados</CardDescription>
+                </div>
+                
+                {/* Filters */}
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-1 sm:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar negocio..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[140px]">
+                      <Filter className="h-4 w-4 mr-2" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="active">Activos</SelectItem>
+                      <SelectItem value="trialing">En Prueba</SelectItem>
+                      <SelectItem value="canceled">Cancelados</SelectItem>
+                      <SelectItem value="past_due">Vencidos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Negocio</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Plan</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Fin de Prueba</TableHead>
-                    <TableHead>Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {businesses.map((business) => {
-                    const subscription = business.subscriptions[0];
-                    return (
-                      <TableRow key={business.id}>
-                        <TableCell className="font-medium">{business.name}</TableCell>
-                        <TableCell>{business.email || "-"}</TableCell>
-                        <TableCell>{getPlanName(subscription?.plan || null)}</TableCell>
-                        <TableCell>
-                          {subscription ? getStatusBadge(subscription.status) : "-"}
-                        </TableCell>
-                        <TableCell>
-                          {subscription?.trial_end 
-                            ? new Date(subscription.trial_end).toLocaleDateString()
-                            : "-"}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            variant={business.is_active ? "destructive" : "default"}
-                            onClick={() => toggleBusinessStatus(business.id, business.is_active)}
-                          >
-                            {business.is_active ? (
-                              <>
-                                <XCircle className="w-4 h-4 mr-1" />
-                                Desactivar
-                              </>
-                            ) : (
-                              <>
-                                <CheckCircle2 className="w-4 h-4 mr-1" />
-                                Activar
-                              </>
-                            )}
-                          </Button>
+              <div className="rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Negocio</TableHead>
+                      <TableHead>Owner</TableHead>
+                      <TableHead>Plan</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Ciclo</TableHead>
+                      <TableHead>Fin Trial</TableHead>
+                      <TableHead>Creado</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredBusinesses.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          No se encontraron negocios
                         </TableCell>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                    ) : (
+                      filteredBusinesses.map((business) => {
+                        const subscription = business.subscriptions[0];
+                        return (
+                          <TableRow key={business.id}>
+                            <TableCell>
+                              <div className="font-medium">{business.name}</div>
+                              <div className="text-xs text-muted-foreground">{business.email || "-"}</div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">{business.profiles?.full_name || "-"}</div>
+                              <div className="text-xs text-muted-foreground">{business.profiles?.email || "-"}</div>
+                            </TableCell>
+                            <TableCell>{getPlanName(subscription?.plan || null)}</TableCell>
+                            <TableCell>
+                              {subscription ? getStatusBadge(subscription.status) : "-"}
+                            </TableCell>
+                            <TableCell>
+                              {subscription?.billing_cycle === "yearly" ? (
+                                <Badge variant="outline">Anual</Badge>
+                              ) : subscription?.billing_cycle === "monthly" ? (
+                                <Badge variant="outline">Mensual</Badge>
+                              ) : "-"}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {formatDate(subscription?.trial_end || null)}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {formatDate(business.created_at)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                size="sm"
+                                variant={business.is_active ? "destructive" : "default"}
+                                onClick={() => toggleBusinessStatus(business.id, business.is_active)}
+                              >
+                                {business.is_active ? (
+                                  <>
+                                    <XCircle className="w-4 h-4 mr-1" />
+                                    Desactivar
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle2 className="w-4 h-4 mr-1" />
+                                    Activar
+                                  </>
+                                )}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              
+              {filteredBusinesses.length > 0 && (
+                <div className="mt-4 text-sm text-muted-foreground">
+                  Mostrando {filteredBusinesses.length} de {businesses.length} negocios
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -425,7 +710,10 @@ export default function SuperAdminPage() {
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar Precios del Plan {editingPlan?.name}</DialogTitle>
+            <DialogTitle>Editar Precios del Plan</DialogTitle>
+            <DialogDescription>
+              Actualizar los precios de {editingPlan?.name}
+            </DialogDescription>
           </DialogHeader>
           
           {editingPlan && (
@@ -439,7 +727,7 @@ export default function SuperAdminPage() {
                   value={editingPlan.price_monthly}
                   onChange={(e) => setEditingPlan({
                     ...editingPlan,
-                    price_monthly: parseFloat(e.target.value) || 0
+                    price_monthly: e.target.value as any
                   })}
                 />
               </div>
@@ -453,22 +741,22 @@ export default function SuperAdminPage() {
                   value={editingPlan.price_yearly}
                   onChange={(e) => setEditingPlan({
                     ...editingPlan,
-                    price_yearly: parseFloat(e.target.value) || 0
+                    price_yearly: e.target.value as any
                   })}
                 />
                 <p className="text-sm text-muted-foreground">
-                  Ahorro: ${((editingPlan.price_monthly * 12) - editingPlan.price_yearly).toFixed(2)} por año
+                  Ahorro anual: {formatCurrency(
+                    (Number(editingPlan.price_monthly) * 12) - Number(editingPlan.price_yearly)
+                  )}
                 </p>
               </div>
 
               <div className="rounded-lg bg-muted p-4">
                 <p className="text-sm font-medium mb-2">Vista previa:</p>
-                <p className="text-xs text-muted-foreground">
-                  Mensual: ${editingPlan.price_monthly}/mes
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Anual: ${editingPlan.price_yearly}/año (${(editingPlan.price_yearly / 12).toFixed(2)}/mes)
-                </p>
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  <p>Mensual: {formatCurrency(Number(editingPlan.price_monthly))}/mes</p>
+                  <p>Anual: {formatCurrency(Number(editingPlan.price_yearly))}/año ({formatCurrency(Number(editingPlan.price_yearly) / 12)}/mes)</p>
+                </div>
               </div>
             </div>
           )}
@@ -477,8 +765,7 @@ export default function SuperAdminPage() {
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSavePlan}>
-              <Save className="w-4 h-4 mr-2" />
+            <Button onClick={handleSavePlan} className="bg-accent hover:bg-accent/90">
               Guardar Cambios
             </Button>
           </DialogFooter>
