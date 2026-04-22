@@ -27,12 +27,14 @@ import { authService } from "@/services/authService";
 import { useToast } from "@/hooks/use-toast";
 
 export interface SidebarProps {
-  isOpen?: boolean;
-  onClose?: () => void;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const router = useRouter();
+  const { toast } = useToast();
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -97,29 +99,51 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Sidebar */}
       <aside className={`
         fixed lg:sticky top-0 left-0 z-50 lg:z-0
-        h-screen w-64 bg-card border-r border-border
+        h-screen bg-card border-r border-border
         flex flex-col
-        transition-transform duration-300 ease-in-out
+        transition-all duration-300 ease-in-out
         ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+        ${isCollapsed ? "w-16" : "w-64"}
       `}>
         {/* Header */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-border">
-          <h1 className="font-heading text-xl font-bold text-foreground">
-            Nexum Cloud
-          </h1>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="lg:hidden"
-            onClick={onClose}
-          >
-            <X className="h-5 w-5" />
-          </Button>
+        <div className={`h-16 flex items-center border-b border-border transition-all duration-300 ${isCollapsed ? "justify-center px-2" : "justify-between px-4"}`}>
+          {!isCollapsed && (
+            <h1 className="font-heading text-xl font-bold text-foreground">
+              Nexum Cloud
+            </h1>
+          )}
+          {isCollapsed && (
+            <h1 className="font-heading text-xl font-bold text-accent">
+              N
+            </h1>
+          )}
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="hidden lg:flex"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+            >
+              {isCollapsed ? (
+                <ChevronRight className="h-5 w-5" />
+              ) : (
+                <ChevronLeft className="h-5 w-5" />
+              )}
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="lg:hidden"
+              onClick={onClose}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
 
         {/* Navigation - con scroll personalizado */}
         <div className="flex-1 overflow-y-auto py-4 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
-          <nav className="space-y-1 px-3">
+          <nav className={`space-y-1 transition-all duration-300 ${isCollapsed ? "px-2" : "px-3"}`}>
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = router.pathname === item.href;
@@ -129,15 +153,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   key={item.href}
                   href={item.href}
                   className={`
-                    flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
+                    flex items-center rounded-lg text-sm font-medium transition-all duration-200
+                    ${isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2.5"}
                     ${isActive 
                       ? "bg-accent text-accent-foreground shadow-sm" 
                       : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
                     }
                   `}
+                  title={isCollapsed ? item.label : undefined}
                 >
                   <Icon className="h-5 w-5 shrink-0" />
-                  <span className="truncate">{item.label}</span>
+                  {!isCollapsed && <span className="truncate">{item.label}</span>}
                 </Link>
               );
             })}
@@ -145,31 +171,45 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
 
         {/* Footer Actions */}
-        <div className="border-t border-border p-3 space-y-2">
-          <Button
-            variant="ghost"
-            size={isExpanded ? "default" : "icon"}
-            className={cn("w-full", !isExpanded && "justify-center")}
+        <div className={`border-t border-border space-y-2 transition-all duration-300 ${isCollapsed ? "p-2" : "p-3"}`}>
+          <Link href="/subscription">
+            <Button 
+              variant="outline" 
+              className={`transition-all duration-300 ${isCollapsed ? "w-full px-0" : "w-full"}`}
+              title={isCollapsed ? "Suscripción" : undefined}
+            >
+              <CreditCard className="h-4 w-4 shrink-0" />
+              {!isCollapsed && <span className="ml-2">Suscripción</span>}
+            </Button>
+          </Link>
+          <Link href="/profile">
+            <Button 
+              variant="outline" 
+              className={`transition-all duration-300 ${isCollapsed ? "w-full px-0" : "w-full"}`}
+              title={isCollapsed ? "Perfil" : undefined}
+            >
+              <User className="h-4 w-4 shrink-0" />
+              {!isCollapsed && <span className="ml-2">Perfil</span>}
+            </Button>
+          </Link>
+          <Link href="/settings">
+            <Button 
+              variant="outline" 
+              className={`transition-all duration-300 ${isCollapsed ? "w-full px-0" : "w-full"}`}
+              title={isCollapsed ? "Configuración" : undefined}
+            >
+              <Settings className="h-4 w-4 shrink-0" />
+              {!isCollapsed && <span className="ml-2">Configuración</span>}
+            </Button>
+          </Link>
+          <Button 
+            variant="ghost" 
             onClick={handleLogout}
+            className={`text-destructive hover:text-destructive hover:bg-destructive/10 transition-all duration-300 ${isCollapsed ? "w-full px-0" : "w-full"}`}
+            title={isCollapsed ? "Cerrar Sesión" : undefined}
           >
-            <LogOut className="h-5 w-5" />
-            {isExpanded && <span className="ml-2">Cerrar Sesión</span>}
-          </Button>
-
-          <Button
-            variant="ghost"
-            size={isExpanded ? "default" : "icon"}
-            className={cn("w-full hidden md:flex", !isExpanded && "justify-center")}
-            onClick={() => setIsExpanded(!isExpanded)}
-          >
-            {isExpanded ? (
-              <>
-                <ChevronLeft className="h-5 w-5" />
-                <span className="ml-2">Contraer</span>
-              </>
-            ) : (
-              <ChevronRight className="h-5 w-5" />
-            )}
+            <LogOut className="h-4 w-4 shrink-0" />
+            {!isCollapsed && <span className="ml-2">Cerrar Sesión</span>}
           </Button>
         </div>
       </aside>
