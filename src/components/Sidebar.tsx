@@ -55,10 +55,29 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const handleLogout = async () => {
     try {
+      toast({
+        title: "👋 Cerrando sesión...",
+        description: "Por favor espera",
+        duration: 2000,
+      });
+      
       await authService.signOut();
+      
+      toast({
+        title: "✅ Sesión cerrada",
+        description: "Hasta pronto",
+        className: "bg-accent text-accent-foreground border-accent",
+        duration: 2000,
+      });
+      
       router.push("/");
     } catch (error) {
       console.error("Error logging out:", error);
+      toast({
+        title: "❌ Error",
+        description: "No se pudo cerrar la sesión",
+        variant: "destructive",
+      });
     }
   };
 
