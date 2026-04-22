@@ -177,54 +177,29 @@ export default function SuperAdminPage() {
   const calculateMetrics = (businessList: BusinessWithSubscription[], plansList: SubscriptionPlan[]) => {
     const now = new Date();
     
-    // Debug: Ver qué datos tenemos
-    console.log("=== CALCULANDO MÉTRICAS ===");
-    console.log("Total negocios:", businessList.length);
-    businessList.forEach(b => {
-      console.log(`Negocio: ${b.name}`);
-      console.log(`  - Subscriptions array:`, b.subscriptions);
-      console.log(`  - Primera subscription:`, b.subscriptions?.[0]);
-      console.log(`  - Status:`, b.subscriptions?.[0]?.status);
-    });
-    
     // Contar negocios activos (con suscripción activa y current_period_end futuro)
     const active = businessList.filter(b => {
       const sub = b.subscriptions?.[0];
       if (!sub) return false;
-      const isActive = sub.status === "active" && (!sub.current_period_end || new Date(sub.current_period_end) > now);
-      if (isActive) console.log(`✅ ACTIVO: ${b.name}`);
-      return isActive;
+      return sub.status === "active" && (!sub.current_period_end || new Date(sub.current_period_end) > now);
     }).length;
 
     // Contar negocios en trial (subscription.status === 'trialing')
     const trial = businessList.filter(b => {
       const sub = b.subscriptions?.[0];
-      const isTrial = sub && sub.status === "trialing";
-      if (isTrial) console.log(`⏳ EN PRUEBA: ${b.name}`);
-      return isTrial;
+      return sub && sub.status === "trialing";
     }).length;
 
     // Negocios inactivos (no tienen suscripción o suscripción expirada/cancelada)
     const inactive = businessList.filter(b => {
       const sub = b.subscriptions?.[0];
-      if (!sub) {
-        console.log(`❌ INACTIVO (sin sub): ${b.name}`);
-        return true; // Sin suscripción = inactivo
-      }
+      if (!sub) return true;
       
-      // Inactivo si status es canceled, expired, past_due o period_end pasó
       const isExpiredStatus = sub.status === "canceled" || sub.status === "expired" || sub.status === "past_due";
       const isPeriodExpired = sub.current_period_end && new Date(sub.current_period_end) < now;
       
-      if (isExpiredStatus || isPeriodExpired) console.log(`❌ INACTIVO: ${b.name}`);
       return isExpiredStatus || isPeriodExpired;
     }).length;
-
-    console.log("RESUMEN:");
-    console.log(`Activos: ${active}`);
-    console.log(`En Prueba: ${trial}`);
-    console.log(`Inactivos: ${inactive}`);
-    console.log("=========================");
 
     // Calcular MRR (solo suscripciones activas)
     let totalMRR = 0;
@@ -254,42 +229,6 @@ export default function SuperAdminPage() {
       conversionRate: conversionRate,
       growthRate: 0,
     });
-
-    // Calcular estadísticas por plan
-    const planStatsMap = new Map<string, { count: number; revenue: number }>();
-    
-    businessList.forEach(b => {
-      const sub = b.subscriptions?.[0];
-      if (sub && sub.status === "active") {
-        const plan = plansList.find(p => p.name.toLowerCase() === sub.plan);
-        if (plan) {
-          const existing = planStatsMap.get(plan.id) || { count: 0, revenue: 0 };
-          const monthlyAmount = sub.billing_cycle === "annual" 
-            ? plan.price_yearly / 12 
-            : plan.price_monthly;
-          
-          planStatsMap.set(plan.id, {
-            count: existing.count + 1,
-            revenue: existing.revenue + monthlyAmount
-          });
-        }
-      }
-    });
-
-    const totalUsers = Array.from(planStatsMap.values()).reduce((sum, stat) => sum + stat.count, 0);
-
-    const stats: PlanStats[] = plansList.map(plan => {
-      const count = planStatsMap.get(plan.id)?.count || 0;
-      return {
-        planId: plan.id,
-        planName: plan.name,
-        count: count,
-        revenue: planStatsMap.get(plan.id)?.revenue || 0,
-        percentage: totalUsers > 0 ? (count / totalUsers) * 100 : 0
-      };
-    });
-
-    setPlanStats(stats);
   };
 
   const applyFilters = () => {
