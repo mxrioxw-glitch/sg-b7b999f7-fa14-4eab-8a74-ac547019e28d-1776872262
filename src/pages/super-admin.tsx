@@ -154,10 +154,18 @@ export default function SuperAdminPage() {
           .order("sort_order", { ascending: true })
       ]);
 
+      console.log("=== DATOS CARGADOS ===");
+      console.log("businessesData:", businessesData);
+      console.log("businessesData.data:", businessesData.data);
+      console.log("businessesData.error:", businessesData.error);
+      console.log("Total negocios cargados:", businessesData.data?.length);
+
       if (businessesData.error) throw businessesData.error;
       if (plansData.error) throw plansData.error;
 
       const loadedBusinesses = businessesData.data as unknown as BusinessWithSubscription[];
+      console.log("loadedBusinesses procesados:", loadedBusinesses);
+      
       setBusinesses(loadedBusinesses);
       setPlans(plansData.data || []);
 
@@ -234,6 +242,11 @@ export default function SuperAdminPage() {
   const applyFilters = () => {
     let filtered = [...businesses];
 
+    console.log("=== APLICANDO FILTROS ===");
+    console.log("Total businesses antes de filtrar:", filtered.length);
+    console.log("searchQuery:", searchQuery);
+    console.log("statusFilter:", statusFilter);
+
     // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -242,6 +255,7 @@ export default function SuperAdminPage() {
         b.email?.toLowerCase().includes(query) ||
         b.profiles?.email?.toLowerCase().includes(query)
       );
+      console.log("Después de search filter:", filtered.length);
     }
 
     // Status filter
@@ -250,8 +264,10 @@ export default function SuperAdminPage() {
         const subscription = b.subscriptions[0];
         return subscription?.status === statusFilter;
       });
+      console.log("Después de status filter:", filtered.length);
     }
 
+    console.log("Negocios filtrados finales:", filtered);
     setFilteredBusinesses(filtered);
   };
 
