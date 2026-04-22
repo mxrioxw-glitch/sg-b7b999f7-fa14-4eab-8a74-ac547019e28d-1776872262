@@ -45,11 +45,20 @@ function hexToHSL(hex: string): string {
 
 export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
+    let isMounted = true;
+
     async function loadCustomColors() {
       try {
         // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        // Si hay error o no hay usuario, usar colores por defecto y salir
+        if (userError || !user) {
+          console.log("No user found, using default colors");
+          return;
+        }
+
+        if (!isMounted) return;
 
         // Get user's business_id from employees table
         const { data: employee, error: employeeError } = await supabase
@@ -58,15 +67,18 @@ export default function App({ Component, pageProps }: AppProps) {
           .eq("user_id", user.id)
           .maybeSingle();
 
+        // Si hay error o no hay employee, usar colores por defecto
         if (employeeError) {
           console.error("Error getting employee:", employeeError);
           return;
         }
 
         if (!employee || !employee.business_id) {
-          console.log("No business found for user");
+          console.log("No business found for user, using default colors");
           return;
         }
+
+        if (!isMounted) return;
 
         // Get business colors for THIS specific business
         const { data: business, error: businessError } = await supabase
@@ -79,6 +91,8 @@ export default function App({ Component, pageProps }: AppProps) {
           console.error("Error getting business colors:", businessError);
           return;
         }
+
+        if (!isMounted) return;
 
         // Apply custom colors if they exist for this business
         if (business?.primary_color && business?.secondary_color && business?.accent_color) {
@@ -99,22 +113,32 @@ export default function App({ Component, pageProps }: AppProps) {
         }
       } catch (error) {
         console.error("Error loading custom colors:", error);
+        // En caso de error, continuar sin bloquear la app
       }
     }
 
+    // Cargar colores al montar
     loadCustomColors();
 
-    // Re-load colors when route changes or when returning to the app
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
+    // Re-load colors when auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         loadCustomColors();
       }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+      if (event === 'SIGNED_OUT') {
+        // Restaurar colores por defecto al cerrar sesión
+        const root = document.documentElement;
+        root.style.setProperty("--primary", "16 23% 19%");
+        root.style.setProperty("--secondary", "16 24% 35%");
+        root.style.setProperty("--accent", "122 39% 49%");
+        root.style.setProperty("--sidebar-primary", "16 23% 19%");
+        root.style.setProperty("--sidebar-ring", "122 39% 49%");
+      }
+    });
 
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      isMounted = false;
+      authListener?.subscription.unsubscribe();
     };
   }, []);
 
