@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { businessService } from "@/services/businessService";
 
 export type Subscription = Tables<"subscriptions">;
 export type SubscriptionPlan = "basic" | "professional" | "premium";
