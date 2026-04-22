@@ -6,9 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Package, Upload, Sparkles, X, DollarSign, Tag, AlertCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Plus, Trash2, Upload, X, DollarSign, Tag, Package, Sparkles, Info, CheckCircle2, AlertCircle } from "lucide-react";
 import { productService } from "@/services/productService";
 import { categoryService } from "@/services/categoryService";
 import { useToast } from "@/hooks/use-toast";
@@ -26,11 +28,8 @@ type InventoryItem = Tables<"inventory_items">;
 
 interface ProductFormProps {
   product?: Product | null;
-  categories: Category[];
-  businessId: string;
-  onClose: () => void;
-  onCategoryCreated?: () => void;
   onSuccess?: () => void;
+  trigger?: React.ReactNode;
 }
 
 interface VariantForm {
@@ -69,83 +68,96 @@ interface ProductInventoryLink {
   quantity_per_unit: number;
 }
 
-export function ProductForm({
-  product,
-  categories,
-  businessId,
-  onClose,
-  onCategoryCreated,
-  onSuccess,
-}: ProductFormProps) {
+export function ProductForm({ product, onSuccess, trigger }: ProductFormProps) {
   const { toast } = useToast();
+  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [name, setName] = useState(product?.name || "");
-  const [description, setDescription] = useState(product?.description || "");
-  const [basePrice, setBasePrice] = useState(
-    product?.base_price ? Number(product.base_price) : 0
-  );
-  const [categoryId, setCategoryId] = useState(product?.category_id || "");
-  const [imageUrl, setImageUrl] = useState(product?.image_url || "");
-  const [isActive, setIsActive] = useState(product?.is_active ?? true);
-  const [hasVariants, setHasVariants] = useState(product?.has_variants || false);
-  const [hasExtras, setHasExtras] = useState(product?.has_extras || false);
-  const [generatesPoints, setGeneratesPoints] = useState(product?.generates_points || false);
-  const [pointsValue, setPointsValue] = useState(product?.points_value || 0);
-
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [generatingImage, setGeneratingImage] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  
+  // Form data
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [basePrice, setBasePrice] = useState(0);
+  const [categoryId, setCategoryId] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [isActive, setIsActive] = useState(true);
+  const [hasVariants, setHasVariants] = useState(false);
+  const [hasExtras, setHasExtras] = useState(false);
+  const [generatesPoints, setGeneratesPoints] = useState(false);
+  const [pointsValue, setPointsValue] = useState(0);
+  
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState(product?.image_url || "");
-
+  const [previewUrl, setPreviewUrl] = useState("");
   const [variants, setVariants] = useState<VariantForm[]>([]);
   const [extras, setExtras] = useState<ExtraForm[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [availableInventory, setAvailableInventory] = useState<any[]>([]);
-  const [loadingInventory, setLoadingInventory] = useState(false);
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
-  const [productInventoryLinks, setProductInventoryLinks] = useState<
-    ProductInventoryLink[]
-  >([]);
-
+  const [productInventoryLinks, setProductInventoryLinks] = useState<ProductInventoryLink[]>([]);
+  
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [loadingImage, setLoadingImage] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<"basic" | "professional" | "premium">("basic");
   const [productCount, setProductCount] = useState(0);
 
   useEffect(() => {
-    if (product) {
+    if (open) {
+      loadInitialData();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (product && open) {
       setName(product.name || "");
       setDescription(product.description || "");
       setCategoryId(product.category_id || "");
-      // basePrice state requires a number
-      setBasePrice(product.base_price || 0);
+      setBasePrice(Number(product.base_price) || 0);
       setImageUrl(product.image_url || "");
+      setPreviewUrl(product.image_url || "");
       setIsActive(product.is_active ?? true);
-      // variants and extras aren't on the product object directly, they are loaded separately
-      // setVariants(product.variants || []);
-      // setExtras(product.extras || []);
+      setHasVariants(product.has_variants || false);
+      setHasExtras(product.has_extras || false);
+      setGeneratesPoints(product.generates_points || false);
+      setPointsValue(product.points_value || 0);
+      loadProductDetails();
+    } else if (open) {
+      resetForm();
     }
-    loadInventoryItems();
-  }, [product]);
+  }, [product, open]);
 
-  async function loadInventoryItems() {
+  function resetForm() {
+    setName("");
+    setDescription("");
+    setCategoryId("");
+    setBasePrice(0);
+    setImageUrl("");
+    setPreviewUrl("");
+    setIsActive(true);
+    setHasVariants(false);
+    setHasExtras(false);
+    setGeneratesPoints(false);
+    setPointsValue(0);
+    setVariants([]);
+    setExtras([]);
+    setProductInventoryLinks([]);
+    setImageFile(null);
+  }
+
+  async function loadInitialData() {
     try {
-      setLoadingInventory(true);
       const business = await businessService.getCurrentBusiness();
-      if (business) {
-        const items = await getInventoryItems(business.id);
-        setInventoryItems(items || []);
-      }
+      if (!business) return;
+
+      const [categoriesData, inventoryData] = await Promise.all([
+        categoryService.getCategories(business.id),
+        getInventoryItems(business.id)
+      ]);
+
+      setCategories(categoriesData);
+      setInventoryItems(inventoryData || []);
     } catch (error) {
-      console.error("Error loading inventory:", error);
-    } finally {
-      setLoadingInventory(false);
+      console.error("Error loading data:", error);
     }
   }
 
@@ -159,7 +171,6 @@ export function ProductForm({
         loadProductInventoryLinks(product.id),
       ]);
 
-      // Cargar variantes con sus insumos
       const variantsWithInventory = await Promise.all(
         variantsData.map(async (v) => {
           const { data: variantLinks } = await supabase
@@ -188,7 +199,6 @@ export function ProductForm({
       );
 
       setVariants(variantsWithInventory);
-
       setExtras(
         extrasData.map((e) => ({
           id: e.id,
@@ -197,16 +207,13 @@ export function ProductForm({
           sort_order: e.sort_order || 0,
         }))
       );
-
       setProductInventoryLinks(linksData);
     } catch (error) {
       console.error("Error loading product details:", error);
     }
   }
 
-  async function loadProductInventoryLinks(
-    productId: string
-  ): Promise<ProductInventoryLink[]> {
+  async function loadProductInventoryLinks(productId: string): Promise<ProductInventoryLink[]> {
     const { data, error } = await supabase
       .from("product_inventory_items")
       .select("*")
@@ -227,14 +234,16 @@ export function ProductForm({
     );
   }
 
-  const handleCreateCategory = async () => {
+  async function handleCreateCategory() {
     if (!newCategoryName.trim()) return;
 
     try {
-      const { category, error } = await categoryService.createCategory(
-        businessId,
-        { name: newCategoryName }
-      );
+      const business = await businessService.getCurrentBusiness();
+      if (!business) return;
+
+      const { category, error } = await categoryService.createCategory(business.id, {
+        name: newCategoryName,
+      });
 
       if (error || !category) {
         toast({
@@ -253,10 +262,7 @@ export function ProductForm({
       setCategoryId(category.id);
       setNewCategoryName("");
       setIsCreatingCategory(false);
-
-      if (onCategoryCreated) {
-        onCategoryCreated();
-      }
+      await loadInitialData();
     } catch (error) {
       console.error("Error creating category:", error);
       toast({
@@ -265,107 +271,9 @@ export function ProductForm({
         variant: "destructive",
       });
     }
-  };
+  }
 
-  const addVariant = () => {
-    setVariants([
-      ...variants,
-      { 
-        name: "", 
-        price_modifier: 0, 
-        price: 0,
-        sort_order: variants.length,
-        inventory_links: [],
-        ingredients: []
-      },
-    ]);
-  };
-
-  const updateVariantField = (
-    index: number,
-    field: keyof VariantForm,
-    value: string | number
-  ) => {
-    const updated = [...variants];
-    updated[index] = { ...updated[index], [field]: value };
-    setVariants(updated);
-  };
-
-  const removeVariant = (index: number) => {
-    setVariants(variants.filter((_, i) => i !== index));
-  };
-
-  const addVariantInventoryLink = (variantIndex: number) => {
-    const updated = [...variants];
-    updated[variantIndex].inventory_links.push({
-      inventory_item_id: "",
-      quantity_per_unit: 1,
-    });
-    setVariants(updated);
-  };
-
-  const updateVariantInventoryLink = (
-    variantIndex: number,
-    linkIndex: number,
-    field: "inventory_item_id" | "quantity_per_unit",
-    value: string | number
-  ) => {
-    const updated = [...variants];
-    updated[variantIndex].inventory_links[linkIndex] = {
-      ...updated[variantIndex].inventory_links[linkIndex],
-      [field]: value,
-    };
-    setVariants(updated);
-  };
-
-  const removeVariantInventoryLink = (variantIndex: number, linkIndex: number) => {
-    const updated = [...variants];
-    updated[variantIndex].inventory_links = updated[variantIndex].inventory_links.filter(
-      (_, i) => i !== linkIndex
-    );
-    setVariants(updated);
-  };
-
-  const addExtra = () => {
-    setExtras([...extras, { name: "", price: 0, sort_order: extras.length, ingredients: [] }]);
-  };
-
-  const updateExtraField = (
-    index: number,
-    field: keyof ExtraForm,
-    value: string | number
-  ) => {
-    const updated = [...extras];
-    updated[index] = { ...updated[index], [field]: value };
-    setExtras(updated);
-  };
-
-  const removeExtra = (index: number) => {
-    setExtras(extras.filter((_, i) => i !== index));
-  };
-
-  const addInventoryLink = () => {
-    setProductInventoryLinks([
-      ...productInventoryLinks,
-      { inventory_item_id: "", quantity_per_unit: 1 },
-    ]);
-  };
-
-  const updateInventoryLinkField = (
-    index: number,
-    field: keyof ProductInventoryLink,
-    value: string | number
-  ) => {
-    const updated = [...productInventoryLinks];
-    updated[index] = { ...updated[index], [field]: value };
-    setProductInventoryLinks(updated);
-  };
-
-  const removeInventoryLink = (index: number) => {
-    setProductInventoryLinks(productInventoryLinks.filter((_, i) => i !== index));
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -375,59 +283,18 @@ export function ProductForm({
       setPreviewUrl(reader.result as string);
     };
     reader.readAsDataURL(file);
-  };
+  }
 
-  const handleGenerateAIImage = async () => {
-    if (!name.trim()) {
-      toast({
-        title: "Error",
-        description: "Primero ingresa el nombre del producto",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Feature coming soon message
-    toast({
-      title: "Función en desarrollo",
-      description: "La generación de imágenes con IA estará disponible próximamente. Por ahora, usa la opción de subir imagen.",
-    });
-    
-    /* 
-    // Code for when AI generation is ready
-    setGeneratingImage(true);
-    try {
-      const business = await businessService.getCurrentBusiness();
-      if (!business) throw new Error("No business found");
-
-      const { url, path } = await storageService.generateAIImage(name, business.id);
-      setImageUrl(url);
-      setPreviewUrl(url);
-      
-      toast({
-        title: "Imagen generada",
-        description: "La imagen se generó correctamente con IA",
-      });
-    } catch (error) {
-      console.error("Error generating AI image:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo generar la imagen con IA",
-        variant: "destructive",
-      });
-    } finally {
-      setGeneratingImage(false);
-    }
-    */
-  };
-
-  const handleRemoveImage = () => {
+  function handleRemoveImage() {
     setImageUrl("");
     setPreviewUrl("");
     setImageFile(null);
-  };
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
+  }
 
-  const uploadImageToStorage = async (businessId: string): Promise<string> => {
+  async function uploadImageToStorage(businessId: string): Promise<string> {
     if (!imageFile) return imageUrl;
 
     try {
@@ -437,26 +304,27 @@ export function ProductForm({
       console.error("Error uploading image:", error);
       throw error;
     }
-  };
+  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    
-    // If creating new product, check limit
+
     if (!product) {
       const canAdd = await subscriptionService.canAddProduct();
       if (!canAdd.canAdd) {
         const plan = await subscriptionService.getCurrentPlan();
         setCurrentPlan(plan as "basic" | "professional" | "premium");
-        
-        // Get current product count
-        const business = await subscriptionService["getCurrentBusiness"]?.() || { id: "" };
-        const { count } = await productService["supabase"]
-          ?.from("products")
-          .select("*", { count: "exact", head: true })
-          .eq("business_id", business.id) || { count: 0 };
-        
-        setProductCount(count || 0);
+
+        const business = await businessService.getCurrentBusiness();
+        if (business) {
+          const { count } = await supabase
+            .from("products")
+            .select("*", { count: "exact", head: true })
+            .eq("business_id", business.id);
+
+          setProductCount(count || 0);
+        }
+
         setShowUpgradeModal(true);
         return;
       }
@@ -468,7 +336,6 @@ export function ProductForm({
       const business = await businessService.getCurrentBusiness();
       if (!business) throw new Error("No business found");
 
-      // Upload image if there's a file selected
       const finalImageUrl = await uploadImageToStorage(business.id);
 
       const productData = {
@@ -481,6 +348,7 @@ export function ProductForm({
         has_extras: hasExtras,
         generates_points: generatesPoints,
         points_value: generatesPoints ? pointsValue : 0,
+        is_active: isActive,
       };
 
       let savedProduct: Product;
@@ -496,9 +364,7 @@ export function ProductForm({
 
       // Save variants
       if (hasVariants) {
-        const existingVariants = await productService.getProductVariants(
-          savedProduct.id
-        );
+        const existingVariants = await productService.getProductVariants(savedProduct.id);
         const existingIds = existingVariants.map((v) => v.id);
 
         for (const variant of variants) {
@@ -519,7 +385,6 @@ export function ProductForm({
             variantId = newVariant?.id;
           }
 
-          // Guardar insumos de la variante
           if (variantId) {
             const { data: existingLinks } = await supabase
               .from("product_inventory_items")
@@ -527,23 +392,18 @@ export function ProductForm({
               .eq("product_id", savedProduct.id)
               .eq("variant_id", variantId);
 
-            const existingLinkIds = (existingLinks || []).map((l) => l.id);
-            
-            // Usar ingredients si existe, de lo contrario usar inventory_links
-            const linksToSave = variant.ingredients && variant.ingredients.length > 0 
-              ? variant.ingredients.map(ing => ({
+            const linksToSave = variant.ingredients && variant.ingredients.length > 0
+              ? variant.ingredients.map((ing) => ({
                   inventory_item_id: ing.inventory_id,
                   quantity_per_unit: ing.quantity,
-                  id: undefined // no sabemos el id de esta estructura
+                  id: undefined,
                 }))
               : variant.inventory_links || [];
 
             for (const link of linksToSave) {
               if (!link.inventory_item_id) continue;
-              
-              // Buscar si ya existe este link por inventory_item_id en lugar de por link.id
-              // ya que la estructura de ingredients no tiene link.id
-              const existingLink = existingLinks?.find(l => l.inventory_item_id === link.inventory_item_id);
+
+              const existingLink = existingLinks?.find((l) => l.inventory_item_id === link.inventory_item_id);
 
               if (existingLink) {
                 await supabase
@@ -560,12 +420,9 @@ export function ProductForm({
               }
             }
 
-            // Eliminar links que ya no están en ingredients/inventory_links
-            const linkItemIds = linksToSave.map(l => l.inventory_item_id).filter(Boolean);
-            const toDeleteLinks = existingLinks?.filter(
-              (l) => !linkItemIds.includes(l.inventory_item_id)
-            ) || [];
-            
+            const linkItemIds = linksToSave.map((l) => l.inventory_item_id).filter(Boolean);
+            const toDeleteLinks = existingLinks?.filter((l) => !linkItemIds.includes(l.inventory_item_id)) || [];
+
             for (const link of toDeleteLinks) {
               await supabase.from("product_inventory_items").delete().eq("id", link.id);
             }
@@ -607,7 +464,7 @@ export function ProductForm({
         }
       }
 
-      // Save inventory links (solo para producto base, sin variante)
+      // Save inventory links
       const existingLinks = await loadProductInventoryLinks(savedProduct.id);
       const existingLinkIds = existingLinks.map((l) => l.id).filter(Boolean);
 
@@ -617,9 +474,7 @@ export function ProductForm({
         if (link.id && existingLinkIds.includes(link.id)) {
           await supabase
             .from("product_inventory_items")
-            .update({
-              quantity_per_unit: link.quantity_per_unit,
-            })
+            .update({ quantity_per_unit: link.quantity_per_unit })
             .eq("id", link.id);
         } else {
           await supabase.from("product_inventory_items").insert({
@@ -631,21 +486,21 @@ export function ProductForm({
         }
       }
 
-      const linkInventoryIds = productInventoryLinks
-        .filter((l) => l.id)
-        .map((l) => l.id);
-      const toDeleteLinks = existingLinkIds.filter(
-        (id) => !linkInventoryIds.includes(id)
-      );
+      const linkInventoryIds = productInventoryLinks.filter((l) => l.id).map((l) => l.id);
+      const toDeleteLinks = existingLinkIds.filter((id) => !linkInventoryIds.includes(id));
       for (const id of toDeleteLinks) {
         await supabase.from("product_inventory_items").delete().eq("id", id);
       }
 
       toast({
-        title: "Producto guardado",
-        description: "El producto se guardó correctamente con todos sus detalles",
+        title: product ? "Producto actualizado" : "Producto creado",
+        description: product 
+          ? "El producto se actualizó correctamente" 
+          : "El producto se creó correctamente",
       });
-      onClose();
+
+      setOpen(false);
+      if (onSuccess) onSuccess();
     } catch (error) {
       console.error("Error saving product:", error);
       toast({
@@ -656,259 +511,350 @@ export function ProductForm({
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
     <>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            {product ? "Editar Producto" : "Nuevo Producto"}
-          </Button>
+          {trigger || (
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Nuevo Producto
+            </Button>
+          )}
         </DialogTrigger>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="basic">Básico</TabsTrigger>
-                <TabsTrigger value="variants">Variantes</TabsTrigger>
-                <TabsTrigger value="extras">Extras</TabsTrigger>
-                <TabsTrigger value="inventory">Insumos Base</TabsTrigger>
-              </TabsList>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b">
+            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+              <Package className="h-6 w-6 text-primary" />
+              {product ? "Editar Producto" : "Crear Nuevo Producto"}
+            </DialogTitle>
+          </DialogHeader>
 
-              <TabsContent value="basic" className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nombre del Producto *</Label>
-                    <Input
-                      id="name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                      placeholder="Ej: Café Americano"
-                    />
-                  </div>
+          <form onSubmit={handleSubmit} className="flex flex-col h-full">
+            <div className="flex-1 overflow-y-auto px-6">
+              <Tabs defaultValue="basic" className="w-full">
+                <TabsList className="grid w-full grid-cols-4 mb-6">
+                  <TabsTrigger value="basic" className="text-xs md:text-sm">
+                    <Info className="h-4 w-4 mr-1.5" />
+                    <span className="hidden sm:inline">Información</span>
+                    <span className="sm:hidden">Info</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="variants" className="text-xs md:text-sm">
+                    <DollarSign className="h-4 w-4 mr-1.5" />
+                    <span className="hidden sm:inline">Variantes</span>
+                    <span className="sm:hidden">Var</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="extras" className="text-xs md:text-sm">
+                    <Plus className="h-4 w-4 mr-1.5" />
+                    Extras
+                  </TabsTrigger>
+                  <TabsTrigger value="inventory" className="text-xs md:text-sm">
+                    <Package className="h-4 w-4 mr-1.5" />
+                    <span className="hidden sm:inline">Insumos</span>
+                    <span className="sm:hidden">Inv</span>
+                  </TabsTrigger>
+                </TabsList>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Categoría</Label>
-                    {isCreatingCategory ? (
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Nueva categoría"
-                          value={newCategoryName}
-                          onChange={(e) => setNewCategoryName(e.target.value)}
+                {/* BASIC TAB */}
+                <TabsContent value="basic" className="space-y-6 mt-0">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Información Básica</CardTitle>
+                      <CardDescription>Datos principales del producto</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="name" className="flex items-center gap-2">
+                            Nombre del Producto <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="name"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="Ej: Café Americano"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="category">Categoría</Label>
+                          {isCreatingCategory ? (
+                            <div className="flex gap-2">
+                              <Input
+                                placeholder="Nueva categoría"
+                                value={newCategoryName}
+                                onChange={(e) => setNewCategoryName(e.target.value)}
+                              />
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={handleCreateCategory}
+                                disabled={!newCategoryName.trim()}
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setIsCreatingCategory(false);
+                                  setNewCategoryName("");
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex gap-2">
+                              <Select value={categoryId} onValueChange={setCategoryId}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Seleccionar categoría" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {categories.map((cat) => (
+                                    <SelectItem key={cat.id} value={cat.id}>
+                                      {cat.icon} {cat.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setIsCreatingCategory(true)}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="description">Descripción</Label>
+                        <Textarea
+                          id="description"
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          placeholder="Descripción del producto (opcional)"
+                          rows={3}
                         />
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={handleCreateCategory}
-                          disabled={!newCategoryName.trim()}
-                        >
-                          Crear
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setIsCreatingCategory(false);
-                            setNewCategoryName("");
-                          }}
-                        >
-                          Cancelar
-                        </Button>
                       </div>
-                    ) : (
-                      <div className="flex gap-2">
-                        <Select value={categoryId} onValueChange={setCategoryId}>
-                          <SelectTrigger className="flex-1">
-                            <SelectValue placeholder="Seleccionar categoría" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categories.map((cat) => (
-                              <SelectItem key={cat.id} value={cat.id}>
-                                {cat.icon} {cat.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setIsCreatingCategory(true)}
-                        >
-                          <Plus className="w-4 h-4 mr-1" />
-                          Nueva
-                        </Button>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="base_price" className="flex items-center gap-2">
+                            Precio Base <span className="text-destructive">*</span>
+                          </Label>
+                          <div className="relative">
+                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              id="base_price"
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={basePrice}
+                              onChange={(e) => setBasePrice(Number(e.target.value))}
+                              className="pl-10"
+                              placeholder="0.00"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Estado del Producto</Label>
+                          <div className="flex items-center space-x-3 h-10 px-3 rounded-md border">
+                            <Switch checked={isActive} onCheckedChange={setIsActive} />
+                            <Label className="cursor-pointer">
+                              {isActive ? (
+                                <Badge className="bg-green-500">Activo</Badge>
+                              ) : (
+                                <Badge variant="secondary">Inactivo</Badge>
+                              )}
+                            </Label>
+                          </div>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </div>
+                    </CardContent>
+                  </Card>
 
-                <div className="space-y-2">
-                  <Label htmlFor="description">Descripción</Label>
-                  <Textarea
-                    id="description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Descripción del producto"
-                    rows={3}
-                  />
-                </div>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Imagen del Producto</CardTitle>
+                      <CardDescription>Agrega una foto que represente tu producto</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {previewUrl && (
+                        <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-dashed">
+                          <img
+                            src={previewUrl}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleRemoveImage}
+                            className="absolute top-2 right-2 p-2 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-lg"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="base_price">Precio Base *</Label>
-                    <Input
-                      id="base_price"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={basePrice}
-                      onChange={(e) => setBasePrice(Number(e.target.value))}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-4">
-                    <Label>Imagen del Producto</Label>
-                    
-                    {/* Image Preview */}
-                    {previewUrl && (
-                      <div className="relative w-full h-48 rounded-lg border overflow-hidden">
-                        <img
-                          src={previewUrl}
-                          alt="Preview"
-                          className="w-full h-full object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleRemoveImage}
-                          className="absolute top-2 right-2 p-1 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Upload and AI Buttons */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
+                      <div className="grid grid-cols-1 gap-3">
                         <Input
+                          ref={imageInputRef}
                           id="image-upload"
                           type="file"
                           accept="image/*"
                           onChange={handleImageUpload}
                           className="hidden"
-                          disabled={uploadingImage || generatingImage}
                         />
                         <Label htmlFor="image-upload">
-                          <div className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/25 p-4 cursor-pointer hover:border-primary hover:bg-accent transition-colors">
+                          <div className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/25 p-6 cursor-pointer hover:border-primary hover:bg-accent/50 transition-all">
                             <Upload className="h-5 w-5" />
                             <span className="text-sm font-medium">
-                              {uploadingImage ? "Subiendo..." : "Subir Imagen"}
+                              {previewUrl ? "Cambiar imagen" : "Seleccionar imagen"}
                             </span>
                           </div>
                         </Label>
                       </div>
 
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleGenerateAIImage}
-                        disabled={!name.trim()}
-                        className="h-auto p-4"
-                      >
-                        <Sparkles className="h-5 w-5 mr-2" />
-                        Generar con IA
-                      </Button>
-                    </div>
+                      <p className="text-xs text-muted-foreground text-center">
+                        Recomendado: JPG, PNG (máx. 5MB)
+                      </p>
+                    </CardContent>
+                  </Card>
 
-                    <p className="text-xs text-muted-foreground">
-                      Sube una imagen desde tu dispositivo. La generación automática con IA estará disponible próximamente.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch checked={isActive} onCheckedChange={setIsActive} />
-                  <Label>Producto activo</Label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch checked={hasVariants} onCheckedChange={setHasVariants} />
-                  <Label>Tiene variantes (tamaños)</Label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch checked={hasExtras} onCheckedChange={setHasExtras} />
-                  <Label>Tiene extras/modificadores</Label>
-                </div>
-
-                <div className="border-t pt-4 mt-4">
-                  <h4 className="font-semibold mb-3 text-sm">Programa de Lealtad</h4>
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        checked={generatesPoints}
-                        onCheckedChange={setGeneratesPoints}
-                      />
-                      <Label>Genera puntos de lealtad</Label>
-                    </div>
-
-                    {generatesPoints && (
-                      <div className="ml-8 space-y-2">
-                        <Label htmlFor="points_value">Puntos por venta</Label>
-                        <Input
-                          id="points_value"
-                          type="number"
-                          min="0"
-                          value={pointsValue}
-                          onChange={(e) => setPointsValue(Number(e.target.value))}
-                          placeholder="0"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Cantidad de puntos que gana el cliente al comprar este producto
-                        </p>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Configuración Adicional</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between p-3 rounded-lg border">
+                        <div className="space-y-0.5">
+                          <Label className="text-base">Tiene variantes (tamaños)</Label>
+                          <p className="text-sm text-muted-foreground">Ej: Chico, Mediano, Grande</p>
+                        </div>
+                        <Switch checked={hasVariants} onCheckedChange={setHasVariants} />
                       </div>
-                    )}
-                  </div>
-                </div>
-              </TabsContent>
 
-              <TabsContent value="variants" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Variantes de Producto</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Cada variante puede tener sus propios insumos. Ej: Café Chico usa vaso chico, Café Grande usa vaso grande.
-                    </p>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* Variants Section */}
-                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-3 rounded-lg border">
+                        <div className="space-y-0.5">
+                          <Label className="text-base">Tiene extras/modificadores</Label>
+                          <p className="text-sm text-muted-foreground">Ej: Extra queso, Doble carne</p>
+                        </div>
+                        <Switch checked={hasExtras} onCheckedChange={setHasExtras} />
+                      </div>
+
+                      <Separator />
+
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-3 rounded-lg border">
+                          <div className="space-y-0.5">
+                            <Label className="text-base">Genera puntos de lealtad</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Recompensa a tus clientes frecuentes
+                            </p>
+                          </div>
+                          <Switch checked={generatesPoints} onCheckedChange={setGeneratesPoints} />
+                        </div>
+
+                        {generatesPoints && (
+                          <div className="ml-4 space-y-2 animate-in fade-in-50 duration-300">
+                            <Label htmlFor="points_value">Puntos por venta</Label>
+                            <Input
+                              id="points_value"
+                              type="number"
+                              min="0"
+                              value={pointsValue}
+                              onChange={(e) => setPointsValue(Number(e.target.value))}
+                              placeholder="0"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Cantidad de puntos que gana el cliente al comprar este producto
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* VARIANTS TAB */}
+                <TabsContent value="variants" className="space-y-6 mt-0">
+                  <Card>
+                    <CardHeader>
                       <div className="flex items-center justify-between">
-                        <Label className="text-base font-semibold">Variantes (Tamaños)</Label>
+                        <div>
+                          <CardTitle className="text-lg">Variantes del Producto</CardTitle>
+                          <CardDescription>
+                            Define diferentes tamaños o versiones del producto
+                          </CardDescription>
+                        </div>
                         <Button
                           type="button"
-                          variant="outline"
                           size="sm"
-                          onClick={() => setVariants([...variants, { name: "", price: 0, price_modifier: 0, sort_order: variants.length, inventory_links: [], ingredients: [] }])}
+                          onClick={() =>
+                            setVariants([
+                              ...variants,
+                              {
+                                name: "",
+                                price: 0,
+                                price_modifier: 0,
+                                sort_order: variants.length,
+                                inventory_links: [],
+                                ingredients: [],
+                              },
+                            ])
+                          }
                         >
                           <Plus className="h-4 w-4 mr-2" />
                           Agregar Variante
                         </Button>
                       </div>
-
-                      <div className="space-y-4">
-                        {variants.map((variant, index) => (
-                          <Card key={index}>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {variants.length === 0 ? (
+                        <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                          <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                          <p className="text-muted-foreground mb-4">No hay variantes agregadas</p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                              setVariants([
+                                {
+                                  name: "",
+                                  price: 0,
+                                  price_modifier: 0,
+                                  sort_order: 0,
+                                  inventory_links: [],
+                                  ingredients: [],
+                                },
+                              ])
+                            }
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Crear primera variante
+                          </Button>
+                        </div>
+                      ) : (
+                        variants.map((variant, index) => (
+                          <Card key={index} className="border-l-4 border-l-accent">
                             <CardContent className="pt-6 space-y-4">
                               <div className="flex items-start gap-4">
-                                <div className="flex-1 grid grid-cols-2 gap-4">
-                                  <div>
+                                <Badge variant="outline" className="mt-2">
+                                  {index + 1}
+                                </Badge>
+                                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="space-y-2">
                                     <Label>Nombre de Variante</Label>
                                     <Input
                                       value={variant.name}
@@ -920,19 +866,23 @@ export function ProductForm({
                                       placeholder="Ej: Pequeño, Mediano, Grande"
                                     />
                                   </div>
-                                  <div>
+                                  <div className="space-y-2">
                                     <Label>Precio Extra</Label>
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      value={variant.price}
-                                      onChange={(e) => {
-                                        const newVariants = [...variants];
-                                        newVariants[index].price = parseFloat(e.target.value) || 0;
-                                        setVariants(newVariants);
-                                      }}
-                                      placeholder="0.00"
-                                    />
+                                    <div className="relative">
+                                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        value={variant.price}
+                                        onChange={(e) => {
+                                          const newVariants = [...variants];
+                                          newVariants[index].price = parseFloat(e.target.value) || 0;
+                                          setVariants(newVariants);
+                                        }}
+                                        className="pl-10"
+                                        placeholder="0.00"
+                                      />
+                                    </div>
                                   </div>
                                 </div>
                                 <Button
@@ -945,10 +895,13 @@ export function ProductForm({
                                 </Button>
                               </div>
 
-                              {/* Ingredients for this variant */}
-                              <div className="space-y-3 border-t pt-4">
+                              <Separator />
+
+                              <div className="space-y-3">
                                 <div className="flex items-center justify-between">
-                                  <Label className="text-sm">Insumos para esta variante</Label>
+                                  <Label className="text-sm font-semibold">
+                                    Insumos de esta variante
+                                  </Label>
                                   <Button
                                     type="button"
                                     variant="outline"
@@ -973,27 +926,36 @@ export function ProductForm({
                                 {variant.ingredients && variant.ingredients.length > 0 ? (
                                   <div className="space-y-2">
                                     {variant.ingredients.map((ingredient, ingIndex) => (
-                                      <div key={ingIndex} className="flex items-center gap-2">
-                                        <select
-                                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                                      <div
+                                        key={ingIndex}
+                                        className="flex items-center gap-2 p-2 rounded-lg bg-muted/50"
+                                      >
+                                        <Select
                                           value={ingredient.inventory_id}
-                                          onChange={(e) => {
+                                          onValueChange={(value) => {
                                             const newVariants = [...variants];
-                                            newVariants[index].ingredients![ingIndex].inventory_id = e.target.value;
-                                            const selectedItem = availableInventory.find(item => item.id === e.target.value);
+                                            newVariants[index].ingredients![ingIndex].inventory_id = value;
+                                            const selectedItem = inventoryItems.find(
+                                              (item) => item.id === value
+                                            );
                                             if (selectedItem) {
-                                              newVariants[index].ingredients![ingIndex].inventory_name = selectedItem.name;
+                                              newVariants[index].ingredients![ingIndex].inventory_name =
+                                                selectedItem.name;
                                             }
                                             setVariants(newVariants);
                                           }}
                                         >
-                                          <option value="">Seleccionar insumo...</option>
-                                          {availableInventory.map((item) => (
-                                            <option key={item.id} value={item.id}>
-                                              {item.name} ({item.quantity} {item.unit})
-                                            </option>
-                                          ))}
-                                        </select>
+                                          <SelectTrigger className="flex-1">
+                                            <SelectValue placeholder="Seleccionar insumo" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {inventoryItems.map((item) => (
+                                              <SelectItem key={item.id} value={item.id}>
+                                                {item.name} ({item.quantity} {item.unit})
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
                                         <Input
                                           type="number"
                                           step="0.01"
@@ -1001,7 +963,8 @@ export function ProductForm({
                                           value={ingredient.quantity}
                                           onChange={(e) => {
                                             const newVariants = [...variants];
-                                            newVariants[index].ingredients![ingIndex].quantity = parseFloat(e.target.value) || 0;
+                                            newVariants[index].ingredients![ingIndex].quantity =
+                                              parseFloat(e.target.value) || 0;
                                             setVariants(newVariants);
                                           }}
                                           placeholder="Cant."
@@ -1012,7 +975,9 @@ export function ProductForm({
                                           size="icon"
                                           onClick={() => {
                                             const newVariants = [...variants];
-                                            newVariants[index].ingredients = newVariants[index].ingredients!.filter((_, i) => i !== ingIndex);
+                                            newVariants[index].ingredients = newVariants[
+                                              index
+                                            ].ingredients!.filter((_, i) => i !== ingIndex);
                                             setVariants(newVariants);
                                           }}
                                         >
@@ -1022,55 +987,79 @@ export function ProductForm({
                                     ))}
                                   </div>
                                 ) : (
-                                  <p className="text-sm text-muted-foreground">
+                                  <p className="text-sm text-muted-foreground text-center py-4 border-2 border-dashed rounded-lg">
                                     No hay insumos asignados a esta variante
                                   </p>
                                 )}
                               </div>
                             </CardContent>
                           </Card>
-                        ))}
-                      </div>
-
-                      {variants.length === 0 && (
-                        <p className="text-sm text-muted-foreground text-center py-4">
-                          No hay variantes. Agrega una para ofrecer diferentes tamaños.
-                        </p>
+                        ))
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
-              <TabsContent value="extras" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Extras/Modificadores</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Extras Section */}
-                    <div className="space-y-4">
+                {/* EXTRAS TAB */}
+                <TabsContent value="extras" className="space-y-6 mt-0">
+                  <Card>
+                    <CardHeader>
                       <div className="flex items-center justify-between">
-                        <Label className="text-base font-semibold">Extras (Modificadores)</Label>
+                        <div>
+                          <CardTitle className="text-lg">Extras y Modificadores</CardTitle>
+                          <CardDescription>
+                            Complementos adicionales que pueden agregar al producto
+                          </CardDescription>
+                        </div>
                         <Button
                           type="button"
-                          variant="outline"
                           size="sm"
-                          onClick={() => setExtras([...extras, { name: "", price: 0, sort_order: extras.length, ingredients: [] }])}
+                          onClick={() =>
+                            setExtras([
+                              ...extras,
+                              {
+                                name: "",
+                                price: 0,
+                                sort_order: extras.length,
+                                ingredients: [],
+                              },
+                            ])
+                          }
                         >
                           <Plus className="h-4 w-4 mr-2" />
                           Agregar Extra
                         </Button>
                       </div>
-
-                      <div className="space-y-4">
-                        {extras.map((extra, index) => (
-                          <Card key={index}>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {extras.length === 0 ? (
+                        <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                          <Plus className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                          <p className="text-muted-foreground mb-4">No hay extras agregados</p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                              setExtras([
+                                { name: "", price: 0, sort_order: 0, ingredients: [] },
+                              ])
+                            }
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Crear primer extra
+                          </Button>
+                        </div>
+                      ) : (
+                        extras.map((extra, index) => (
+                          <Card key={index} className="border-l-4 border-l-blue-500">
                             <CardContent className="pt-6 space-y-4">
                               <div className="flex items-start gap-4">
-                                <div className="flex-1 grid grid-cols-2 gap-4">
-                                  <div>
-                                    <Label>Nombre de Extra</Label>
+                                <Badge variant="outline" className="mt-2">
+                                  {index + 1}
+                                </Badge>
+                                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <Label>Nombre del Extra</Label>
                                     <Input
                                       value={extra.name}
                                       onChange={(e) => {
@@ -1081,19 +1070,23 @@ export function ProductForm({
                                       placeholder="Ej: Extra queso, Doble carne"
                                     />
                                   </div>
-                                  <div>
-                                    <Label>Precio Extra</Label>
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      value={extra.price}
-                                      onChange={(e) => {
-                                        const newExtras = [...extras];
-                                        newExtras[index].price = parseFloat(e.target.value) || 0;
-                                        setExtras(newExtras);
-                                      }}
-                                      placeholder="0.00"
-                                    />
+                                  <div className="space-y-2">
+                                    <Label>Precio del Extra</Label>
+                                    <div className="relative">
+                                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        value={extra.price}
+                                        onChange={(e) => {
+                                          const newExtras = [...extras];
+                                          newExtras[index].price = parseFloat(e.target.value) || 0;
+                                          setExtras(newExtras);
+                                        }}
+                                        className="pl-10"
+                                        placeholder="0.00"
+                                      />
+                                    </div>
                                   </div>
                                 </div>
                                 <Button
@@ -1106,10 +1099,13 @@ export function ProductForm({
                                 </Button>
                               </div>
 
-                              {/* Ingredients for this extra */}
-                              <div className="space-y-3 border-t pt-4">
+                              <Separator />
+
+                              <div className="space-y-3">
                                 <div className="flex items-center justify-between">
-                                  <Label className="text-sm">Insumos para este extra</Label>
+                                  <Label className="text-sm font-semibold">
+                                    Insumos de este extra
+                                  </Label>
                                   <Button
                                     type="button"
                                     variant="outline"
@@ -1134,27 +1130,36 @@ export function ProductForm({
                                 {extra.ingredients && extra.ingredients.length > 0 ? (
                                   <div className="space-y-2">
                                     {extra.ingredients.map((ingredient, ingIndex) => (
-                                      <div key={ingIndex} className="flex items-center gap-2">
-                                        <select
-                                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                                      <div
+                                        key={ingIndex}
+                                        className="flex items-center gap-2 p-2 rounded-lg bg-muted/50"
+                                      >
+                                        <Select
                                           value={ingredient.inventory_id}
-                                          onChange={(e) => {
+                                          onValueChange={(value) => {
                                             const newExtras = [...extras];
-                                            newExtras[index].ingredients![ingIndex].inventory_id = e.target.value;
-                                            const selectedItem = availableInventory.find(item => item.id === e.target.value);
+                                            newExtras[index].ingredients![ingIndex].inventory_id = value;
+                                            const selectedItem = inventoryItems.find(
+                                              (item) => item.id === value
+                                            );
                                             if (selectedItem) {
-                                              newExtras[index].ingredients![ingIndex].inventory_name = selectedItem.name;
+                                              newExtras[index].ingredients![ingIndex].inventory_name =
+                                                selectedItem.name;
                                             }
                                             setExtras(newExtras);
                                           }}
                                         >
-                                          <option value="">Seleccionar insumo...</option>
-                                          {availableInventory.map((item) => (
-                                            <option key={item.id} value={item.id}>
-                                              {item.name} ({item.quantity} {item.unit})
-                                            </option>
-                                          ))}
-                                        </select>
+                                          <SelectTrigger className="flex-1">
+                                            <SelectValue placeholder="Seleccionar insumo" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {inventoryItems.map((item) => (
+                                              <SelectItem key={item.id} value={item.id}>
+                                                {item.name} ({item.quantity} {item.unit})
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
                                         <Input
                                           type="number"
                                           step="0.01"
@@ -1162,7 +1167,8 @@ export function ProductForm({
                                           value={ingredient.quantity}
                                           onChange={(e) => {
                                             const newExtras = [...extras];
-                                            newExtras[index].ingredients![ingIndex].quantity = parseFloat(e.target.value) || 0;
+                                            newExtras[index].ingredients![ingIndex].quantity =
+                                              parseFloat(e.target.value) || 0;
                                             setExtras(newExtras);
                                           }}
                                           placeholder="Cant."
@@ -1173,7 +1179,9 @@ export function ProductForm({
                                           size="icon"
                                           onClick={() => {
                                             const newExtras = [...extras];
-                                            newExtras[index].ingredients = newExtras[index].ingredients!.filter((_, i) => i !== ingIndex);
+                                            newExtras[index].ingredients = newExtras[
+                                              index
+                                            ].ingredients!.filter((_, i) => i !== ingIndex);
                                             setExtras(newExtras);
                                           }}
                                         >
@@ -1183,113 +1191,155 @@ export function ProductForm({
                                     ))}
                                   </div>
                                 ) : (
-                                  <p className="text-sm text-muted-foreground">
+                                  <p className="text-sm text-muted-foreground text-center py-4 border-2 border-dashed rounded-lg">
                                     No hay insumos asignados a este extra
                                   </p>
                                 )}
                               </div>
                             </CardContent>
                           </Card>
-                        ))}
-                      </div>
-
-                      {extras.length === 0 && (
-                        <p className="text-sm text-muted-foreground text-center py-4">
-                          No hay extras. Agrega uno para ofrecer modificadores.
-                        </p>
+                        ))
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
-              <TabsContent value="inventory" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Package className="w-5 h-5" />
-                      Insumos del Producto Base
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Insumos que se consumen independientemente de la variante. Ej: café en grano, azúcar, etc.
-                      Para insumos específicos por variante (vasos, tapas), usa la pestaña Variantes.
-                    </p>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {productInventoryLinks.map((link, index) => (
-                      <div key={index} className="flex gap-4 items-end">
-                        <div className="flex-1">
-                          <Label>Insumo</Label>
-                          <Select
-                            value={link.inventory_item_id}
-                            onValueChange={(value) =>
-                              updateInventoryLinkField(index, "inventory_item_id", value)
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccionar insumo" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {inventoryItems.map((item) => (
-                                <SelectItem key={item.id} value={item.id}>
-                                  {item.name} ({item.unit})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="w-[150px]">
-                          <Label>Cantidad por unidad</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={link.quantity_per_unit}
-                            onChange={(e) =>
-                              updateInventoryLinkField(
-                                index,
-                                "quantity_per_unit",
-                                Number(e.target.value)
-                              )
-                            }
-                            placeholder="1.00"
-                          />
+                {/* INVENTORY TAB */}
+                <TabsContent value="inventory" className="space-y-6 mt-0">
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="text-lg">Insumos del Producto Base</CardTitle>
+                          <CardDescription>
+                            Insumos que se consumen independientemente de la variante
+                          </CardDescription>
                         </div>
                         <Button
                           type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeInventoryLink(index)}
+                          size="sm"
+                          onClick={() =>
+                            setProductInventoryLinks([
+                              ...productInventoryLinks,
+                              { inventory_item_id: "", quantity_per_unit: 1 },
+                            ])
+                          }
+                          disabled={inventoryItems.length === 0}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Plus className="h-4 w-4 mr-2" />
+                          Agregar Insumo
                         </Button>
                       </div>
-                    ))}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={addInventoryLink}
-                      disabled={inventoryItems.length === 0}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Agregar Insumo
-                    </Button>
-                    {inventoryItems.length === 0 && (
-                      <p className="text-sm text-muted-foreground">
-                        No hay insumos disponibles. Crea insumos en el módulo de Inventario primero.
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {inventoryItems.length === 0 ? (
+                        <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                          <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                          <p className="text-muted-foreground mb-2">
+                            No hay insumos disponibles
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Crea insumos en el módulo de Inventario primero
+                          </p>
+                        </div>
+                      ) : productInventoryLinks.length === 0 ? (
+                        <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                          <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                          <p className="text-muted-foreground mb-4">
+                            No hay insumos base agregados
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                              setProductInventoryLinks([
+                                { inventory_item_id: "", quantity_per_unit: 1 },
+                              ])
+                            }
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Agregar primer insumo
+                          </Button>
+                        </div>
+                      ) : (
+                        productInventoryLinks.map((link, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-4 p-3 rounded-lg border bg-card"
+                          >
+                            <Badge variant="outline">{index + 1}</Badge>
+                            <div className="flex-1">
+                              <Select
+                                value={link.inventory_item_id}
+                                onValueChange={(value) => {
+                                  const updated = [...productInventoryLinks];
+                                  updated[index].inventory_item_id = value;
+                                  setProductInventoryLinks(updated);
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Seleccionar insumo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {inventoryItems.map((item) => (
+                                    <SelectItem key={item.id} value={item.id}>
+                                      {item.name} ({item.unit})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="w-[150px]">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={link.quantity_per_unit}
+                                onChange={(e) => {
+                                  const updated = [...productInventoryLinks];
+                                  updated[index].quantity_per_unit = Number(e.target.value);
+                                  setProductInventoryLinks(updated);
+                                }}
+                                placeholder="Cantidad"
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() =>
+                                setProductInventoryLinks(
+                                  productInventoryLinks.filter((_, i) => i !== index)
+                                )
+                              }
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        ))
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
 
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button type="button" variant="outline" onClick={onClose}>
+            <div className="px-6 py-4 border-t bg-muted/50 flex justify-end gap-3">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Cancelar
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? "Guardando..." : "Guardar Producto"}
+                {loading ? (
+                  <>
+                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    {product ? "Actualizar Producto" : "Crear Producto"}
+                  </>
+                )}
               </Button>
             </div>
           </form>
