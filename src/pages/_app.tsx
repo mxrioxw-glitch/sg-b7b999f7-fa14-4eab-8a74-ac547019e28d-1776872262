@@ -3,7 +3,6 @@ import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { businessService } from "@/services/businessService";
 
 function hexToHSL(hex: string): string {
   // Remove # if present
@@ -48,14 +47,41 @@ export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
     async function loadCustomColors() {
       try {
+        // Get current user
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const business = await businessService.getCurrentBusiness();
-        if (!business) return;
+        // Get user's business_id from employees table
+        const { data: employee, error: employeeError } = await supabase
+          .from("employees")
+          .select("business_id")
+          .eq("user_id", user.id)
+          .maybeSingle();
 
-        // Apply custom colors if they exist
-        if (business.primary_color && business.secondary_color && business.accent_color) {
+        if (employeeError) {
+          console.error("Error getting employee:", employeeError);
+          return;
+        }
+
+        if (!employee || !employee.business_id) {
+          console.log("No business found for user");
+          return;
+        }
+
+        // Get business colors for THIS specific business
+        const { data: business, error: businessError } = await supabase
+          .from("businesses")
+          .select("primary_color, secondary_color, accent_color")
+          .eq("id", employee.business_id)
+          .single();
+
+        if (businessError) {
+          console.error("Error getting business colors:", businessError);
+          return;
+        }
+
+        // Apply custom colors if they exist for this business
+        if (business?.primary_color && business?.secondary_color && business?.accent_color) {
           const root = document.documentElement;
           
           // Convert hex to HSL and apply
@@ -66,6 +92,10 @@ export default function App({ Component, pageProps }: AppProps) {
           // Also update sidebar colors to match
           root.style.setProperty("--sidebar-primary", hexToHSL(business.primary_color));
           root.style.setProperty("--sidebar-ring", hexToHSL(business.accent_color));
+          
+          console.log("Custom colors applied for business:", employee.business_id);
+        } else {
+          console.log("No custom colors set for this business, using defaults");
         }
       } catch (error) {
         console.error("Error loading custom colors:", error);
