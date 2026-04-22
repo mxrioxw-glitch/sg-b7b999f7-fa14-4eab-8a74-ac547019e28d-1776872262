@@ -62,11 +62,12 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // 1. Registrar usuario SOLAMENTE (sin negocio todavía)
+      // 1. Registrar usuario con nombre del negocio en metadatos
       const { user, error: signUpError } = await authService.signUp(
         formData.email, 
         formData.password, 
-        formData.fullName
+        formData.fullName,
+        formData.businessName  // ← IMPORTANTE: pasar businessName aquí
       );
 
       if (signUpError || !user) {
@@ -75,13 +76,6 @@ export default function RegisterPage() {
           : (signUpError as any)?.message || "No se pudo crear el usuario";
         throw new Error(errorMsg);
       }
-
-      // Actualizar metadatos del usuario con el nombre del negocio
-      await supabase.auth.updateUser({
-        data: {
-          business_name: formData.businessName
-        }
-      });
 
       // Guardar el nombre del negocio en localStorage como respaldo
       if (typeof window !== 'undefined') {
