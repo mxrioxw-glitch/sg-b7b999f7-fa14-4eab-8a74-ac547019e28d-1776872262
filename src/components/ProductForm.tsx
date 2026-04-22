@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Trash2, Upload, X, DollarSign, Tag, Package, Sparkles, Info, CheckCircle2, AlertCircle, Save } from "lucide-react";
+import { Plus, Trash2, Upload, X, DollarSign, Tag, Package, Info, CheckCircle2, Save } from "lucide-react";
 import { productService } from "@/services/productService";
 import { categoryService } from "@/services/categoryService";
 import { useToast } from "@/hooks/use-toast";
@@ -519,8 +519,9 @@ export function ProductForm({ product, onSuccess, trigger }: ProductFormProps) {
         <DialogTrigger asChild>
           {trigger}
         </DialogTrigger>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
-          <DialogHeader className="px-6 py-4 border-b">
+        <DialogContent className="max-w-4xl w-[95vw] h-[90vh] max-h-[90vh] p-0 flex flex-col overflow-hidden">
+          {/* Header Fixed */}
+          <DialogHeader className="px-6 py-4 border-b shrink-0">
             <DialogTitle className="text-2xl font-bold">
               {product ? "Editar Producto" : "Nuevo Producto"}
             </DialogTitle>
@@ -532,11 +533,16 @@ export function ProductForm({ product, onSuccess, trigger }: ProductFormProps) {
             </DialogDescription>
           </DialogHeader>
 
+          {/* Body/Form Flex Container */}
           <div className="flex-1 overflow-hidden">
             <form onSubmit={handleSubmit} className="h-full flex flex-col">
-              <div className="flex-1 overflow-y-auto px-6 py-4">
-                <Tabs defaultValue="basic" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 mb-6">
+              
+              {/* Tabs Section */}
+              <Tabs defaultValue="basic" className="flex-1 flex flex-col overflow-hidden w-full">
+                
+                {/* TabsList Fixed */}
+                <div className="px-6 pt-4 shrink-0">
+                  <TabsList className="grid w-full grid-cols-4 bg-muted/50 p-1">
                     <TabsTrigger value="basic" className="text-xs md:text-sm">
                       <Info className="h-4 w-4 mr-1.5" />
                       <span className="hidden sm:inline">Información</span>
@@ -557,9 +563,13 @@ export function ProductForm({ product, onSuccess, trigger }: ProductFormProps) {
                       <span className="sm:hidden">Inv</span>
                     </TabsTrigger>
                   </TabsList>
+                </div>
 
+                {/* TabsContent Scrollable */}
+                <div className="flex-1 overflow-y-auto px-6 py-4">
+                  
                   {/* BASIC TAB */}
-                  <TabsContent value="basic" className="space-y-6 mt-0">
+                  <TabsContent value="basic" className="mt-0 space-y-6">
                     <Card>
                       <CardHeader>
                         <CardTitle className="text-lg">Información Básica</CardTitle>
@@ -672,7 +682,7 @@ export function ProductForm({ product, onSuccess, trigger }: ProductFormProps) {
                             <Label>Estado del Producto</Label>
                             <div className="flex items-center space-x-3 h-10 px-3 rounded-md border">
                               <Switch checked={isActive} onCheckedChange={setIsActive} />
-                              <Label className="cursor-pointer">
+                              <Label className="cursor-pointer flex-1">
                                 {isActive ? (
                                   <Badge className="bg-green-500">Activo</Badge>
                                 ) : (
@@ -692,7 +702,7 @@ export function ProductForm({ product, onSuccess, trigger }: ProductFormProps) {
                       </CardHeader>
                       <CardContent className="space-y-4">
                         {previewUrl && (
-                          <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-dashed">
+                          <div className="relative w-full sm:w-1/2 mx-auto aspect-video rounded-lg overflow-hidden border-2 border-dashed">
                             <img
                               src={previewUrl}
                               alt="Preview"
@@ -726,7 +736,6 @@ export function ProductForm({ product, onSuccess, trigger }: ProductFormProps) {
                             </div>
                           </Label>
                         </div>
-
                         <p className="text-xs text-muted-foreground text-center">
                           Recomendado: JPG, PNG (máx. 5MB)
                         </p>
@@ -786,29 +795,246 @@ export function ProductForm({ product, onSuccess, trigger }: ProductFormProps) {
                         </div>
                       </CardContent>
                     </Card>
-                  </Tabs>
-                </div>
+                  </TabsContent>
 
-                <div className="px-6 py-4 border-t bg-muted/50 flex justify-end gap-3 shrink-0">
-                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        Guardando...
-                      </>
+                  {/* VARIANTS TAB */}
+                  <TabsContent value="variants" className="mt-0 space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium">Variantes del Producto</h3>
+                        <p className="text-sm text-muted-foreground">Tamaños, presentaciones o colores</p>
+                      </div>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setVariants([...variants, { name: "", price_modifier: 0, sort_order: variants.length, inventory_links: [] }])}
+                      >
+                        <Plus className="h-4 w-4 mr-2" /> Agregar Variante
+                      </Button>
+                    </div>
+
+                    {variants.length === 0 ? (
+                      <Card className="border-dashed">
+                        <CardContent className="flex flex-col items-center justify-center p-8 text-center">
+                          <Tag className="h-10 w-10 text-muted-foreground mb-4" />
+                          <h4 className="text-lg font-medium mb-2">No hay variantes</h4>
+                          <p className="text-sm text-muted-foreground max-w-sm mb-4">
+                            Agrega diferentes tamaños o presentaciones para este producto.
+                          </p>
+                          <Button type="button" variant="secondary" onClick={() => setVariants([...variants, { name: "", price_modifier: 0, sort_order: 0, inventory_links: [] }])}>
+                            Crear primera variante
+                          </Button>
+                        </CardContent>
+                      </Card>
                     ) : (
-                      <>
-                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                        {product ? "Actualizar Producto" : "Crear Producto"}
-                      </>
+                      <div className="space-y-4">
+                        {variants.map((variant, index) => (
+                          <Card key={index} className="relative overflow-hidden border-primary/20">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+                            <CardHeader className="py-4 flex flex-row items-start justify-between">
+                              <div>
+                                <CardTitle className="text-base flex items-center gap-2">
+                                  <Badge variant="outline">Variante {index + 1}</Badge>
+                                </CardTitle>
+                              </div>
+                              <Button type="button" variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => setVariants(variants.filter((_, i) => i !== index))}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <Label>Nombre</Label>
+                                  <Input value={variant.name} onChange={e => {
+                                    const newVariants = [...variants];
+                                    newVariants[index].name = e.target.value;
+                                    setVariants(newVariants);
+                                  }} placeholder="Ej: Grande" required />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label>Precio (+)</Label>
+                                  <Input type="number" step="0.01" min="0" value={variant.price !== undefined ? variant.price : variant.price_modifier} onChange={e => {
+                                    const newVariants = [...variants];
+                                    newVariants[index].price = Number(e.target.value);
+                                    newVariants[index].price_modifier = Number(e.target.value);
+                                    setVariants(newVariants);
+                                  }} placeholder="0.00" required />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
                     )}
-                  </Button>
+                  </TabsContent>
+
+                  {/* EXTRAS TAB */}
+                  <TabsContent value="extras" className="mt-0 space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium">Extras o Modificadores</h3>
+                        <p className="text-sm text-muted-foreground">Opciones adicionales con costo extra</p>
+                      </div>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setExtras([...extras, { name: "", price: 0, sort_order: extras.length }])}
+                      >
+                        <Plus className="h-4 w-4 mr-2" /> Agregar Extra
+                      </Button>
+                    </div>
+
+                    {extras.length === 0 ? (
+                      <Card className="border-dashed">
+                        <CardContent className="flex flex-col items-center justify-center p-8 text-center">
+                          <Plus className="h-10 w-10 text-muted-foreground mb-4" />
+                          <h4 className="text-lg font-medium mb-2">No hay extras</h4>
+                          <p className="text-sm text-muted-foreground max-w-sm mb-4">
+                            Agrega complementos opcionales para este producto.
+                          </p>
+                          <Button type="button" variant="secondary" onClick={() => setExtras([...extras, { name: "", price: 0, sort_order: 0 }])}>
+                            Crear primer extra
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <div className="space-y-4">
+                        {extras.map((extra, index) => (
+                          <Card key={index} className="relative overflow-hidden border-accent/20">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-accent" />
+                            <CardHeader className="py-4 flex flex-row items-start justify-between">
+                              <div>
+                                <CardTitle className="text-base flex items-center gap-2">
+                                  <Badge variant="outline" className="text-accent border-accent">Extra {index + 1}</Badge>
+                                </CardTitle>
+                              </div>
+                              <Button type="button" variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => setExtras(extras.filter((_, i) => i !== index))}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <Label>Nombre</Label>
+                                  <Input value={extra.name} onChange={e => {
+                                    const newExtras = [...extras];
+                                    newExtras[index].name = e.target.value;
+                                    setExtras(newExtras);
+                                  }} placeholder="Ej: Doble Carne" required />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label>Costo Adicional (+)</Label>
+                                  <Input type="number" step="0.01" min="0" value={extra.price} onChange={e => {
+                                    const newExtras = [...extras];
+                                    newExtras[index].price = Number(e.target.value);
+                                    setExtras(newExtras);
+                                  }} placeholder="0.00" required />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  {/* INVENTORY TAB */}
+                  <TabsContent value="inventory" className="mt-0 space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium">Insumos Base</h3>
+                        <p className="text-sm text-muted-foreground">Ingredientes a descontar de inventario</p>
+                      </div>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setProductInventoryLinks([...productInventoryLinks, { inventory_item_id: "", quantity_per_unit: 1 }])}
+                      >
+                        <Plus className="h-4 w-4 mr-2" /> Vincular Insumo
+                      </Button>
+                    </div>
+
+                    {productInventoryLinks.length === 0 ? (
+                      <Card className="border-dashed">
+                        <CardContent className="flex flex-col items-center justify-center p-8 text-center">
+                          <Package className="h-10 w-10 text-muted-foreground mb-4" />
+                          <h4 className="text-lg font-medium mb-2">Sin insumos vinculados</h4>
+                          <p className="text-sm text-muted-foreground max-w-sm mb-4">
+                            Al enlazar este producto con tu inventario, las existencias se descontarán automáticamente en cada venta.
+                          </p>
+                          <Button type="button" variant="secondary" onClick={() => setProductInventoryLinks([...productInventoryLinks, { inventory_item_id: "", quantity_per_unit: 1 }])}>
+                            Vincular primer insumo
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <div className="space-y-3">
+                        {productInventoryLinks.map((link, index) => (
+                          <div key={index} className="flex flex-col sm:flex-row sm:items-end gap-3 p-4 rounded-lg border bg-card">
+                            <div className="flex-1 space-y-2">
+                              <Label>Insumo del Inventario</Label>
+                              <Select value={link.inventory_item_id} onValueChange={(val) => {
+                                const newLinks = [...productInventoryLinks];
+                                newLinks[index].inventory_item_id = val;
+                                setProductInventoryLinks(newLinks);
+                              }}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecciona un insumo..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {inventoryItems.map(item => (
+                                    <SelectItem key={item.id} value={item.id}>
+                                      {item.name} ({item.current_stock} {item.unit})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="w-full sm:w-40 space-y-2">
+                              <Label>Cantidad a restar</Label>
+                              <Input type="number" step="0.01" min="0" value={link.quantity_per_unit} onChange={(e) => {
+                                const newLinks = [...productInventoryLinks];
+                                newLinks[index].quantity_per_unit = Number(e.target.value);
+                                setProductInventoryLinks(newLinks);
+                              }} placeholder="Ej: 1" />
+                            </div>
+                            <Button type="button" variant="ghost" size="icon" className="text-destructive mt-2 sm:mt-0 sm:mb-0.5" onClick={() => {
+                              setProductInventoryLinks(productInventoryLinks.filter((_, i) => i !== index));
+                            }}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+
                 </div>
-              </form>
-            </div>
+              </Tabs>
+
+              {/* Footer Fixed */}
+              <div className="px-6 py-4 border-t bg-muted/50 flex justify-end gap-3 shrink-0">
+                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      {product ? "Actualizar Producto" : "Crear Producto"}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
           </div>
         </DialogContent>
       </Dialog>
