@@ -610,48 +610,6 @@ export default function SettingsPage() {
     }
   }
 
-  async function handleAddEmployee() {
-    // Check if can add employee
-    const canAdd = await subscriptionService.canAddEmployee();
-    if (!canAdd.canAdd) {
-      const plan = await subscriptionService.getCurrentPlan();
-      setCurrentPlan(plan as "basic" | "professional" | "premium");
-      
-      // Get current employee count
-      const business = await businessService.getCurrentBusiness();
-      if (business) {
-        const { count } = await supabase
-          .from("employees")
-          .select("*", { count: "exact", head: true })
-          .eq("business_id", business.id);
-        
-        setEmployeeCount(count || 0);
-      }
-      
-      setShowUpgradeModal(true);
-      return;
-    }
-
-    setIsAddingEmployee(true);
-    setEmployeeForm({
-      email: "",
-      full_name: "",
-      role: "cashier",
-      permissions: {
-        can_view_sales: true,
-        can_create_sales: true,
-        can_cancel_sales: false,
-        can_apply_discounts: false,
-        can_view_reports: false,
-        can_manage_inventory: false,
-        can_manage_products: false,
-        can_manage_customers: false,
-        can_open_close_register: false,
-        can_manage_employees: false,
-      },
-    });
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
