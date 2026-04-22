@@ -61,7 +61,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         duration: 2000,
       });
       
-      await authService.signOut();
+      const { error } = await authService.signOut();
+      
+      if (error) {
+        toast({
+          title: "❌ Error",
+          description: error.message || "No se pudo cerrar la sesión",
+          variant: "destructive",
+        });
+        return;
+      }
       
       toast({
         title: "✅ Sesión cerrada",
@@ -70,7 +79,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         duration: 2000,
       });
       
-      router.push("/");
+      // Forzar redirección a la página de login
+      window.location.href = "/auth/login";
     } catch (error) {
       console.error("Error logging out:", error);
       toast({
