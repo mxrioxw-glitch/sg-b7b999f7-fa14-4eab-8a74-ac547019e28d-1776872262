@@ -177,44 +177,38 @@ export default function SuperAdminPage() {
   const calculateMetrics = (businessList: BusinessWithSubscription[], plansList: SubscriptionPlan[]) => {
     const now = new Date();
     
-    // Contar negocios activos (con suscripción activa)
+    // Contar negocios activos (con suscripción activa y current_period_end futuro)
     const active = businessList.filter(b => {
       const sub = b.subscriptions?.[0];
       if (!sub) return false;
-      return sub.status === "active" && new Date(sub.current_period_end) > now;
+      return sub.status === "active" && (!sub.current_period_end || new Date(sub.current_period_end) > now);
     }).length;
 
-    // Contar negocios en trial
+    // Contar negocios en trial (subscription.status === 'trialing')
     const trial = businessList.filter(b => {
       const sub = b.subscriptions?.[0];
-      const isTrialStatus = sub && sub.status === "trialing";
-      const trialEnd = b.trial_ends_at ? new Date(b.trial_ends_at) : null;
-      const isTrialDate = trialEnd && trialEnd > now;
-      
-      // Es trial si tiene status trialing o su fecha de prueba no ha expirado y no es activo
-      return isTrialStatus || (isTrialDate && sub?.status !== "active");
+      return sub && sub.status === "trialing";
     }).length;
 
-    // Negocios inactivos (no están en trial, ni activos)
+    // Negocios inactivos (no tienen suscripción o suscripción expirada/cancelada)
     const inactive = businessList.filter(b => {
       const sub = b.subscriptions?.[0];
-      const isActive = sub && sub.status === "active" && new Date(sub.current_period_end) > now;
-      const isTrialStatus = sub && sub.status === "trialing";
-      const trialEnd = b.trial_ends_at ? new Date(b.trial_ends_at) : null;
-      const isTrialDate = trialEnd && trialEnd > now;
+      if (!sub) return true; // Sin suscripción = inactivo
       
-      return !isActive && !isTrialStatus && !isTrialDate;
+      // Inactivo si status es canceled, expired, past_due o period_end pasó
+      const isExpiredStatus = sub.status === "canceled" || sub.status === "expired" || sub.status === "past_due";
+      const isPeriodExpired = sub.current_period_end && new Date(sub.current_period_end) < now;
+      
+      return isExpiredStatus || isPeriodExpired;
     }).length;
 
-    // Calcular MRR
+    // Calcular MRR (solo suscripciones activas)
     let totalMRR = 0;
     businessList.forEach(b => {
       const sub = b.subscriptions?.[0];
       if (sub && sub.status === "active") {
-        // En tu esquema, subscription no tiene plan_id directo, sino "plan" (enum) y se busca en subscription_plans
         const plan = plansList.find(p => p.name.toLowerCase() === sub.plan);
         if (plan) {
-          // Si es plan anual, dividir entre 12 para obtener MRR
           const monthlyAmount = sub.billing_cycle === "annual" 
             ? plan.price_yearly / 12 
             : plan.price_monthly;
@@ -236,6 +230,36 @@ export default function SuperAdminPage() {
       conversionRate: conversionRate,
       growthRate: 0,
     });
+
+    // Calcular estadísticas por plan
+    const planStatsMap = new Map<string, { count: number; revenue: number }>();
+    
+    businessList.forEach(b => {
+      const sub = b.subscriptions?.[0];
+      if (sub && sub.status === "active") {
+        const plan = plansList.find(p => p.name.toLowerCase() === sub.plan);
+        if (plan) {
+          const existing = planStatsMap.get(plan.id) || { count: 0, revenue: 0 };
+          const monthlyAmount = sub.billing_cycle === "annual" 
+            ? plan.price_yearly / 12 
+            : plan.price_monthly;
+          
+          planStatsMap.set(plan.id, {
+            count: existing.count + 1,
+            revenue: existing.revenue + monthlyAmount
+          });
+        }
+      }
+    });
+
+    const stats: PlanStats[] = plansList.map(plan => ({
+      planId: plan.id,
+      planName: plan.name,
+      userCount: planStatsMap.get(plan.id)?.count || 0,
+      revenue: planStatsMap.get(plan.id)?.revenue || 0
+    }));
+
+    setPlanStats(stats);
   };
 
   const applyFilters = () => {
