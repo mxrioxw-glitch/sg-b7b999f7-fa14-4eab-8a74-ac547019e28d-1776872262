@@ -13,11 +13,21 @@ import {
   Store,
   DollarSign,
   TrendingUp,
-  Home
+  Home,
+  BarChart3,
+  X,
+  CreditCard,
+  User,
+  UtensilsCrossed,
+  ChefHat,
+  MessageSquare,
+  Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { authService } from "@/services/authService";
+import { useToast } from "@/hooks/use-toast";
 
 export interface SidebarProps {
   isOpen?: boolean;
@@ -52,6 +62,37 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       console.error("Error logging out:", error);
     }
   };
+
+  const menuItems = [
+    { icon: LayoutDashboard, label: "Inicio", href: "/" },
+    { icon: ShoppingCart, label: "POS", href: "/pos" },
+    { icon: Package, label: "Productos", href: "/products" },
+    { icon: Package, label: "Inventario", href: "/inventory" },
+    { icon: Users, label: "Clientes", href: "/customers" },
+    { icon: DollarSign, label: "Corte de Caja", href: "/cash-register" },
+    { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
+    { 
+      icon: UtensilsCrossed, 
+      label: "Comedor", 
+      href: "/comedor",
+      badge: "Próximamente",
+      badgeVariant: "outline" as const
+    },
+    { 
+      icon: ChefHat, 
+      label: "Pantalla de Cocina", 
+      href: "/kitchen-display",
+      badge: "Próximamente",
+      badgeVariant: "outline" as const
+    },
+    { 
+      icon: MessageSquare, 
+      label: "WhatsApp", 
+      href: "/whatsapp-orders",
+      badge: "Próximamente",
+      badgeVariant: "outline" as const
+    },
+  ];
 
   const navItems = [
     { name: "Inicio", href: "/", icon: Home },
@@ -101,30 +142,38 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         {/* Navigation */}
         <div className="flex-1 py-6 flex flex-col gap-2 overflow-y-auto px-3">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = router.pathname === item.href;
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-3 rounded-lg transition-colors",
-                  "hover:bg-accent/50",
-                  isActive && "bg-accent text-accent-foreground",
-                  !isActive && "text-foreground/70 hover:text-foreground",
-                  !isExpanded && "justify-center"
-                )}
-                onClick={onClose}
-              >
-                <Icon className={cn("h-5 w-5 shrink-0", isActive && "text-accent-foreground")} />
-                {isExpanded && (
-                  <span className="font-medium">{item.name}</span>
-                )}
-              </Link>
-            );
-          })}
+          <nav className="space-y-1 px-3">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = router.pathname === item.href;
+              
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`
+                    flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                    ${isActive 
+                      ? "bg-accent text-accent-foreground" 
+                      : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
+                    }
+                  `}
+                >
+                  <Icon className="h-5 w-5 shrink-0" />
+                  <span className="flex-1">{item.label}</span>
+                  {item.badge && (
+                    <Badge 
+                      variant={item.badgeVariant || "default"} 
+                      className="text-[10px] px-1.5 py-0 h-5"
+                    >
+                      <Sparkles className="h-2.5 w-2.5 mr-0.5" />
+                      {item.badge}
+                    </Badge>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
 
         {/* Footer */}
