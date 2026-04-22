@@ -62,7 +62,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // 1. Registrar usuario
+      // 1. Registrar usuario SOLAMENTE (sin negocio todavía)
       const { user, error: signUpError } = await authService.signUp(
         formData.email, 
         formData.password, 
@@ -76,46 +76,13 @@ export default function RegisterPage() {
         throw new Error(errorMsg);
       }
 
-      // Esperar un momento para que el perfil se cree
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // 2. Crear negocio
-      const { business, error: businessError } = await businessService.createBusiness({
-        name: formData.businessName,
-      });
-
-      if (businessError || !business) {
-        console.error("Error creating business:", businessError);
-        throw new Error(businessError || "No se pudo crear el negocio");
+      // Guardar el nombre del negocio en localStorage para crearlo después de verificar email
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('pendingBusinessName', formData.businessName);
+        localStorage.setItem('pendingUserEmail', formData.email);
       }
 
-      // 3. Crear suscripción trial
-      const { error: subscriptionError } = await subscriptionService.createTrialSubscription(business.id);
-      
-      if (subscriptionError) {
-        console.error("Error creating trial subscription:", subscriptionError);
-        // No lanzamos error aquí, el negocio ya existe
-      }
-
-      // 4. Crear empleado owner
-      try {
-        const { error: employeeError } = await supabase
-          .from("employees")
-          .insert({
-            business_id: business.id,
-            user_id: user.id,
-            role: "owner",
-            is_active: true
-          });
-
-        if (employeeError) {
-          console.error("Error creating employee record:", employeeError);
-        }
-      } catch (employeeErr) {
-        console.error("Error inserting employee record:", employeeErr);
-      }
-
-      // 5. Redirigir a la página de verificación de email
+      // 2. Redirigir a la página de verificación de email
       toast({
         title: "✅ ¡Cuenta creada exitosamente!",
         description: "Por favor, verifica tu correo electrónico",

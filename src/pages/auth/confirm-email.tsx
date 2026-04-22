@@ -6,15 +6,18 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Coffee, CheckCircle2, XCircle, Loader2, Store } from "lucide-react";
+import { businessService } from "@/services/businessService";
+import { subscriptionService } from "@/services/subscriptionService";
+import { CheckCircle2, XCircle, Loader2, Store } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ConfirmEmailPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    // Check if user just confirmed their email via the link
     const handleEmailConfirmation = async () => {
       try {
         const { data: { user }, error } = await supabase.auth.getUser();
@@ -26,12 +29,65 @@ export default function ConfirmEmailPage() {
         }
 
         if (user) {
-          setStatus("success");
-          setMessage("¡Tu cuenta ha sido verificada exitosamente!");
-          // Redirect to login after 3 seconds
-          setTimeout(() => {
-            router.push("/auth/login");
-          }, 3000);
+          // Email verificado exitosamente, ahora crear el negocio
+          try {
+            // Obtener el nombre del negocio de localStorage
+            const businessName = localStorage.getItem('pendingBusinessName') || 'Mi Negocio';
+            
+            // Crear negocio
+            const { business, error: businessError } = await businessService.createBusiness({
+              name: businessName,
+            });
+
+            if (businessError || !business) {
+              console.error("Error creating business:", businessError);
+              throw new Error(businessError || "No se pudo crear el negocio");
+            }
+
+            // Crear suscripción trial
+            const { error: subscriptionError } = await subscriptionService.createTrialSubscription(business.id);
+            
+            if (subscriptionError) {
+              console.error("Error creating trial subscription:", subscriptionError);
+            }
+
+            // Crear empleado owner
+            const { error: employeeError } = await supabase
+              .from("employees")
+              .insert({
+                business_id: business.id,
+                user_id: user.id,
+                role: "owner",
+                is_active: true
+              });
+
+            if (employeeError) {
+              console.error("Error creating employee record:", employeeError);
+            }
+
+            // Limpiar localStorage
+            localStorage.removeItem('pendingBusinessName');
+            localStorage.removeItem('pendingUserEmail');
+
+            setStatus("success");
+            setMessage("¡Tu cuenta ha sido verificada exitosamente! Tu negocio está listo.");
+
+            // Toast de éxito
+            toast({
+              title: "✅ ¡Cuenta verificada!",
+              description: "Tu negocio ha sido creado. Redirigiendo...",
+              className: "bg-accent text-accent-foreground border-accent",
+            });
+
+            // Redirigir a login después de 3 segundos
+            setTimeout(() => {
+              router.push("/auth/login");
+            }, 3000);
+          } catch (setupError: any) {
+            console.error("Error setting up business:", setupError);
+            setStatus("error");
+            setMessage("Tu email fue verificado, pero hubo un error al crear tu negocio. Por favor contacta a soporte.");
+          }
         } else {
           setStatus("error");
           setMessage("No se pudo verificar tu cuenta. Por favor intenta de nuevo.");
@@ -43,7 +99,7 @@ export default function ConfirmEmailPage() {
     };
 
     handleEmailConfirmation();
-  }, [router]);
+  }, [router, toast]);
 
   return (
     <>
@@ -67,7 +123,9 @@ export default function ConfirmEmailPage() {
             <CardHeader>
               <CardTitle>Confirmación de Email</CardTitle>
               <CardDescription>
-                Verificando tu cuenta
+                {status === "loading" ? "Verificando tu cuenta" : 
+                 status === "success" ? "¡Listo para comenzar!" : 
+                 "Hubo un problema"}
               </CardDescription>
             </CardHeader>
             
@@ -76,46 +134,44 @@ export default function ConfirmEmailPage() {
                 <Alert>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <AlertDescription>
-                    Verificando tu cuenta...
+                    Verificando tu cuenta y creando tu negocio...
                   </AlertDescription>
                 </Alert>
               )}
 
               {status === "success" && (
-                <Alert className="bg-accent/10 border-accent">
-                  <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <AlertDescription className="text-accent">
-                    {message}
-                  </AlertDescription>
-                </Alert>
+                <>
+                  <Alert className="bg-accent/10 border-accent">
+                    <CheckCircle2 className="h-4 w-4 text-accent" />
+                    <AlertDescription className="text-accent">
+                      {message}
+                    </AlertDescription>
+                  </Alert>
+                  <p className="text-sm text-muted-foreground text-center">
+                    Serás redirigido al inicio de sesión en unos segundos...
+                  </p>
+                </>
               )}
 
               {status === "error" && (
-                <Alert variant="destructive">
-                  <XCircle className="h-4 w-4" />
-                  <AlertDescription>{message}</AlertDescription>
-                </Alert>
-              )}
-
-              {status === "success" && (
-                <p className="text-sm text-muted text-center">
-                  Serás redirigido al inicio de sesión en unos segundos...
-                </p>
-              )}
-
-              {status === "error" && (
-                <div className="flex flex-col gap-2">
-                  <Button asChild className="w-full">
-                    <Link href="/auth/login">
-                      Ir al inicio de sesión
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" className="w-full">
-                    <Link href="/auth/register">
-                      Crear nueva cuenta
-                    </Link>
-                  </Button>
-                </div>
+                <>
+                  <Alert variant="destructive">
+                    <XCircle className="h-4 w-4" />
+                    <AlertDescription>{message}</AlertDescription>
+                  </Alert>
+                  <div className="flex flex-col gap-2">
+                    <Button asChild className="w-full">
+                      <Link href="/auth/login">
+                        Ir al inicio de sesión
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" className="w-full">
+                      <Link href="/auth/register">
+                        Crear nueva cuenta
+                      </Link>
+                    </Button>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
