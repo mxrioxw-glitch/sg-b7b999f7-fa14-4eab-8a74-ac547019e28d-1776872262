@@ -12,10 +12,11 @@ import { businessService } from "@/services/businessService";
 import { subscriptionService } from "@/services/subscriptionService";
 import { supabase } from "@/integrations/supabase/client";
 import { Coffee, AlertCircle, CheckCircle2, Store } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -95,31 +96,20 @@ export default function RegisterPage() {
 
       // 4. Crear empleado owner
       try {
-        const { data: employeeData, error: employeeError } = await supabase.functions.invoke("create-employee", {
-          body: {
-            businessId: business.id,
-            email: formData.email,
-            name: formData.fullName,
+        const { error: employeeError } = await supabase
+          .from("employees")
+          .insert({
+            business_id: business.id,
+            user_id: user.id,
             role: "owner",
-            permissions: {
-              pos: true,
-              products: true,
-              inventory: true,
-              customers: true,
-              reports: true,
-              settings: true,
-              employees: true,
-            },
-          },
-        });
+            is_active: true
+          });
 
         if (employeeError) {
-          console.error("Error creating employee:", employeeError);
-          // No lanzamos error, el negocio ya existe
+          console.error("Error creating employee record:", employeeError);
         }
       } catch (employeeErr) {
-        console.error("Error invoking create-employee function:", employeeErr);
-        // Continuar de todos modos
+        console.error("Error inserting employee record:", employeeErr);
       }
 
       // 5. Redirigir al inicio
