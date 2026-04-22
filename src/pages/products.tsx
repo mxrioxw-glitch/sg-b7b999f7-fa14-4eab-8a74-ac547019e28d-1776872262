@@ -38,7 +38,8 @@ import {
   Tag,
   DollarSign,
   AlertCircle,
-  Grid3x3
+  Grid3x3,
+  Pencil
 } from "lucide-react";
 import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
@@ -279,22 +280,26 @@ function ProductsContent() {
                     </span>
                   </div>
                   <div className="flex gap-2">
+                    <ProductForm 
+                      product={product} 
+                      onSuccess={loadProducts}
+                      trigger={
+                        <Button size="sm" variant="outline">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      }
+                    />
                     <Button
-                      variant="outline"
                       size="sm"
-                      onClick={() => handleEditProduct(product)}
-                      className="flex-1"
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Editar
-                    </Button>
-                    <Button
                       variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteClick(product)}
-                      className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      onClick={() => handleDelete(product.id)}
+                      disabled={deleting === product.id}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      {deleting === product.id ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      )}
                     </Button>
                   </div>
                 </CardContent>
