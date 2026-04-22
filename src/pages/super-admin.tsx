@@ -58,8 +58,8 @@ export default function SuperAdminPage() {
   const [metrics, setMetrics] = useState<MetricsData>({
     totalBusinesses: 0,
     activeBusinesses: 0,
+    inactiveBusinesses: 0,
     trialingBusinesses: 0,
-    canceledBusinesses: 0,
     mrr: 0,
     arr: 0,
     conversionRate: 0,
@@ -184,21 +184,26 @@ export default function SuperAdminPage() {
       return sub.status === "active" && new Date(sub.current_period_end) > now;
     }).length;
 
-    // Contar negocios en trial (trial_ends_at en el futuro y sin suscripción activa)
+    // Contar negocios en trial
     const trial = businessList.filter(b => {
-      if (!b.trial_ends_at) return false;
-      const trialEnd = new Date(b.trial_ends_at);
       const sub = b.subscriptions?.[0];
-      // En trial si: tiene trial_ends_at futuro Y (no tiene sub O sub no es activa)
-      return trialEnd > now && (!sub || sub.status !== "active");
+      const isTrialStatus = sub && sub.status === "trialing";
+      const trialEnd = b.trial_ends_at ? new Date(b.trial_ends_at) : null;
+      const isTrialDate = trialEnd && trialEnd > now;
+      
+      // Es trial si tiene status trialing o su fecha de prueba no ha expirado y no es activo
+      return isTrialStatus || (isTrialDate && sub?.status !== "active");
     }).length;
 
-    // Negocios inactivos (no están en trial y no tienen suscripción activa)
+    // Negocios inactivos (no están en trial, ni activos)
     const inactive = businessList.filter(b => {
       const sub = b.subscriptions?.[0];
-      const hasActiveSub = sub && sub.status === "active" && new Date(sub.current_period_end) > now;
-      const hasActiveTrial = b.trial_ends_at && new Date(b.trial_ends_at) > now;
-      return !hasActiveSub && !hasActiveTrial;
+      const isActive = sub && sub.status === "active" && new Date(sub.current_period_end) > now;
+      const isTrialStatus = sub && sub.status === "trialing";
+      const trialEnd = b.trial_ends_at ? new Date(b.trial_ends_at) : null;
+      const isTrialDate = trialEnd && trialEnd > now;
+      
+      return !isActive && !isTrialStatus && !isTrialDate;
     }).length;
 
     // Calcular MRR

@@ -18,21 +18,26 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setNeedsConfirmation(false);
 
     try {
-      const { data, error } = await authService.signIn(email, password);
+      const { user, error } = await authService.signIn(email, password);
       
       if (error) {
+        if (error.message.includes("confirm")) {
+          setNeedsConfirmation(true);
+        }
         setError(error.message);
         return;
       }
 
-      if (data?.user) {
+      if (user) {
         toast({
           title: "✅ Bienvenido",
           description: "Inicio de sesión exitoso",
@@ -41,7 +46,7 @@ export default function Login() {
 
         // Verificar si es super admin y redirigir a /super-admin
         const SUPER_ADMIN_EMAIL = "mxrioce@gmail.com";
-        if (data.user.email === SUPER_ADMIN_EMAIL) {
+        if (user.email === SUPER_ADMIN_EMAIL) {
           router.push("/super-admin");
         } else {
           router.push("/pos");
