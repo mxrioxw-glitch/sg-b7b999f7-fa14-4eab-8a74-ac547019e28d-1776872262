@@ -76,7 +76,14 @@ export default function RegisterPage() {
         throw new Error(errorMsg);
       }
 
-      // Guardar el nombre del negocio en localStorage para crearlo después de verificar email
+      // Actualizar metadatos del usuario con el nombre del negocio
+      await supabase.auth.updateUser({
+        data: {
+          business_name: formData.businessName
+        }
+      });
+
+      // Guardar el nombre del negocio en localStorage como respaldo
       if (typeof window !== 'undefined') {
         localStorage.setItem('pendingBusinessName', formData.businessName);
         localStorage.setItem('pendingUserEmail', formData.email);
