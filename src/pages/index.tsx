@@ -24,18 +24,21 @@ import {
   TrendingUp,
   AlertTriangle,
   CheckCircle,
-  XCircle,
   ArrowRight,
   Clock,
-  Zap
+  ArrowUp,
+  ArrowDown,
+  Minus,
 } from "lucide-react";
 import { authService } from "@/services/authService";
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 
 interface DashboardStats {
   todaySales: number;
   todayOrders: number;
   todayRevenue: number;
   lowStockItems: number;
+  yesterdayRevenue: number;
   activeShift: {
     id: string;
     openingAmount: number;
@@ -58,6 +61,19 @@ interface LowStockItem {
   unit: string;
 }
 
+interface SalesByHour {
+  hour: string;
+  total: number;
+}
+
+const CHART_COLORS = {
+  primary: "#2A1810",
+  accent: "#4A9C64",
+  secondary: "#4A3228",
+  warning: "#F59E0B",
+  danger: "#EF4444",
+};
+
 export default function HomePage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -74,10 +90,12 @@ export default function HomePage() {
     todayOrders: 0,
     todayRevenue: 0,
     lowStockItems: 0,
+    yesterdayRevenue: 0,
     activeShift: null,
   });
   const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
   const [lowStockItems, setLowStockItems] = useState<LowStockItem[]>([]);
+  const [salesByHour, setSalesByHour] = useState<SalesByHour[]>([]);
   const [quickCashRegisterOpen, setQuickCashRegisterOpen] = useState(false);
   const [cashRegisterMode, setCashRegisterMode] = useState<"open" | "close">("open");
   const [processingCashRegister, setProcessingCashRegister] = useState(false);
@@ -117,23 +135,10 @@ export default function HomePage() {
       setBusinessName(business.name);
       setBusinessId(business.id);
 
-      // Get employee ID - works for both owners and cashiers
+      // Get employee ID
       const currentEmployee = await employeeService.getCurrentEmployee();
       if (currentEmployee) {
         setEmployeeId(currentEmployee.id);
-      } else {
-        // If no employee record found, might be owner without employee entry
-        // Create a temporary employee for owner
-        const { data: ownerEmployee } = await supabase
-          .from("employees")
-          .select("id")
-          .eq("business_id", business.id)
-          .eq("user_id", user.id)
-          .maybeSingle();
-        
-        if (ownerEmployee) {
-          setEmployeeId(ownerEmployee.id);
-        }
       }
 
       // Get subscription
@@ -150,16 +155,32 @@ export default function HomePage() {
       // Get today's stats
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      // Get yesterday's stats for comparison
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
 
       const { data: salesData } = await supabase
         .from("sales")
         .select("id, total, created_at")
         .eq("business_id", business.id)
         .gte("created_at", today.toISOString())
+        .lt("created_at", tomorrow.toISOString())
         .order("created_at", { ascending: false });
+
+      const { data: yesterdaySalesData } = await supabase
+        .from("sales")
+        .select("total")
+        .eq("business_id", business.id)
+        .gte("created_at", yesterday.toISOString())
+        .lt("created_at", today.toISOString());
 
       const todayOrders = salesData?.length || 0;
       const todayRevenue = salesData?.reduce((sum, sale) => sum + Number(sale.total), 0) || 0;
+      const yesterdayRevenue = yesterdaySalesData?.reduce((sum, sale) => sum + Number(sale.total), 0) || 0;
 
       // Get total items sold today
       const { data: itemsData } = await supabase
@@ -169,11 +190,31 @@ export default function HomePage() {
 
       const todaySales = itemsData?.reduce((sum, item) => sum + Number(item.quantity), 0) || 0;
 
+      // Get sales by hour
+      const hourlyData: { [key: string]: number } = {};
+      salesData?.forEach((sale) => {
+        const hour = new Date(sale.created_at).getHours();
+        const hourKey = `${hour}:00`;
+        hourlyData[hourKey] = (hourlyData[hourKey] || 0) + Number(sale.total);
+      });
+
+      const salesByHourArray = Object.entries(hourlyData)
+        .map(([hour, total]) => ({
+          hour,
+          total,
+        }))
+        .sort((a, b) => {
+          const hourA = parseInt(a.hour.split(":")[0]);
+          const hourB = parseInt(b.hour.split(":")[0]);
+          return hourA - hourB;
+        });
+
+      setSalesByHour(salesByHourArray);
+
       // Get active cash register
       const registers = await getCashRegisters(business.id);
       const activeCashRegister = registers.find(r => r.status === "open");
 
-      // Calculate expected amount if there's an active register
       if (activeCashRegister) {
         const registerSales = (salesData || []).filter(
           s => s.id === activeCashRegister.id
@@ -196,6 +237,7 @@ export default function HomePage() {
         todaySales,
         todayOrders,
         todayRevenue,
+        yesterdayRevenue,
         lowStockItems: lowStock.length,
         activeShift: activeCashRegister ? {
           id: activeCashRegister.id,
@@ -204,7 +246,7 @@ export default function HomePage() {
         } : null,
       });
 
-      // Get recent sales (last 5)
+      // Get recent sales
       const recentSalesData = (salesData || []).slice(0, 5).map(sale => ({
         id: sale.id,
         total: Number(sale.total),
@@ -213,7 +255,7 @@ export default function HomePage() {
       }));
       setRecentSales(recentSalesData);
 
-      // Set low stock items (top 5)
+      // Set low stock items
       setLowStockItems(lowStock.slice(0, 5).map(item => ({
         id: item.id,
         name: item.name,
@@ -307,6 +349,17 @@ export default function HomePage() {
     setQuickCashRegisterOpen(true);
   }
 
+  // Calculate revenue change percentage
+  const revenueChange = stats.yesterdayRevenue > 0
+    ? ((stats.todayRevenue - stats.yesterdayRevenue) / stats.yesterdayRevenue) * 100
+    : 0;
+
+  // Prepare pie chart data for revenue distribution
+  const pieChartData = [
+    { name: "Hoy", value: stats.todayRevenue, color: CHART_COLORS.accent },
+    { name: "Ayer", value: stats.yesterdayRevenue, color: CHART_COLORS.secondary },
+  ];
+
   if (loading) {
     return <LoadingScreen />;
   }
@@ -365,54 +418,52 @@ export default function HomePage() {
           />
 
           <main className="flex-1 p-4 md:p-8 space-y-6 md:space-y-8">
-            {/* Cash Register Status Alert */}
+            {/* Cash Register Status */}
             {stats.activeShift ? (
-              <Card className="border-accent bg-accent/5">
+              <Card className="border-accent bg-gradient-to-r from-accent/5 to-accent/10">
                 <CardContent className="pt-6">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                    <div className="p-2 rounded-full bg-accent/20">
-                      <CheckCircle className="h-6 w-6 text-accent" />
+                    <div className="p-3 rounded-full bg-accent/20">
+                      <CheckCircle className="h-8 w-8 text-accent" />
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-foreground">Turno de caja activo</p>
-                      <p className="text-sm text-muted-foreground">
-                        Apertura: ${stats.activeShift.openingAmount.toFixed(2)} • Abierto desde{" "}
+                      <p className="font-bold text-lg text-foreground">Turno de caja activo</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Apertura: <span className="font-semibold text-foreground">${stats.activeShift.openingAmount.toFixed(2)}</span> • Abierto desde{" "}
                         {new Date(stats.activeShift.openedAt).toLocaleTimeString("es-MX", {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
                       </p>
                     </div>
-                    <div className="flex gap-2 w-full sm:w-auto">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCloseCashRegisterDialog}
-                        className="flex-1 sm:flex-none"
-                      >
-                        Cerrar Turno
-                      </Button>
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCloseCashRegisterDialog}
+                      className="w-full sm:w-auto border-accent hover:bg-accent hover:text-white"
+                    >
+                      Cerrar Turno
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
             ) : (
-              <Card className="border-orange-500 bg-orange-50 dark:bg-orange-950">
+              <Card className="border-orange-500 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900">
                 <CardContent className="pt-6">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                    <div className="p-2 rounded-full bg-orange-500/20">
-                      <AlertTriangle className="h-6 w-6 text-orange-600" />
+                    <div className="p-3 rounded-full bg-orange-500/20">
+                      <AlertTriangle className="h-8 w-8 text-orange-600" />
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-foreground">No hay turno de caja activo</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="font-bold text-lg text-foreground">No hay turno de caja activo</p>
+                      <p className="text-sm text-muted-foreground mt-1">
                         Abre un turno para empezar a registrar ventas en el POS
                       </p>
                     </div>
                     <Button
                       size="sm"
                       onClick={handleOpenCashRegisterDialog}
-                      className="w-full sm:w-auto"
+                      className="w-full sm:w-auto bg-orange-600 hover:bg-orange-700"
                     >
                       Abrir Turno
                     </Button>
@@ -421,57 +472,216 @@ export default function HomePage() {
               </Card>
             )}
 
-            {/* Today's Stats */}
+            {/* Enhanced Stats Cards */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Ventas del día</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              {/* Revenue Card */}
+              <Card className="border-l-4 border-l-accent overflow-hidden">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Ventas del día</CardTitle>
+                    <div className="p-2 rounded-full bg-accent/10">
+                      <DollarSign className="h-5 w-5 text-accent" />
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">${stats.todayRevenue.toFixed(2)}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {stats.todayOrders} órdenes completadas
-                  </p>
+                  <div className="space-y-2">
+                    <div className="text-3xl font-bold text-foreground">${stats.todayRevenue.toFixed(2)}</div>
+                    {revenueChange !== 0 && (
+                      <div className={`flex items-center gap-1 text-sm ${revenueChange > 0 ? "text-green-600" : revenueChange < 0 ? "text-red-600" : "text-muted-foreground"}`}>
+                        {revenueChange > 0 ? (
+                          <ArrowUp className="h-4 w-4" />
+                        ) : revenueChange < 0 ? (
+                          <ArrowDown className="h-4 w-4" />
+                        ) : (
+                          <Minus className="h-4 w-4" />
+                        )}
+                        <span className="font-semibold">
+                          {Math.abs(revenueChange).toFixed(1)}%
+                        </span>
+                        <span className="text-muted-foreground">vs ayer</span>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {stats.todayOrders} órdenes completadas
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Productos vendidos</CardTitle>
-                  <Package className="h-4 w-4 text-muted-foreground" />
+              {/* Products Sold Card */}
+              <Card className="border-l-4 border-l-blue-500 overflow-hidden">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Productos vendidos</CardTitle>
+                    <div className="p-2 rounded-full bg-blue-500/10">
+                      <Package className="h-5 w-5 text-blue-500" />
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.todaySales}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Unidades en total
-                  </p>
+                  <div className="space-y-2">
+                    <div className="text-3xl font-bold text-foreground">{stats.todaySales}</div>
+                    <p className="text-xs text-muted-foreground">
+                      Unidades en total
+                    </p>
+                    <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-blue-500 transition-all duration-500"
+                        style={{ width: `${Math.min((stats.todaySales / 100) * 100, 100)}%` }}
+                      />
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Órdenes</CardTitle>
-                  <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+              {/* Orders Card */}
+              <Card className="border-l-4 border-l-purple-500 overflow-hidden">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Órdenes</CardTitle>
+                    <div className="p-2 rounded-full bg-purple-500/10">
+                      <ShoppingCart className="h-5 w-5 text-purple-500" />
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.todayOrders}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Ventas hoy
-                  </p>
+                  <div className="space-y-2">
+                    <div className="text-3xl font-bold text-foreground">{stats.todayOrders}</div>
+                    <p className="text-xs text-muted-foreground">
+                      Ventas hoy
+                    </p>
+                    {stats.todayOrders > 0 && (
+                      <div className="text-sm">
+                        <span className="font-semibold text-foreground">
+                          ${(stats.todayRevenue / stats.todayOrders).toFixed(2)}
+                        </span>
+                        <span className="text-muted-foreground"> promedio</span>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Bajo stock</CardTitle>
-                  <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              {/* Low Stock Card */}
+              <Card className={`border-l-4 overflow-hidden ${stats.lowStockItems > 0 ? "border-l-red-500 bg-red-50 dark:bg-red-950/20" : "border-l-green-500"}`}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Bajo stock</CardTitle>
+                    <div className={`p-2 rounded-full ${stats.lowStockItems > 0 ? "bg-red-500/10" : "bg-green-500/10"}`}>
+                      <AlertTriangle className={`h-5 w-5 ${stats.lowStockItems > 0 ? "text-red-500" : "text-green-500"}`} />
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.lowStockItems}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Items requieren atención
-                  </p>
+                  <div className="space-y-2">
+                    <div className={`text-3xl font-bold ${stats.lowStockItems > 0 ? "text-red-600" : "text-green-600"}`}>
+                      {stats.lowStockItems}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {stats.lowStockItems > 0 ? "Items requieren atención" : "Todo en orden"}
+                    </p>
+                    {stats.lowStockItems > 0 && (
+                      <Link href="/inventory">
+                        <Button variant="outline" size="sm" className="w-full text-xs mt-2 border-red-500 hover:bg-red-50">
+                          Ver inventario
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-3">
+              {/* Sales Chart */}
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Ventas por Hora</CardTitle>
+                  <CardDescription>Distribución de ventas durante el día</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {salesByHour.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={salesByHour}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis 
+                          dataKey="hour" 
+                          className="text-xs"
+                          tick={{ fill: "currentColor" }}
+                        />
+                        <YAxis 
+                          className="text-xs"
+                          tick={{ fill: "currentColor" }}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: "hsl(var(--card))", 
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "0.5rem"
+                          }}
+                          formatter={(value: number) => `$${value.toFixed(2)}`}
+                        />
+                        <Bar 
+                          dataKey="total" 
+                          fill={CHART_COLORS.accent} 
+                          radius={[8, 8, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                      <div className="text-center">
+                        <TrendingUp className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                        <p>No hay datos de ventas por hora</p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Revenue Comparison Pie Chart */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Comparativa</CardTitle>
+                  <CardDescription>Hoy vs Ayer</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {stats.todayRevenue > 0 || stats.yesterdayRevenue > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={pieChartData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {pieChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: "hsl(var(--card))", 
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "0.5rem"
+                          }}
+                          formatter={(value: number) => `$${value.toFixed(2)}`}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                      <div className="text-center">
+                        <DollarSign className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                        <p>Sin datos para comparar</p>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -488,15 +698,15 @@ export default function HomePage() {
                 <CardContent className="grid gap-4">
                   {quickActions.map((action) => (
                     <Link key={action.href} href={action.href}>
-                      <div className="flex items-center gap-4 p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
-                        <div className={`p-3 rounded-lg ${action.color}`}>
+                      <div className="flex items-center gap-4 p-4 rounded-lg border border-border hover:bg-muted/50 hover:border-primary/50 transition-all cursor-pointer group">
+                        <div className={`p-3 rounded-lg ${action.color} group-hover:scale-110 transition-transform`}>
                           <action.icon className="h-6 w-6 text-white" />
                         </div>
                         <div className="flex-1">
                           <p className="font-semibold">{action.title}</p>
                           <p className="text-sm text-muted-foreground">{action.description}</p>
                         </div>
-                        <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                        <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                       </div>
                     </Link>
                   ))}
@@ -525,16 +735,16 @@ export default function HomePage() {
                       {recentSales.map((sale) => (
                         <div
                           key={sale.id}
-                          className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                          className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
                         >
                           <div className="flex items-center gap-3">
                             <div className="p-2 rounded-full bg-accent/20">
                               <ShoppingCart className="h-4 w-4 text-accent" />
                             </div>
                             <div>
-                              <p className="font-medium">${sale.total.toFixed(2)}</p>
+                              <p className="font-semibold">${sale.total.toFixed(2)}</p>
                               <p className="text-xs text-muted-foreground">
-                                {sale.items_count} productos
+                                {sale.items_count} {sale.items_count === 1 ? "producto" : "productos"}
                               </p>
                             </div>
                           </div>
@@ -562,7 +772,7 @@ export default function HomePage() {
 
             {/* Low Stock Alert */}
             {lowStockItems.length > 0 && (
-              <Card className="border-amber-500 bg-amber-50 dark:bg-amber-950">
+              <Card className="border-amber-500 bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -570,7 +780,7 @@ export default function HomePage() {
                       <CardTitle>Productos con Bajo Stock</CardTitle>
                     </div>
                     <Link href="/inventory">
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" className="border-amber-600 hover:bg-amber-100">
                         Ver Inventario
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
@@ -581,11 +791,11 @@ export default function HomePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
+                  <div className="grid gap-3 sm:grid-cols-2">
                     {lowStockItems.map((item) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between p-3 rounded-lg bg-white dark:bg-background border"
+                        className="flex items-center justify-between p-3 rounded-lg bg-white dark:bg-background border shadow-sm"
                       >
                         <div>
                           <p className="font-medium">{item.name}</p>
@@ -593,7 +803,7 @@ export default function HomePage() {
                             Mínimo: {item.min_stock} {item.unit}
                           </p>
                         </div>
-                        <Badge variant="destructive">
+                        <Badge variant="destructive" className="text-base px-3 py-1">
                           {item.current_stock} {item.unit}
                         </Badge>
                       </div>
