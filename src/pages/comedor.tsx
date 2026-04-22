@@ -16,13 +16,13 @@ export default function ComedorPage() {
   const [showComingSoon, setShowComingSoon] = useState(true);
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredPermission="can_view_sales">
       <SEO 
         title="Comedor - Sistema de Gestión de Mesas"
         description="Módulo de gestión de comedor para restaurantes"
       />
       
-      <FeatureGuard feature="comedor" requiredPlan="professional">
+      <FeatureGuard feature="comedor">
         <div className="flex h-screen overflow-hidden bg-background">
           <Sidebar 
             isOpen={isSidebarOpen} 
@@ -32,7 +32,6 @@ export default function ComedorPage() {
           <div className="flex-1 flex flex-col overflow-hidden">
             <Header 
               onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              title="Comedor"
             />
 
             <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">

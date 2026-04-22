@@ -16,13 +16,13 @@ export default function KitchenDisplayPage() {
   const [showComingSoon, setShowComingSoon] = useState(true);
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredPermission="can_view_sales">
       <SEO 
         title="Pantalla de Cocina - KDS"
         description="Kitchen Display System para gestión de órdenes en cocina"
       />
       
-      <FeatureGuard feature="kitchen_display" requiredPlan="professional">
+      <FeatureGuard feature="kitchen_display">
         <div className="flex h-screen overflow-hidden bg-background">
           <Sidebar 
             isOpen={isSidebarOpen} 
@@ -32,7 +32,6 @@ export default function KitchenDisplayPage() {
           <div className="flex-1 flex flex-col overflow-hidden">
             <Header 
               onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              title="Pantalla de Cocina"
             />
 
             <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">

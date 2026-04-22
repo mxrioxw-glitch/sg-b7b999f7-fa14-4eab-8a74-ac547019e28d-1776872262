@@ -16,13 +16,13 @@ export default function WhatsAppOrdersPage() {
   const [showComingSoon, setShowComingSoon] = useState(true);
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredPermission="can_view_sales">
       <SEO 
         title="Órdenes por WhatsApp"
         description="Sistema de gestión de pedidos vía WhatsApp"
       />
       
-      <FeatureGuard feature="whatsapp_orders" requiredPlan="professional">
+      <FeatureGuard feature="whatsapp_orders">
         <div className="flex h-screen overflow-hidden bg-background">
           <Sidebar 
             isOpen={isSidebarOpen} 
@@ -32,7 +32,6 @@ export default function WhatsAppOrdersPage() {
           <div className="flex-1 flex flex-col overflow-hidden">
             <Header 
               onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              title="Órdenes por WhatsApp"
             />
 
             <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
