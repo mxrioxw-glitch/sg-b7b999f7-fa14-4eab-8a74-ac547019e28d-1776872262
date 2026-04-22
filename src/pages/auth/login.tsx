@@ -49,7 +49,8 @@ export default function Login() {
         if (user.email === SUPER_ADMIN_EMAIL) {
           router.push("/super-admin");
         } else {
-          router.push("/pos");
+          // Negocios van al módulo de inicio
+          router.push("/");
         }
       }
     } catch (err: any) {
