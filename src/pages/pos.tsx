@@ -127,14 +127,19 @@ function POSContent() {
         }
         // Si es empleado, continuar normalmente SIN verificar suscripción
 
+        setBusiness(business);
+
         // Load data
         await Promise.all([
-          loadCategories(),
-          loadProducts(),
-          loadPaymentMethods(),
+          loadCategories(business.id),
+          loadProducts(business.id),
+          loadCustomers(business.id),
+          loadActiveCashRegister(business.id)
         ]);
+        setLoading(false);
       } catch (error) {
         console.error("Error in POS initialization:", error);
+        setLoading(false);
       }
     }
 
