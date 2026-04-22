@@ -21,19 +21,23 @@ export const getDashboardMetrics = async (
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  // Get today's sales
-  const { data: todaySalesData } = await supabase
+  // Use provided dates or default to today
+  const rangeStart = startDate || today;
+  const rangeEnd = endDate || tomorrow;
+
+  // Get sales for the selected range (used for "today" stats in the UI)
+  const { data: rangeSalesData } = await supabase
     .from("sales")
-    .select("total")
+    .select("total, created_at")
     .eq("business_id", businessId)
     .eq("status", "completed")
-    .gte("created_at", today.toISOString())
-    .lt("created_at", tomorrow.toISOString());
+    .gte("created_at", rangeStart.toISOString())
+    .lte("created_at", rangeEnd.toISOString());
 
-  const todaySales = todaySalesData?.reduce((sum, sale) => sum + Number(sale.total || 0), 0) || 0;
-  const todayOrders = todaySalesData?.length || 0;
+  const todaySales = rangeSalesData?.reduce((sum, sale) => sum + Number(sale.total || 0), 0) || 0;
+  const todayOrders = rangeSalesData?.length || 0;
 
-  // Get month sales
+  // Get month sales (always current month for comparison)
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
 
@@ -61,17 +65,14 @@ export const getDashboardMetrics = async (
 
   const previousMonthSales = prevMonthSalesData?.reduce((sum, sale) => sum + Number(sale.total || 0), 0) || 0;
 
-  // Get sales by hour (today or filtered range)
-  const rangeStart = startDate || today;
-  const rangeEnd = endDate || tomorrow;
-
+  // Get sales by hour (filtered by selected range)
   const { data: salesByHourData } = await supabase
     .from("sales")
     .select("created_at, total")
     .eq("business_id", businessId)
     .eq("status", "completed")
     .gte("created_at", rangeStart.toISOString())
-    .lt("created_at", rangeEnd.toISOString())
+    .lte("created_at", rangeEnd.toISOString())
     .order("created_at", { ascending: true });
 
   const hourMap: { [key: string]: number } = {};
@@ -85,7 +86,7 @@ export const getDashboardMetrics = async (
     .map(([hour, total]) => ({ hour, total }))
     .sort((a, b) => a.hour.localeCompare(b.hour));
 
-  // Get top products
+  // Get top products (filtered by selected range)
   const { data: topProductsData } = await supabase
     .from("sale_items")
     .select(`
@@ -97,8 +98,8 @@ export const getDashboardMetrics = async (
     `)
     .eq("sales.business_id", businessId)
     .eq("sales.status", "completed")
-    .gte("sales.created_at", (startDate || startOfMonth).toISOString())
-    .lte("sales.created_at", (endDate || endOfMonth).toISOString());
+    .gte("sales.created_at", rangeStart.toISOString())
+    .lte("sales.created_at", rangeEnd.toISOString());
 
   const productMap: { [key: string]: { quantity: number; revenue: number } } = {};
   topProductsData?.forEach((item) => {
