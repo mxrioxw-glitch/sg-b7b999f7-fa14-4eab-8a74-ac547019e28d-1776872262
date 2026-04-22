@@ -12,6 +12,7 @@ import { businessService } from "@/services/businessService";
 import { subscriptionService } from "@/services/subscriptionService";
 import { supabase } from "@/integrations/supabase/client";
 import { Coffee, AlertCircle, CheckCircle2, Store } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -60,52 +61,78 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // Registrar usuario
-      const { user } = await authService.signUp(formData.email, formData.password, formData.fullName);
+      // 1. Registrar usuario
+      const { user, error: signUpError } = await authService.signUp(
+        formData.email, 
+        formData.password, 
+        formData.fullName
+      );
 
-      if (!user) {
-        throw new Error("No se pudo crear el usuario");
+      if (signUpError || !user) {
+        throw new Error(signUpError || "No se pudo crear el usuario");
       }
 
-      // Crear business (businessService.createBusiness solo acepta nombre y opcionales, owner_id se saca del token/auth backend)
+      // Esperar un momento para que el perfil se cree
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // 2. Crear negocio
       const { business, error: businessError } = await businessService.createBusiness({
         name: formData.businessName,
       });
 
       if (businessError || !business) {
+        console.error("Error creating business:", businessError);
         throw new Error(businessError || "No se pudo crear el negocio");
       }
 
-      // Crear suscripción de prueba
-      await subscriptionService.createTrialSubscription(business.id);
-
-      // Crear empleado owner
-      const { data: employeeData, error: employeeError } = await supabase.functions.invoke("create-employee", {
-        body: {
-          businessId: business.id,
-          email: formData.email,
-          name: formData.fullName,
-          role: "owner",
-          permissions: {
-            pos: true,
-            products: true,
-            inventory: true,
-            customers: true,
-            reports: true,
-            settings: true,
-            employees: true,
-          },
-        },
-      });
-
-      if (employeeError) {
-        console.error("Error creating employee:", employeeError);
+      // 3. Crear suscripción trial
+      const { error: subscriptionError } = await subscriptionService.createTrialSubscription(business.id);
+      
+      if (subscriptionError) {
+        console.error("Error creating trial subscription:", subscriptionError);
+        // No lanzamos error aquí, el negocio ya existe
       }
 
-      router.push("/home");
+      // 4. Crear empleado owner
+      try {
+        const { data: employeeData, error: employeeError } = await supabase.functions.invoke("create-employee", {
+          body: {
+            businessId: business.id,
+            email: formData.email,
+            name: formData.fullName,
+            role: "owner",
+            permissions: {
+              pos: true,
+              products: true,
+              inventory: true,
+              customers: true,
+              reports: true,
+              settings: true,
+              employees: true,
+            },
+          },
+        });
+
+        if (employeeError) {
+          console.error("Error creating employee:", employeeError);
+          // No lanzamos error, el negocio ya existe
+        }
+      } catch (employeeErr) {
+        console.error("Error invoking create-employee function:", employeeErr);
+        // Continuar de todos modos
+      }
+
+      // 5. Redirigir al inicio
+      toast({
+        title: "✅ ¡Cuenta creada exitosamente!",
+        description: "Bienvenido a Nexum Cloud",
+        className: "bg-accent text-accent-foreground border-accent",
+      });
+
+      router.push("/");
     } catch (err: any) {
       console.error("Registration error:", err);
-      setError(err.message || "Error en el registro");
+      setError(err.message || "Error en el registro. Por favor, intenta de nuevo.");
     } finally {
       setLoading(false);
     }
