@@ -17,7 +17,8 @@ import {
   ChefHat,
   MessageSquare,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Warehouse
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -63,7 +64,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     { icon: LayoutDashboard, label: "Inicio", href: "/" },
     { icon: ShoppingCart, label: "POS", href: "/pos" },
     { icon: Package, label: "Productos", href: "/products" },
-    { icon: Package, label: "Inventario", href: "/inventory" },
+    { icon: Warehouse, label: "Inventario", href: "/inventory" },
     { icon: Users, label: "Clientes", href: "/customers" },
     { icon: DollarSign, label: "Corte de Caja", href: "/cash-register" },
     { icon: BarChart3, label: "Dashboard", href: "/dashboard" },

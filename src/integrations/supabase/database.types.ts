@@ -482,6 +482,7 @@ export type Database = {
       product_inventory_items: {
         Row: {
           created_at: string | null
+          extra_id: string | null
           id: string
           inventory_item_id: string
           product_id: string
@@ -490,6 +491,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          extra_id?: string | null
           id?: string
           inventory_item_id: string
           product_id: string
@@ -498,6 +500,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          extra_id?: string | null
           id?: string
           inventory_item_id?: string
           product_id?: string
@@ -505,6 +508,13 @@ export type Database = {
           variant_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "product_inventory_items_extra_id_fkey"
+            columns: ["extra_id"]
+            isOneToOne: false
+            referencedRelation: "product_extras"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "product_inventory_items_inventory_item_id_fkey"
             columns: ["inventory_item_id"]
