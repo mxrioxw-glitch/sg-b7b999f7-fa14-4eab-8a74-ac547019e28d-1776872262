@@ -9,14 +9,15 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 import { authService } from "@/services/authService";
 import { Coffee, AlertCircle, Store } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-export default function LoginPage() {
+export default function Login() {
   const router = useRouter();
+  const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +25,7 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const { data, error } = await authService.signInWithEmail(email, password);
+      const { data, error } = await authService.signIn(email, password);
       
       if (error) {
         setError(error.message);

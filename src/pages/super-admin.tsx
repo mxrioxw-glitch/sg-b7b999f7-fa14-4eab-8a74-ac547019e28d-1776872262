@@ -29,8 +29,8 @@ type SubscriptionPlan = Tables<"subscription_plans">;
 type MetricsData = {
   totalBusinesses: number;
   activeBusinesses: number;
+  inactiveBusinesses: number;
   trialingBusinesses: number;
-  canceledBusinesses: number;
   mrr: number;
   arr: number;
   conversionRate: number;
@@ -206,11 +206,12 @@ export default function SuperAdminPage() {
     businessList.forEach(b => {
       const sub = b.subscriptions?.[0];
       if (sub && sub.status === "active") {
-        const plan = plansList.find(p => p.id === sub.plan_id);
+        // En tu esquema, subscription no tiene plan_id directo, sino "plan" (enum) y se busca en subscription_plans
+        const plan = plansList.find(p => p.name.toLowerCase() === sub.plan);
         if (plan) {
           // Si es plan anual, dividir entre 12 para obtener MRR
           const monthlyAmount = sub.billing_cycle === "annual" 
-            ? plan.price_annual / 12 
+            ? plan.price_yearly / 12 
             : plan.price_monthly;
           totalMRR += monthlyAmount;
         }
@@ -224,11 +225,11 @@ export default function SuperAdminPage() {
       totalBusinesses: businessList.length,
       activeBusinesses: active,
       inactiveBusinesses: inactive,
-      trialBusinesses: trial,
+      trialingBusinesses: trial,
       mrr: totalMRR,
       arr: arr,
       conversionRate: conversionRate,
-      growthRate: 0, // TODO: Calculate based on historical data
+      growthRate: 0,
     });
   };
 
@@ -456,7 +457,7 @@ export default function SuperAdminPage() {
                 <Calendar className="h-5 w-5 text-muted-foreground" />
               </div>
               <h3 className="text-2xl font-bold text-foreground mb-1">
-                {metrics.trialBusinesses}
+                {metrics.trialingBusinesses}
               </h3>
               <p className="text-sm text-muted-foreground">En Prueba</p>
             </div>
