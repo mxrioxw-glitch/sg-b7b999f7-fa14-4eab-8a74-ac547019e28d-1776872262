@@ -45,7 +45,7 @@ export default function Login() {
         });
 
         // Verificar si es super admin y redirigir a /super-admin
-        const SUPER_ADMIN_EMAIL = "mxrioce@gmail.com";
+        const SUPER_ADMIN_EMAIL = "mxrioxw@gmail.com";
         if (user.email === SUPER_ADMIN_EMAIL) {
           router.push("/super-admin");
         } else {
