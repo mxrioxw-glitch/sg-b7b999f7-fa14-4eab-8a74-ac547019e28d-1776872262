@@ -67,8 +67,6 @@ function ProductsContent() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [businessId, setBusinessId] = useState<string>("");
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -114,33 +112,6 @@ function ProductsContent() {
     setCategories(data);
   }
 
-  async function handleNewProduct() {
-    // Check product limit
-    const result = await subscriptionService.canAddProduct();
-    
-    if (!result.canAdd) {
-      toast({
-        title: "Límite alcanzado",
-        description: result.reason,
-        variant: "destructive",
-      });
-      
-      // Show upgrade prompt
-      setTimeout(() => {
-        router.push("/subscription");
-      }, 2000);
-      return;
-    }
-
-    setEditingProduct(null);
-    setIsModalOpen(true);
-  }
-
-  function handleEditProduct(product: Product) {
-    setEditingProduct(product);
-    setIsModalOpen(true);
-  }
-
   function handleDeleteClick(product: Product) {
     setProductToDelete(product);
     setDeleteDialogOpen(true);
@@ -166,12 +137,6 @@ function ProductsContent() {
         variant: "destructive",
       });
     }
-  }
-
-  async function handleProductSaved() {
-    setIsModalOpen(false);
-    setEditingProduct(null);
-    await loadProducts(businessId);
   }
 
   const filteredProducts = products.filter((product) => {
@@ -236,10 +201,15 @@ function ProductsContent() {
               <Tag className="h-4 w-4 mr-2" />
               Categorías
             </Button>
-            <Button onClick={handleNewProduct} className="w-full sm:w-auto">
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo Producto
-            </Button>
+            <ProductForm 
+              onSuccess={() => loadProducts(businessId)}
+              trigger={
+                <Button className="w-full sm:w-auto">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nuevo Producto
+                </Button>
+              }
+            />
           </div>
 
           {/* Products Grid */}
@@ -282,7 +252,7 @@ function ProductsContent() {
                   <div className="flex gap-2">
                     <ProductForm 
                       product={product} 
-                      onSuccess={loadProducts}
+                      onSuccess={() => loadProducts(businessId)}
                       trigger={
                         <Button size="sm" variant="outline">
                           <Pencil className="h-4 w-4" />
@@ -292,14 +262,9 @@ function ProductsContent() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleDelete(product.id)}
-                      disabled={deleting === product.id}
+                      onClick={() => handleDeleteClick(product)}
                     >
-                      {deleting === product.id ? (
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                      ) : (
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      )}
+                      <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
                 </CardContent>
@@ -317,35 +282,20 @@ function ProductsContent() {
                   : "Comienza agregando tu primer producto"}
               </p>
               {!searchQuery && categoryFilter === "all" && (
-                <Button onClick={handleNewProduct}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Crear Producto
-                </Button>
+                <ProductForm 
+                  onSuccess={() => loadProducts(businessId)}
+                  trigger={
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Crear Producto
+                    </Button>
+                  }
+                />
               )}
             </div>
           )}
         </main>
       </div>
-
-      {/* Product Form Dialog */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingProduct ? "Editar Producto" : "Nuevo Producto"}
-            </DialogTitle>
-          </DialogHeader>
-          <ProductForm
-            product={editingProduct}
-            categories={categories}
-            businessId={businessId}
-            onClose={() => {
-              setIsModalOpen(false);
-              loadProducts(businessId);
-            }}
-          />
-        </DialogContent>
-      </Dialog>
 
       {/* Category Manager Dialog */}
       <Dialog open={showCategoryManager} onOpenChange={setShowCategoryManager}>

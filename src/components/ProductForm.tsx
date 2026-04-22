@@ -951,7 +951,7 @@ export function ProductForm({ product, onSuccess, trigger }: ProductFormProps) {
                                           <SelectContent>
                                             {inventoryItems.map((item) => (
                                               <SelectItem key={item.id} value={item.id}>
-                                                {item.name} ({item.quantity} {item.unit})
+                                                {item.name} ({item.current_stock} {item.unit})
                                               </SelectItem>
                                             ))}
                                           </SelectContent>
@@ -1155,7 +1155,7 @@ export function ProductForm({ product, onSuccess, trigger }: ProductFormProps) {
                                           <SelectContent>
                                             {inventoryItems.map((item) => (
                                               <SelectItem key={item.id} value={item.id}>
-                                                {item.name} ({item.quantity} {item.unit})
+                                                {item.name} ({item.current_stock} {item.unit})
                                               </SelectItem>
                                             ))}
                                           </SelectContent>
