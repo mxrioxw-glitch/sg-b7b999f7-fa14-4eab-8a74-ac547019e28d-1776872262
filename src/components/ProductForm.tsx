@@ -11,16 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Trash2, Package, Upload, Sparkles, X, DollarSign, Tag, AlertCircle } from "lucide-react";
 import { productService } from "@/services/productService";
 import { categoryService } from "@/services/categoryService";
-import { inventoryService } from "@/services/inventoryService";
-import { subscriptionService } from "@/services/subscriptionService";
-import { UpgradePlanModal } from "@/components/UpgradePlanModal";
-import type { Product, ProductVariant, ProductExtra } from "@/services/productService";
-import type { Category } from "@/services/categoryService";
-import type { InventoryItem } from "@/services/inventoryService";
+import { ProductInventoryLink } from "@/services/productService";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { businessService } from "@/services/businessService";
 import { storageService } from "@/services/storageService";
+import { getInventoryItems } from "@/services/inventoryService";
 
 interface ProductFormProps {
   product?: Product | null;
@@ -137,7 +133,7 @@ export function ProductForm({
       setLoadingInventory(true);
       const business = await businessService.getCurrentBusiness();
       if (business) {
-        const items = await inventoryService.getInventoryItems(business.id);
+        const items = await getInventoryItems(business.id);
         setInventoryItems(items || []);
       }
     } catch (error) {
