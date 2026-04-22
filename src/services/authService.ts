@@ -183,7 +183,7 @@ export const authService = {
         type: "signup",
         email: email,
         options: {
-          emailRedirectTo: `${getRedirectUrl()}/auth/confirm-email`,
+          emailRedirectTo: `${getURL()}auth/confirm-email`,
         },
       });
 
