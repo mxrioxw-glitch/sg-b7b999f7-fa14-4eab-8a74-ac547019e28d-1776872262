@@ -11,12 +11,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Trash2, Package, Upload, Sparkles, X, DollarSign, Tag, AlertCircle } from "lucide-react";
 import { productService } from "@/services/productService";
 import { categoryService } from "@/services/categoryService";
-import { ProductInventoryLink } from "@/services/productService";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { businessService } from "@/services/businessService";
 import { storageService } from "@/services/storageService";
 import { getInventoryItems } from "@/services/inventoryService";
+import { subscriptionService } from "@/services/subscriptionService";
+import { UpgradePlanModal } from "@/components/UpgradePlanModal";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Product = Tables<"products">;
+type Category = Tables<"categories">;
+type InventoryItem = Tables<"inventory_items">;
 
 interface ProductFormProps {
   product?: Product | null;
