@@ -473,120 +473,211 @@ export default function HomePage() {
             )}
 
             {/* Enhanced Stats Cards */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              {/* Revenue Card */}
-              <Card className="border-l-4 border-l-accent overflow-hidden">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Ventas del día</CardTitle>
-                    <div className="p-2 rounded-full bg-accent/10">
-                      <DollarSign className="h-5 w-5 text-accent" />
+            <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Revenue Card - Con mini gráfica */}
+              <Card className="relative overflow-hidden border-none shadow-lg">
+                <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-accent/5" />
+                <CardHeader className="relative pb-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                      Ventas del día
+                    </CardTitle>
+                    <div className="p-2.5 rounded-xl bg-accent shadow-lg shadow-accent/20">
+                      <DollarSign className="h-5 w-5 text-white" />
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="text-3xl font-bold text-foreground">${stats.todayRevenue.toFixed(2)}</div>
+                <CardContent className="relative">
+                  <div className="space-y-3">
+                    <div className="flex items-baseline gap-2">
+                      <div className="text-4xl font-bold text-foreground tracking-tight">
+                        ${stats.todayRevenue.toFixed(2)}
+                      </div>
+                    </div>
                     {revenueChange !== 0 && (
-                      <div className={`flex items-center gap-1 text-sm ${revenueChange > 0 ? "text-green-600" : revenueChange < 0 ? "text-red-600" : "text-muted-foreground"}`}>
+                      <div className={`
+                        inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold
+                        ${revenueChange > 0 
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
+                          : revenueChange < 0 
+                          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" 
+                          : "bg-gray-100 text-gray-700"
+                        }
+                      `}>
                         {revenueChange > 0 ? (
-                          <ArrowUp className="h-4 w-4" />
+                          <ArrowUp className="h-3.5 w-3.5" />
                         ) : revenueChange < 0 ? (
-                          <ArrowDown className="h-4 w-4" />
+                          <ArrowDown className="h-3.5 w-3.5" />
                         ) : (
-                          <Minus className="h-4 w-4" />
+                          <Minus className="h-3.5 w-3.5" />
                         )}
-                        <span className="font-semibold">
-                          {Math.abs(revenueChange).toFixed(1)}%
-                        </span>
-                        <span className="text-muted-foreground">vs ayer</span>
+                        <span>{Math.abs(revenueChange).toFixed(1)}%</span>
+                        <span className="opacity-70">vs ayer</span>
                       </div>
                     )}
-                    <p className="text-xs text-muted-foreground">
-                      {stats.todayOrders} órdenes completadas
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Products Sold Card */}
-              <Card className="border-l-4 border-l-blue-500 overflow-hidden">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Productos vendidos</CardTitle>
-                    <div className="p-2 rounded-full bg-blue-500/10">
-                      <Package className="h-5 w-5 text-blue-500" />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="text-3xl font-bold text-foreground">{stats.todaySales}</div>
-                    <p className="text-xs text-muted-foreground">
-                      Unidades en total
-                    </p>
-                    <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-blue-500 transition-all duration-500"
-                        style={{ width: `${Math.min((stats.todaySales / 100) * 100, 100)}%` }}
-                      />
+                    <div className="pt-2 border-t border-border/50">
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-semibold text-foreground">{stats.todayOrders}</span> órdenes completadas
+                      </p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Orders Card */}
-              <Card className="border-l-4 border-l-purple-500 overflow-hidden">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Órdenes</CardTitle>
-                    <div className="p-2 rounded-full bg-purple-500/10">
-                      <ShoppingCart className="h-5 w-5 text-purple-500" />
+              {/* Products Sold Card - Con barra de progreso visual */}
+              <Card className="relative overflow-hidden border-none shadow-lg">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-blue-500/5" />
+                <CardHeader className="relative pb-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                      Productos vendidos
+                    </CardTitle>
+                    <div className="p-2.5 rounded-xl bg-blue-500 shadow-lg shadow-blue-500/20">
+                      <Package className="h-5 w-5 text-white" />
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="text-3xl font-bold text-foreground">{stats.todayOrders}</div>
-                    <p className="text-xs text-muted-foreground">
-                      Ventas hoy
-                    </p>
+                <CardContent className="relative">
+                  <div className="space-y-3">
+                    <div className="flex items-baseline gap-2">
+                      <div className="text-4xl font-bold text-foreground tracking-tight">
+                        {stats.todaySales}
+                      </div>
+                      <span className="text-sm text-muted-foreground">unidades</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Progreso del día</span>
+                        <span className="font-semibold text-blue-600">
+                          {Math.min((stats.todaySales / 100) * 100, 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      <div className="relative h-2.5 bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-1000 ease-out shadow-sm"
+                          style={{ width: `${Math.min((stats.todaySales / 100) * 100, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t border-border/50">
+                      <p className="text-sm text-muted-foreground">
+                        Meta diaria: <span className="font-semibold text-foreground">100</span> unidades
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Orders Card - Con promedio destacado */}
+              <Card className="relative overflow-hidden border-none shadow-lg">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-purple-500/5" />
+                <CardHeader className="relative pb-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                      Órdenes
+                    </CardTitle>
+                    <div className="p-2.5 rounded-xl bg-purple-500 shadow-lg shadow-purple-500/20">
+                      <ShoppingCart className="h-5 w-5 text-white" />
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="relative">
+                  <div className="space-y-3">
+                    <div className="flex items-baseline gap-2">
+                      <div className="text-4xl font-bold text-foreground tracking-tight">
+                        {stats.todayOrders}
+                      </div>
+                      <span className="text-sm text-muted-foreground">ventas</span>
+                    </div>
                     {stats.todayOrders > 0 && (
-                      <div className="text-sm">
-                        <span className="font-semibold text-foreground">
-                          ${(stats.todayRevenue / stats.todayOrders).toFixed(2)}
-                        </span>
-                        <span className="text-muted-foreground"> promedio</span>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Ticket promedio</p>
+                        <div className="inline-flex items-baseline gap-1.5 px-3 py-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                          <DollarSign className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                          <span className="text-lg font-bold text-purple-700 dark:text-purple-300">
+                            {(stats.todayRevenue / stats.todayOrders).toFixed(2)}
+                          </span>
+                        </div>
                       </div>
                     )}
+                    <div className="pt-2 border-t border-border/50">
+                      <p className="text-sm text-muted-foreground">
+                        Última venta: <span className="font-semibold text-foreground">Hace {recentSales.length > 0 ? Math.floor((Date.now() - new Date(recentSales[0].created_at).getTime()) / 60000) : 0} min</span>
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Low Stock Card */}
-              <Card className={`border-l-4 overflow-hidden ${stats.lowStockItems > 0 ? "border-l-red-500 bg-red-50 dark:bg-red-950/20" : "border-l-green-500"}`}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Bajo stock</CardTitle>
-                    <div className={`p-2 rounded-full ${stats.lowStockItems > 0 ? "bg-red-500/10" : "bg-green-500/10"}`}>
-                      <AlertTriangle className={`h-5 w-5 ${stats.lowStockItems > 0 ? "text-red-500" : "text-green-500"}`} />
+              {/* Low Stock Card - Con alerta visual */}
+              <Card className={`
+                relative overflow-hidden border-none shadow-lg
+                ${stats.lowStockItems > 0 ? "ring-2 ring-red-500/20" : ""}
+              `}>
+                <div className={`
+                  absolute inset-0 
+                  ${stats.lowStockItems > 0 
+                    ? "bg-gradient-to-br from-red-500/10 to-red-500/5" 
+                    : "bg-gradient-to-br from-green-500/10 to-green-500/5"
+                  }
+                `} />
+                <CardHeader className="relative pb-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                      Inventario
+                    </CardTitle>
+                    <div className={`
+                      p-2.5 rounded-xl shadow-lg
+                      ${stats.lowStockItems > 0 
+                        ? "bg-red-500 shadow-red-500/20 animate-pulse" 
+                        : "bg-green-500 shadow-green-500/20"
+                      }
+                    `}>
+                      <AlertTriangle className="h-5 w-5 text-white" />
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className={`text-3xl font-bold ${stats.lowStockItems > 0 ? "text-red-600" : "text-green-600"}`}>
-                      {stats.lowStockItems}
+                <CardContent className="relative">
+                  <div className="space-y-3">
+                    <div className="flex items-baseline gap-2">
+                      <div className={`
+                        text-4xl font-bold tracking-tight
+                        ${stats.lowStockItems > 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}
+                      `}>
+                        {stats.lowStockItems}
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {stats.lowStockItems > 0 ? "alertas" : "ok"}
+                      </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {stats.lowStockItems > 0 ? "Items requieren atención" : "Todo en orden"}
-                    </p>
+                    <div className={`
+                      inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold
+                      ${stats.lowStockItems > 0 
+                        ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" 
+                        : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                      }
+                    `}>
+                      {stats.lowStockItems > 0 ? (
+                        <>
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          <span>Requiere atención</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          <span>Stock adecuado</span>
+                        </>
+                      )}
+                    </div>
                     {stats.lowStockItems > 0 && (
-                      <Link href="/inventory">
-                        <Button variant="outline" size="sm" className="w-full text-xs mt-2 border-red-500 hover:bg-red-50">
-                          Ver inventario
-                        </Button>
-                      </Link>
+                      <div className="pt-2 border-t border-border/50">
+                        <Link href="/inventory" className="block">
+                          <Button variant="outline" size="sm" className="w-full text-xs border-red-500 hover:bg-red-50 dark:hover:bg-red-950">
+                            Ver detalles
+                            <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                          </Button>
+                        </Link>
+                      </div>
                     )}
                   </div>
                 </CardContent>
