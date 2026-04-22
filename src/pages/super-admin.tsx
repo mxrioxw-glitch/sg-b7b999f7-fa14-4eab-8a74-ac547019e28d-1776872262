@@ -252,12 +252,18 @@ export default function SuperAdminPage() {
       }
     });
 
-    const stats: PlanStats[] = plansList.map(plan => ({
-      planId: plan.id,
-      planName: plan.name,
-      userCount: planStatsMap.get(plan.id)?.count || 0,
-      revenue: planStatsMap.get(plan.id)?.revenue || 0
-    }));
+    const totalUsers = Array.from(planStatsMap.values()).reduce((sum, stat) => sum + stat.count, 0);
+
+    const stats: PlanStats[] = plansList.map(plan => {
+      const count = planStatsMap.get(plan.id)?.count || 0;
+      return {
+        planId: plan.id,
+        planName: plan.name,
+        count: count,
+        revenue: planStatsMap.get(plan.id)?.revenue || 0,
+        percentage: totalUsers > 0 ? (count / totalUsers) * 100 : 0
+      };
+    });
 
     setPlanStats(stats);
   };
