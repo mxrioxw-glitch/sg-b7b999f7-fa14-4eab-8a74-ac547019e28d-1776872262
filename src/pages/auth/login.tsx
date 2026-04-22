@@ -18,20 +18,40 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
+    setError("");
 
     try {
-      await authService.signIn(email, password);
-      router.push("/");
+      const { data, error } = await authService.signInWithEmail(email, password);
+      
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      if (data?.user) {
+        toast({
+          title: "✅ Bienvenido",
+          description: "Inicio de sesión exitoso",
+          className: "bg-accent text-accent-foreground border-accent",
+        });
+
+        // Verificar si es super admin y redirigir a /super-admin
+        const SUPER_ADMIN_EMAIL = "mxrioce@gmail.com";
+        if (data.user.email === SUPER_ADMIN_EMAIL) {
+          router.push("/super-admin");
+        } else {
+          router.push("/pos");
+        }
+      }
     } catch (err: any) {
       setError(err.message || "Error al iniciar sesión");
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
     <>
@@ -62,7 +82,7 @@ export default function LoginPage() {
               </CardDescription>
             </CardHeader>
             
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleLogin}>
               <CardContent className="space-y-4">
                 {error && (
                   <Alert variant="destructive">

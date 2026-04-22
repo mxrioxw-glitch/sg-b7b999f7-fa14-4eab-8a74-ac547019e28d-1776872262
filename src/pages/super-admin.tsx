@@ -15,7 +15,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { 
   Shield, Users, DollarSign, CheckCircle2, AlertCircle, XCircle, 
   Edit, Store, TrendingUp, TrendingDown, Clock, Search,
-  Calendar, Filter, BarChart3, PieChart, Activity
+  Calendar, Filter, BarChart3, PieChart, Activity, LogOut
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -46,8 +46,8 @@ type PlanStats = {
 };
 
 export default function SuperAdminPage() {
-  const router = useRouter();
   const { toast } = useToast();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
   const [businesses, setBusinesses] = useState<BusinessWithSubscription[]>([]);
@@ -70,6 +70,43 @@ export default function SuperAdminPage() {
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const handleLogout = async () => {
+    try {
+      toast({
+        title: "👋 Cerrando sesión...",
+        description: "Por favor espera",
+        duration: 2000,
+      });
+      
+      const { error } = await authService.signOut();
+      
+      if (error) {
+        toast({
+          title: "❌ Error",
+          description: error.message || "No se pudo cerrar la sesión",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      toast({
+        title: "✅ Sesión cerrada",
+        description: "Hasta pronto",
+        className: "bg-accent text-accent-foreground border-accent",
+        duration: 2000,
+      });
+      
+      window.location.href = "/auth/login";
+    } catch (error) {
+      console.error("Error logging out:", error);
+      toast({
+        title: "❌ Error",
+        description: "No se pudo cerrar la sesión",
+        variant: "destructive",
+      });
+    }
+  };
 
   useEffect(() => {
     checkAuthorization();
@@ -138,108 +175,61 @@ export default function SuperAdminPage() {
   };
 
   const calculateMetrics = (businessList: BusinessWithSubscription[], plansList: SubscriptionPlan[]) => {
-    const totalBusinesses = businessList.length;
-    const activeBusinesses = businessList.filter(b => 
-      b.subscriptions[0]?.status === "active"
-    ).length;
-    const trialingBusinesses = businessList.filter(b => 
-      b.subscriptions[0]?.status === "trialing"
-    ).length;
-    const canceledBusinesses = businessList.filter(b => 
-      b.subscriptions[0]?.status === "canceled"
-    ).length;
+    const now = new Date();
+    
+    // Contar negocios activos (con suscripción activa)
+    const active = businessList.filter(b => {
+      const sub = b.subscriptions?.[0];
+      if (!sub) return false;
+      return sub.status === "active" && new Date(sub.current_period_end) > now;
+    }).length;
 
-    // Calculate MRR
-    let mrr = 0;
-    let arr = 0;
+    // Contar negocios en trial (trial_ends_at en el futuro y sin suscripción activa)
+    const trial = businessList.filter(b => {
+      if (!b.trial_ends_at) return false;
+      const trialEnd = new Date(b.trial_ends_at);
+      const sub = b.subscriptions?.[0];
+      // En trial si: tiene trial_ends_at futuro Y (no tiene sub O sub no es activa)
+      return trialEnd > now && (!sub || sub.status !== "active");
+    }).length;
+
+    // Negocios inactivos (no están en trial y no tienen suscripción activa)
+    const inactive = businessList.filter(b => {
+      const sub = b.subscriptions?.[0];
+      const hasActiveSub = sub && sub.status === "active" && new Date(sub.current_period_end) > now;
+      const hasActiveTrial = b.trial_ends_at && new Date(b.trial_ends_at) > now;
+      return !hasActiveSub && !hasActiveTrial;
+    }).length;
+
+    // Calcular MRR
+    let totalMRR = 0;
     businessList.forEach(b => {
-      const subscription = b.subscriptions[0];
-      if (subscription?.status === "active" && subscription.plan) {
-        const plan = plansList.find(p => p.id === subscription.plan);
+      const sub = b.subscriptions?.[0];
+      if (sub && sub.status === "active") {
+        const plan = plansList.find(p => p.id === sub.plan_id);
         if (plan) {
-          if (subscription.billing_cycle === "yearly") {
-            const monthlyEquivalent = Number(plan.price_yearly) / 12;
-            mrr += monthlyEquivalent;
-            arr += Number(plan.price_yearly);
-          } else {
-            mrr += Number(plan.price_monthly);
-            arr += Number(plan.price_monthly) * 12;
-          }
+          // Si es plan anual, dividir entre 12 para obtener MRR
+          const monthlyAmount = sub.billing_cycle === "annual" 
+            ? plan.price_annual / 12 
+            : plan.price_monthly;
+          totalMRR += monthlyAmount;
         }
       }
     });
 
-    // Calculate conversion rate
-    const totalCompleted = activeBusinesses + canceledBusinesses;
-    const conversionRate = totalCompleted > 0 
-      ? (activeBusinesses / totalCompleted) * 100 
-      : 0;
-
-    // Calculate growth rate (this month vs last month - simplified)
-    const thisMonth = businessList.filter(b => {
-      const createdDate = new Date(b.created_at);
-      const now = new Date();
-      return createdDate.getMonth() === now.getMonth() && 
-             createdDate.getFullYear() === now.getFullYear();
-    }).length;
-    
-    const lastMonth = businessList.filter(b => {
-      const createdDate = new Date(b.created_at);
-      const now = new Date();
-      const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1);
-      return createdDate.getMonth() === lastMonthDate.getMonth() && 
-             createdDate.getFullYear() === lastMonthDate.getFullYear();
-    }).length;
-
-    const growthRate = lastMonth > 0 ? ((thisMonth - lastMonth) / lastMonth) * 100 : 0;
+    const arr = totalMRR * 12;
+    const conversionRate = trial > 0 ? (active / trial) * 100 : 0;
 
     setMetrics({
-      totalBusinesses,
-      activeBusinesses,
-      trialingBusinesses,
-      canceledBusinesses,
-      mrr,
-      arr,
-      conversionRate,
-      growthRate
+      totalBusinesses: businessList.length,
+      activeBusinesses: active,
+      inactiveBusinesses: inactive,
+      trialBusinesses: trial,
+      mrr: totalMRR,
+      arr: arr,
+      conversionRate: conversionRate,
+      growthRate: 0, // TODO: Calculate based on historical data
     });
-
-    // Calculate plan stats
-    const stats: { [key: string]: PlanStats } = {};
-    plansList.forEach(plan => {
-      stats[plan.id] = {
-        planId: plan.id,
-        planName: plan.name,
-        count: 0,
-        revenue: 0,
-        percentage: 0
-      };
-    });
-
-    businessList.forEach(b => {
-      const subscription = b.subscriptions[0];
-      if (subscription?.plan && stats[subscription.plan]) {
-        stats[subscription.plan].count++;
-        
-        if (subscription.status === "active") {
-          const plan = plansList.find(p => p.id === subscription.plan);
-          if (plan) {
-            if (subscription.billing_cycle === "yearly") {
-              stats[subscription.plan].revenue += Number(plan.price_yearly) / 12;
-            } else {
-              stats[subscription.plan].revenue += Number(plan.price_monthly);
-            }
-          }
-        }
-      }
-    });
-
-    const totalCount = Object.values(stats).reduce((sum, s) => sum + s.count, 0);
-    Object.values(stats).forEach(s => {
-      s.percentage = totalCount > 0 ? (s.count / totalCount) * 100 : 0;
-    });
-
-    setPlanStats(Object.values(stats).sort((a, b) => b.count - a.count));
   };
 
   const applyFilters = () => {
@@ -391,109 +381,85 @@ export default function SuperAdminPage() {
       />
       
       <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="h-16 border-b bg-card sticky top-0 z-10">
-          <div className="container mx-auto px-6 h-full flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                <Shield className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h2 className="font-heading font-bold text-lg leading-tight">Super Admin</h2>
-                <p className="text-xs text-muted-foreground">Nexum Cloud Dashboard</p>
-              </div>
+        <div className="container mx-auto py-8 px-4">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-4xl font-heading font-bold text-foreground flex items-center gap-3">
+                <Shield className="h-10 w-10 text-accent" />
+                Super Admin Dashboard
+              </h1>
+              <p className="text-muted-foreground mt-2">
+                Panel de control y métricas del sistema
+              </p>
             </div>
-            
-            <div className="flex items-center gap-3">
-              <Badge variant="outline" className="gap-1">
-                <Activity className="h-3 w-3" />
-                En vivo
-              </Badge>
-            </div>
+            <Button 
+              variant="outline" 
+              onClick={handleLogout}
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Cerrar Sesión
+            </Button>
           </div>
-        </header>
 
-        <div className="container mx-auto px-6 py-8">
-          {/* KPI Cards */}
+          {/* Métricas principales */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {/* MRR */}
-            <Card className="border-l-4 border-l-accent">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    MRR
-                  </CardTitle>
-                  <DollarSign className="h-4 w-4 text-accent" />
+            {/* Total Negocios */}
+            <div className="bg-card rounded-lg border border-border p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-accent/10 rounded-lg">
+                  <Store className="h-6 w-6 text-accent" />
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{formatCurrency(metrics.mrr)}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  ARR: {formatCurrency(metrics.arr)}
-                </p>
-              </CardContent>
-            </Card>
+                <TrendingUp className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <h3 className="text-2xl font-bold text-foreground mb-1">
+                {metrics.totalBusinesses}
+              </h3>
+              <p className="text-sm text-muted-foreground">Total Negocios</p>
+            </div>
 
-            {/* Total Businesses */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Negocios
-                  </CardTitle>
-                  <Store className="h-4 w-4 text-muted" />
+            {/* Negocios Activos */}
+            <div className="bg-card rounded-lg border border-border p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-green-500/10 rounded-lg">
+                  <CheckCircle2 className="h-6 w-6 text-green-600" />
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{metrics.totalBusinesses}</div>
-                <div className="flex items-center gap-2 mt-1">
-                  {metrics.growthRate >= 0 ? (
-                    <TrendingUp className="h-3 w-3 text-accent" />
-                  ) : (
-                    <TrendingDown className="h-3 w-3 text-destructive" />
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    {metrics.growthRate >= 0 ? "+" : ""}{metrics.growthRate.toFixed(1)}% este mes
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                <Activity className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <h3 className="text-2xl font-bold text-foreground mb-1">
+                {metrics.activeBusinesses}
+              </h3>
+              <p className="text-sm text-muted-foreground">Negocios Activos</p>
+            </div>
 
-            {/* Active Businesses */}
-            <Card className="border-l-4 border-l-green-500">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Negocios Activos
-                  </CardTitle>
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+            {/* Negocios Inactivos */}
+            <div className="bg-card rounded-lg border border-border p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-red-500/10 rounded-lg">
+                  <XCircle className="h-6 w-6 text-red-600" />
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{metrics.activeBusinesses}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {((metrics.activeBusinesses / metrics.totalBusinesses) * 100 || 0).toFixed(1)}% del total
-                </p>
-              </CardContent>
-            </Card>
+                <TrendingDown className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <h3 className="text-2xl font-bold text-foreground mb-1">
+                {metrics.inactiveBusinesses}
+              </h3>
+              <p className="text-sm text-muted-foreground">Negocios Inactivos</p>
+            </div>
 
-            {/* Trial Businesses */}
-            <Card className="border-l-4 border-l-yellow-500">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    En Prueba
-                  </CardTitle>
-                  <Clock className="h-4 w-4 text-yellow-500" />
+            {/* En Prueba */}
+            <div className="bg-card rounded-lg border border-border p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-yellow-500/10 rounded-lg">
+                  <Clock className="h-6 w-6 text-yellow-600" />
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{metrics.trialingBusinesses}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Conversión: {metrics.conversionRate.toFixed(1)}%
-                </p>
-              </CardContent>
-            </Card>
+                <Calendar className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <h3 className="text-2xl font-bold text-foreground mb-1">
+                {metrics.trialBusinesses}
+              </h3>
+              <p className="text-sm text-muted-foreground">En Prueba</p>
+            </div>
           </div>
 
           {/* Plan Distribution & Management */}
