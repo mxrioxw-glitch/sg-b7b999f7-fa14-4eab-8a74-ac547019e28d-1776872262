@@ -20,6 +20,20 @@ import { useState } from "react";
 
 type LimitType = "products" | "employees" | "locations" | "feature";
 
+type PlanInfoType = {
+  name: string;
+  icon: any;
+  price: number;
+  popular?: boolean;
+  badge?: string;
+  limits: {
+    products: number | string;
+    employees: number | string;
+    locations: number | string;
+  };
+  features?: string[];
+};
+
 type UpgradePlanModalProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -60,7 +74,7 @@ const LIMIT_INFO = {
   },
 };
 
-const PLAN_INFO = {
+const PLAN_INFO: Record<string, PlanInfoType> = {
   basic: {
     name: "Básico",
     icon: Zap,

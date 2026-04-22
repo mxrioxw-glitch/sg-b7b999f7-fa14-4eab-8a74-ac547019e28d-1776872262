@@ -18,6 +18,9 @@ import type { Product, ProductVariant, ProductExtra } from "@/services/productSe
 import type { Category } from "@/services/categoryService";
 import type { InventoryItem } from "@/services/inventoryService";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { businessService } from "@/services/businessService";
+import { storageService } from "@/services/storageService";
 
 interface ProductFormProps {
   product?: Product | null;
@@ -107,8 +110,6 @@ export function ProductForm({
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [inventory, setInventory] = useState<Inventory[]>([]);
   const [loadingImage, setLoadingImage] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -136,7 +137,7 @@ export function ProductForm({
       setLoadingInventory(true);
       const business = await businessService.getCurrentBusiness();
       if (business) {
-        const items = await getInventoryItems(business.id);
+        const items = await inventoryService.getInventoryItems(business.id);
         setInventoryItems(items || []);
       }
     } catch (error) {
@@ -1027,13 +1028,13 @@ export function ProductForm({
                             </CardContent>
                           </Card>
                         ))}
-
-                        {variants.length === 0 && (
-                          <p className="text-sm text-muted-foreground text-center py-4">
-                            No hay variantes. Agrega una para ofrecer diferentes tamaños.
-                          </p>
-                        )}
                       </div>
+
+                      {variants.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No hay variantes. Agrega una para ofrecer diferentes tamaños.
+                        </p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -1188,13 +1189,13 @@ export function ProductForm({
                             </CardContent>
                           </Card>
                         ))}
-
-                        {extras.length === 0 && (
-                          <p className="text-sm text-muted-foreground text-center py-4">
-                            No hay extras. Agrega uno para ofrecer modificadores.
-                          </p>
-                        )}
                       </div>
+
+                      {extras.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No hay extras. Agrega uno para ofrecer modificadores.
+                        </p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
