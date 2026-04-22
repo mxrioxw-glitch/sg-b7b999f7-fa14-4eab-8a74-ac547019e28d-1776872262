@@ -1,5 +1,5 @@
 import { SEO } from "@/components/SEO";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "@/integrations/supabase/client";
 import { businessService } from "@/services/businessService";
@@ -20,8 +20,9 @@ import { Sidebar } from "@/components/Sidebar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PermissionSelector } from "@/components/PermissionSelector";
-import { 
-  Building2, DollarSign, CreditCard, Users, Settings as SettingsIcon, Save, Plus, Pencil, Trash2, Upload, X, Check, AlertCircle, Zap, ChevronRight, ArrowLeft, Palette, Printer
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
+import { Building2, DollarSign, CreditCard, Users, Settings as SettingsIcon, Save, Plus, Pencil, Trash2, Upload, X, Check, AlertCircle, Zap, ChevronRight, ArrowLeft, Palette, Printer
 } from "lucide-react";
 import type { Business } from "@/services/businessService";
 import { requireActiveSubscription } from "@/middleware/subscription";
@@ -104,6 +105,15 @@ export default function SettingsPage() {
   const [employeeDialogOpen, setEmployeeDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<any | null>(null);
   const [editingPermissions, setEditingPermissions] = useState<EmployeePermission[]>([]);
+
+  const [selectedPreset, setSelectedPreset] = useState<string>("coffee");
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loadingImage, setLoadingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState<"basic" | "professional" | "premium">("basic");
+  const [employeeCount, setEmployeeCount] = useState(0);
 
   useEffect(() => {
     checkAccess();
@@ -589,6 +599,48 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleAddEmployee() {
+    // Check if can add employee
+    const canAdd = await subscriptionService.canAddEmployee();
+    if (!canAdd.canAdd) {
+      const plan = await subscriptionService.getCurrentPlan();
+      setCurrentPlan(plan as "basic" | "professional" | "premium");
+      
+      // Get current employee count
+      const business = await businessService.getCurrentBusiness();
+      if (business) {
+        const { count } = await supabase
+          .from("employees")
+          .select("*", { count: "exact", head: true })
+          .eq("business_id", business.id);
+        
+        setEmployeeCount(count || 0);
+      }
+      
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    setIsAddingEmployee(true);
+    setEmployeeForm({
+      email: "",
+      full_name: "",
+      role: "cashier",
+      permissions: {
+        can_view_sales: true,
+        can_create_sales: true,
+        can_cancel_sales: false,
+        can_apply_discounts: false,
+        can_view_reports: false,
+        can_manage_inventory: false,
+        can_manage_products: false,
+        can_manage_customers: false,
+        can_open_close_register: false,
+        can_manage_employees: false,
+      },
+    });
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -837,6 +889,13 @@ export default function SettingsPage() {
               {/* Employees View */}
               {currentView === "employees" && (
                 <div className="space-y-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Lista de Empleados</h3>
+                    <Button onClick={handleAddEmployee}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Agregar Empleado
+                    </Button>
+                  </div>
                   <Card>
                     <CardHeader>
                       <CardTitle>Crear Nuevo Empleado</CardTitle>
@@ -1311,6 +1370,15 @@ export default function SettingsPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <UpgradePlanModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        limitType="employees"
+        currentPlan={currentPlan}
+        currentLimit={employeeCount}
+        suggestedPlan={currentPlan === "basic" ? "professional" : "premium"}
+      />
     </ProtectedRoute>
   );
 }
