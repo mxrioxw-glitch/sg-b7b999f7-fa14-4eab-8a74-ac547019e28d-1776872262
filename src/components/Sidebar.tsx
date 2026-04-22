@@ -106,39 +106,44 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         ${isCollapsed ? "w-16" : "w-64"}
       `}>
         {/* Header */}
-        <div className={`h-16 flex items-center border-b border-border transition-all duration-300 ${isCollapsed ? "justify-center px-2" : "justify-between px-4"}`}>
-          {!isCollapsed && (
-            <h1 className="font-heading text-xl font-bold text-foreground">
-              Nexum Cloud
-            </h1>
-          )}
-          {isCollapsed && (
-            <h1 className="font-heading text-xl font-bold text-accent">
-              N
-            </h1>
-          )}
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="hidden lg:flex"
-              onClick={() => setIsCollapsed(!isCollapsed)}
-            >
-              {isCollapsed ? (
-                <ChevronRight className="h-5 w-5" />
-              ) : (
+        <div className={`h-16 flex items-center border-b border-border transition-all duration-300 ${isCollapsed ? "justify-center px-0" : "justify-between px-4"}`}>
+          {!isCollapsed ? (
+            <>
+              <h1 className="font-heading text-xl font-bold text-foreground">
+                Nexum Cloud
+              </h1>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="hidden lg:flex"
+                onClick={() => setIsCollapsed(!isCollapsed)}
+              >
                 <ChevronLeft className="h-5 w-5" />
-              )}
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="lg:hidden"
-              onClick={onClose}
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
+              </Button>
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-2 w-full">
+              <h1 className="font-heading text-2xl font-bold text-accent">
+                N
+              </h1>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="hidden lg:flex h-6 w-6"
+                onClick={() => setIsCollapsed(!isCollapsed)}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="lg:hidden absolute right-2"
+            onClick={onClose}
+          >
+            <X className="h-5 w-5" />
+          </Button>
         </div>
 
         {/* Navigation - con scroll personalizado */}
