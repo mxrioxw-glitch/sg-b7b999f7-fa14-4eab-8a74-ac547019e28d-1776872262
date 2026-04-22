@@ -20,12 +20,13 @@ import { Sidebar } from "@/components/Sidebar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PermissionSelector } from "@/components/PermissionSelector";
-import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Building2, DollarSign, CreditCard, Users, Settings as SettingsIcon, Save, Plus, Pencil, Trash2, Upload, X, Check, AlertCircle, Zap, ChevronRight, ArrowLeft, Palette, Printer
 } from "lucide-react";
 import type { Business } from "@/services/businessService";
 import { requireActiveSubscription } from "@/middleware/subscription";
+import { UpgradePlanModal } from "@/components/UpgradePlanModal";
+import { subscriptionService } from "@/services/subscriptionService";
 
 export const getServerSideProps = requireActiveSubscription;
 
@@ -106,11 +107,6 @@ export default function SettingsPage() {
   const [editingEmployee, setEditingEmployee] = useState<any | null>(null);
   const [editingPermissions, setEditingPermissions] = useState<EmployeePermission[]>([]);
 
-  const [selectedPreset, setSelectedPreset] = useState<string>("coffee");
-  const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [loadingImage, setLoadingImage] = useState(false);
-  const imageInputRef = useRef<HTMLInputElement>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<"basic" | "professional" | "premium">("basic");
   const [employeeCount, setEmployeeCount] = useState(0);
@@ -249,6 +245,21 @@ export default function SettingsPage() {
 
   async function handleCreateEmployee() {
     if (!businessId || !newEmployeeEmail || !newEmployeePassword || !newEmployeeName) return;
+
+    const canAdd = await subscriptionService.canAddEmployee();
+    if (!canAdd.canAdd) {
+      const plan = await subscriptionService.getCurrentPlan();
+      setCurrentPlan(plan as "basic" | "professional" | "premium");
+      
+      const { count } = await supabase
+        .from("employees")
+        .select("*", { count: "exact", head: true })
+        .eq("business_id", businessId);
+      
+      setEmployeeCount(count || 0);
+      setShowUpgradeModal(true);
+      return;
+    }
 
     setCreatingEmployee(true);
     try {
@@ -890,11 +901,7 @@ export default function SettingsPage() {
               {currentView === "employees" && (
                 <div className="space-y-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">Lista de Empleados</h3>
-                    <Button onClick={handleAddEmployee}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Agregar Empleado
-                    </Button>
+                    <h3 className="text-lg font-semibold">Gestión de Empleados</h3>
                   </div>
                   <Card>
                     <CardHeader>
