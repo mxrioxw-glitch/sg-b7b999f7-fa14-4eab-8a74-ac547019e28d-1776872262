@@ -15,19 +15,22 @@ export interface AuthError {
 
 // Dynamic URL Helper
 const getURL = () => {
-  // In Next.js, NEXT_PUBLIC_ vars are available at build time
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  let url = process?.env?.NEXT_PUBLIC_VERCEL_URL ?? 
+           process?.env?.NEXT_PUBLIC_SITE_URL ?? 
+           'http://localhost:3000'
   
-  if (siteUrl) {
-    // Ensure url has protocol
-    let url = siteUrl.startsWith('http') ? siteUrl : `https://${siteUrl}`;
-    // Ensure url ends with slash
-    url = url.endsWith('/') ? url : `${url}/`;
-    return url;
+  // Handle undefined or null url
+  if (!url) {
+    url = 'http://localhost:3000';
   }
   
-  // Fallback for local development
-  return 'http://localhost:3000/';
+  // Ensure url has protocol
+  url = url.startsWith('http') ? url : `https://${url}`
+  
+  // Ensure url ends with slash
+  url = url.endsWith('/') ? url : `${url}/`
+  
+  return url
 }
 
 export const authService = {
@@ -49,33 +52,33 @@ export const authService = {
   },
 
   // Sign up with email and password
-  async signUp(
-    email: string, 
-    password: string, 
-    fullName: string,
-    businessName?: string
-  ): Promise<{ user: any; error: string | null }> {
+  async signUp(email: string, password: string): Promise<{ user: AuthUser | null; error: AuthError | null }> {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${getURL()}auth/confirm-email`,
-          data: {
-            full_name: fullName,
-            ...(businessName && { business_name: businessName })
-          }
+          emailRedirectTo: `${getURL()}auth/confirm-email`
         }
       });
 
       if (error) {
-        return { user: null, error: error.message };
+        return { user: null, error: { message: error.message, code: error.status?.toString() } };
       }
 
-      return { user: data.user, error: null };
-    } catch (err: any) {
-      console.error("Sign up error:", err);
-      return { user: null, error: err.message };
+      const authUser = data.user ? {
+        id: data.user.id,
+        email: data.user.email || "",
+        user_metadata: data.user.user_metadata,
+        created_at: data.user.created_at
+      } : null;
+
+      return { user: authUser, error: null };
+    } catch (error) {
+      return { 
+        user: null, 
+        error: { message: "An unexpected error occurred during sign up" } 
+      };
     }
   },
 
@@ -168,27 +171,6 @@ export const authService = {
         user: null, 
         error: { message: "An unexpected error occurred during email confirmation" } 
       };
-    }
-  },
-
-  async resendVerificationEmail(email: string): Promise<{ error: string | null }> {
-    try {
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email: email,
-        options: {
-          emailRedirectTo: `${getURL()}auth/confirm-email`,
-        },
-      });
-
-      if (error) {
-        return { error: error.message };
-      }
-
-      return { error: null };
-    } catch (err: any) {
-      console.error("Error resending verification email:", err);
-      return { error: err.message || "Error al reenviar el correo" };
     }
   },
 
