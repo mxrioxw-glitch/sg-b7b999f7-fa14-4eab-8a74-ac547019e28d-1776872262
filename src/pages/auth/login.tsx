@@ -59,18 +59,21 @@ export default function LoginPage() {
         return;
       }
 
+      // 3. Regular user - check for existing business
       const existingBusiness = await businessService.getCurrentBusiness();
 
       if (existingBusiness) {
+        // Welcome back
         toast({
-          title: "¡Bienvenido de nuevo!",
+          title: "Bienvenido de nuevo",
           description: `Hola, ${existingBusiness.name}`,
         });
 
-        router.push("/pos");
+        router.push("/home");
         return;
       }
 
+      // 4. New user - create business (ONLY for non-Super Admin users)
       const businessData = {
         name: `Negocio de ${user.email.split("@")[0]}`,
         owner_id: user.id,
@@ -83,11 +86,11 @@ export default function LoginPage() {
       }
 
       toast({
-        title: "¡Cuenta creada!",
+        title: "Cuenta creada",
         description: "Tu negocio ha sido configurado exitosamente",
       });
 
-      router.push("/pos");
+      router.push("/home");
     } catch (error: any) {
       console.error("Login error:", error);
       setError(error.message || "Error al iniciar sesión");

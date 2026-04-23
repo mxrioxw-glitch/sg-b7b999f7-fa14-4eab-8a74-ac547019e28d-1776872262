@@ -11,8 +11,17 @@ export default function App({ Component, pageProps }: AppProps) {
 
   useEffect(() => {
     // Simple auth check - redirect to login if not authenticated
-    // Except for public pages (auth pages)
-    const publicPages = ["/auth/login", "/auth/register", "/auth/recovery", "/auth/reset-password", "/auth/confirm-email", "/auth/verify-email", "/404"];
+    // Except for public pages (auth pages + landing page)
+    const publicPages = [
+      "/", // Landing page
+      "/auth/login", 
+      "/auth/register", 
+      "/auth/recovery", 
+      "/auth/reset-password", 
+      "/auth/confirm-email", 
+      "/auth/verify-email", 
+      "/404"
+    ];
     
     const checkAuth = async () => {
       if (publicPages.includes(router.pathname)) {
