@@ -284,7 +284,7 @@ export const subscriptionService = {
       return { error: "Plan Premium no encontrado para trial" };
     }
 
-    const { error } = await supabase.from("subscriptions").insert({
+    const insertPayload: any = {
       business_id: businessId,
       plan_id: premiumPlan.id,
       status: "trialing",
@@ -292,7 +292,9 @@ export const subscriptionService = {
       current_period_end: trialEnd.toISOString(),
       trial_start: new Date().toISOString(),
       trial_end: trialEnd.toISOString(),
-    });
+    };
+
+    const { error } = await supabase.from("subscriptions").insert(insertPayload);
 
     return { error: error?.message || null };
   },

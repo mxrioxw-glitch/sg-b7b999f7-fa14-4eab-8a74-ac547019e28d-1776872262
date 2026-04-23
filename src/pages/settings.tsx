@@ -176,7 +176,7 @@ export default function SettingsPage() {
       });
       setLogoPreview(currentBusiness.logo_url || "");
       setTaxForm({
-        tax_rate: currentBusiness.tax_rate || 16,
+        tax_rate: Number(currentBusiness.tax_rate) || 16,
         tax_included: currentBusiness.tax_included || false,
       });
       setPrinterWidth((currentBusiness.printer_width as "58mm" | "80mm") || "80mm");
@@ -201,17 +201,24 @@ export default function SettingsPage() {
 
       const subscription = await supabase
         .from("subscriptions")
-        .select("plan")
+        .select("plan_id")
         .eq("business_id", currentBusiness.id)
         .maybeSingle();
 
       if (subscription.data) {
+        const { data: planData } = await supabase
+          .from("subscription_plans")
+          .select("name")
+          .eq("id", subscription.data.plan_id)
+          .maybeSingle();
+
+        const planStr = planData ? planData.name.toLowerCase() : "basic";
         const planNames: Record<string, string> = {
           basic: "Plan Básico",
           professional: "Plan Profesional",
           premium: "Plan Premium",
         };
-        setPlanName(planNames[subscription.data.plan] || "Plan Básico");
+        setPlanName(planNames[planStr] || "Plan Básico");
       }
     } catch (error) {
       console.error("Error checking access:", error);
