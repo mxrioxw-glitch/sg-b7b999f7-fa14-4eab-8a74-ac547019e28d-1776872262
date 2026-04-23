@@ -72,17 +72,21 @@ export const businessService = {
 
     const slug = businessData.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-" + Date.now().toString(36);
 
+    // Filter out undefined values manually to avoid TypeScript generic matching issues with PostgrestFilterBuilder
+    const insertPayload: any = {
+      owner_id: user.id,
+      name: businessData.name,
+      slug,
+      tax_rate: businessData.tax_rate || 16,
+    };
+    
+    if (businessData.email) insertPayload.email = businessData.email;
+    if (businessData.address) insertPayload.address = businessData.address;
+    if (businessData.phone) insertPayload.phone = businessData.phone;
+
     const { data, error } = await supabase
       .from("businesses")
-      .insert({
-        owner_id: user.id,
-        name: businessData.name,
-        slug,
-        email: businessData.email,
-        address: businessData.address,
-        phone: businessData.phone,
-        tax_rate: businessData.tax_rate || 16,
-      })
+      .insert(insertPayload)
       .select()
       .single();
 

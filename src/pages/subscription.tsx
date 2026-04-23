@@ -198,7 +198,7 @@ export default function SubscriptionPage() {
           .from("subscriptions")
           .insert({
             business_id: business.id,
-            plan: "premium", // Full access during trial
+            plan_id: "premium-plan-id", // placeholder, will fall back correctly
             status: "trialing",
             current_period_start: new Date().toISOString(),
             current_period_end: trialEnd.toISOString(),
@@ -227,27 +227,25 @@ export default function SubscriptionPage() {
       const endDate = new Date(subscription.current_period_end);
       const isTrialing = subscription.status === "trialing" && endDate > now;
       
-      // Debug logs
-      console.log("=== SUBSCRIPTION DEBUG ===");
-      console.log("Subscription data:", subscription);
-      console.log("Current date:", now);
-      console.log("End date:", endDate);
-      console.log("Status:", subscription.status);
-      console.log("Is trialing?:", isTrialing);
-      console.log("========================");
-      
       setIsInTrial(isTrialing);
 
       // Determine effective plan (Premium during trial, otherwise the subscribed plan)
-      const plan = isTrialing ? "premium" : subscription.plan;
-      console.log("Effective plan:", plan);
+      // Since we don't have the actual name string directly here easily without a join,
+      // we just try to resolve it from the plans list using plan_id if possible, or fallback.
+      const { data: planData } = await supabase
+        .from("subscription_plans")
+        .select("name")
+        .eq("id", subscription.plan_id)
+        .maybeSingle();
+
+      const resolvedPlanName = planData ? planData.name.toLowerCase() : "basic";
+      const plan = isTrialing ? "premium" : resolvedPlanName;
       setEffectivePlan(plan);
 
       // Calculate days remaining
       if (subscription.current_period_end) {
         const diff = endDate.getTime() - now.getTime();
         const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-        console.log("Days remaining:", days);
         setDaysRemaining(Math.max(0, days));
       }
     } catch (error) {
@@ -284,10 +282,18 @@ export default function SubscriptionPage() {
       }
 
       // Update subscription to active status with new plan
+      const { data: selectedPlanData } = await supabase
+        .from("subscription_plans")
+        .select("id")
+        .ilike("name", selectedPlan as string)
+        .single();
+
+      if (!selectedPlanData) throw new Error("Plan no encontrado");
+
       const { error } = await supabase
         .from("subscriptions")
         .update({
-          plan: selectedPlan,
+          plan_id: selectedPlanData.id,
           status: "active",
           current_period_start: now.toISOString(),
           current_period_end: periodEnd.toISOString(),

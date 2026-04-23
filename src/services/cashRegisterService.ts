@@ -61,15 +61,20 @@ export async function openCashRegister(data: {
     throw new Error("There is already an open cash register for this employee");
   }
 
+  const insertPayload: any = {
+    business_id: data.businessId,
+    employee_id: data.employeeId,
+    opening_amount: data.openingAmount,
+    status: "open",
+  };
+  
+  if (data.notes) {
+    insertPayload.notes = data.notes;
+  }
+
   const { data: newRegister, error } = await supabase
     .from("cash_registers")
-    .insert({
-      business_id: data.businessId,
-      employee_id: data.employeeId,
-      opening_amount: data.openingAmount,
-      status: "open",
-      notes: data.notes || null,
-    })
+    .insert(insertPayload)
     .select()
     .single();
 

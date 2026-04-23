@@ -213,11 +213,11 @@ export default function SuperAdminPage() {
     businessList.forEach(b => {
       const sub = b.subscriptions?.[0];
       if (sub && sub.status === "active") {
-        const plan = plansList.find(p => p.name.toLowerCase() === sub.plan);
+        const plan = plansList.find(p => p.id === sub.plan_id);
         if (plan) {
           const monthlyAmount = sub.billing_cycle === "annual" 
-            ? plan.price_yearly / 12 
-            : plan.price_monthly;
+            ? Number(plan.price_yearly) / 12 
+            : Number(plan.price_monthly);
           totalMRR += monthlyAmount;
         }
       }

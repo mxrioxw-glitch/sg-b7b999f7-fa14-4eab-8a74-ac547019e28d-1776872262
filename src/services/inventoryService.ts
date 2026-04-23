@@ -31,7 +31,7 @@ export interface InventoryMovement {
   id: string;
   business_id: string;
   inventory_item_id: string;
-  movement_type: "in" | "out" | "adjustment";
+  type: "in" | "out" | "adjustment";
   quantity: number;
   reference_type: "sale" | "purchase" | "adjustment" | "production" | null;
   reference_id: string | null;
@@ -172,7 +172,7 @@ export async function adjustInventoryStock(
   await recordInventoryMovement({
     business_id: item.business_id,
     inventory_item_id: itemId,
-    movement_type: "adjustment",
+    type: "adjustment",
     quantity: Math.abs(quantity),
     reference_type: "adjustment",
     reference_id: null,
@@ -186,7 +186,7 @@ export async function adjustInventoryStock(
 export async function recordInventoryMovement(movement: {
   business_id: string;
   inventory_item_id: string;
-  movement_type: "in" | "out" | "adjustment";
+  type: "in" | "out" | "adjustment";
   quantity: number;
   reference_type: "sale" | "purchase" | "adjustment" | "production" | null;
   reference_id: string | null;
@@ -197,7 +197,7 @@ export async function recordInventoryMovement(movement: {
     .insert({
       business_id: movement.business_id,
       inventory_item_id: movement.inventory_item_id,
-      movement_type: movement.movement_type,
+      type: movement.type,
       quantity: movement.quantity,
       reference_type: movement.reference_type,
       reference_id: movement.reference_id,
@@ -269,7 +269,7 @@ export async function deductInventoryForSale(
         await recordInventoryMovement({
           business_id: businessId,
           inventory_item_id: link.inventory_item_id,
-          movement_type: "out",
+          type: "out",
           quantity: quantityToDeduct,
           reference_type: "sale",
           reference_id: saleId,

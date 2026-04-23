@@ -273,9 +273,20 @@ export const subscriptionService = {
     const trialEnd = new Date();
     trialEnd.setDate(trialEnd.getDate() + 7); // 7 days trial
 
+    // First get the premium plan ID
+    const { data: premiumPlan } = await supabase
+      .from("subscription_plans")
+      .select("id")
+      .ilike("name", "premium")
+      .single();
+
+    if (!premiumPlan) {
+      return { error: "Plan Premium no encontrado para trial" };
+    }
+
     const { error } = await supabase.from("subscriptions").insert({
       business_id: businessId,
-      plan: "premium", // Full access during trial
+      plan_id: premiumPlan.id,
       status: "trialing",
       current_period_start: new Date().toISOString(),
       current_period_end: trialEnd.toISOString(),
