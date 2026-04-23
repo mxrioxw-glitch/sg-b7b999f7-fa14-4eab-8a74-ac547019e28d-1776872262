@@ -299,6 +299,7 @@ export default function SubscriptionPage() {
         billing_cycle: billingCycle,
       };
 
+      // @ts-expect-error - Supabase generated types have strict validation that conflicts with dynamic updates
       const { error } = await supabase
         .from("subscriptions")
         .update(updateData)
