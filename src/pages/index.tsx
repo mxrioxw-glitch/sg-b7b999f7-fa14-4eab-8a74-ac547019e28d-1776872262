@@ -232,7 +232,7 @@ export default function HomePage() {
         activeShift: activeCashRegister ? {
           id: activeCashRegister.id,
           openingAmount: Number(activeCashRegister.opening_amount),
-          openedAt: activeCashRegister.opened_at,
+          openedAt: activeCashRegister.opening_time,
         } : null,
       });
 
