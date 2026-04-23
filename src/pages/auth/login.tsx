@@ -47,14 +47,32 @@ export default function LoginPage() {
         throw new Error(loginError?.message || "Error al iniciar sesión");
       }
 
-      // 2. Verificar si ya tiene business
+      // 2. Verificar si es Super Admin
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_super_admin")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      // Si es Super Admin, redirigir directamente a /super-admin
+      if (profile?.is_super_admin) {
+        toast({
+          title: "✅ Super Admin Access",
+          description: "Bienvenido al panel de administración",
+          className: "bg-accent text-accent-foreground border-accent",
+        });
+        router.push("/super-admin");
+        return;
+      }
+
+      // 3. Si NO es Super Admin, verificar si ya tiene business
       const { data: existingBusiness } = await supabase
         .from("businesses")
         .select("id")
         .eq("owner_id", user.id)
         .maybeSingle();
 
-      // 3. Si NO tiene business, crear todo (primer login)
+      // 4. Si NO tiene business, crear todo (primer login)
       if (!existingBusiness) {
         console.log("First login - creating business setup");
 
@@ -109,7 +127,7 @@ export default function LoginPage() {
         });
       }
 
-      // 4. Redirigir al POS
+      // 5. Redirigir al POS
       router.push("/pos");
 
     } catch (err: any) {
