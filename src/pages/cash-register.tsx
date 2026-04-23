@@ -301,6 +301,48 @@ function CashRegisterContent() {
     }
   }
 
+  async function checkAccess() {
+    try {
+      setLoading(true);
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        router.push("/auth/login");
+        return;
+      }
+
+      // CRITICAL: Check if user is Super Admin FIRST
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_super_admin")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      // If Super Admin, redirect to super-admin page
+      if (profile?.is_super_admin === true) {
+        console.log("👑 Super Admin detected in Cash Register - redirecting to /super-admin");
+        router.replace("/super-admin");
+        return;
+      }
+
+      // Regular user - load business and data
+      const currentBusiness = await businessService.getCurrentBusiness();
+      if (!currentBusiness) {
+        router.push("/auth/login");
+        return;
+      }
+
+      setBusinessId(currentBusiness.id);
+      await loadData(currentBusiness.id);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error checking access:", error);
+      setLoading(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">

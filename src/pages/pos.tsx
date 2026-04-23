@@ -81,14 +81,31 @@ export default function POSPage() {
   useEffect(() => {
     async function checkSubscriptionAndLoadData() {
       try {
+        setLoading(true);
+
         // Get current user
         const { data: { user } } = await supabase.auth.getUser();
+        
         if (!user) {
           router.push("/auth/login");
           return;
         }
 
-        // Get user's business
+        // CRITICAL: Check if user is Super Admin FIRST
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("is_super_admin")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        // If Super Admin, redirect to super-admin page
+        if (profile?.is_super_admin === true) {
+          console.log("👑 Super Admin detected in POS - redirecting to /super-admin");
+          router.replace("/super-admin");
+          return; // STOP - don't try to load business data
+        }
+
+        // Regular user - get business
         const currentBusiness = await businessService.getCurrentBusiness();
         if (!currentBusiness) {
           router.push("/auth/login");
@@ -100,14 +117,20 @@ export default function POSPage() {
 
         // Load data
         await Promise.all([
-          loadCategories(business.id),
-          loadProducts(business.id),
-          loadCustomers(business.id),
-          loadActiveCashRegister(business.id)
+          loadCategories(currentBusiness.id),
+          loadProducts(currentBusiness.id),
+          loadCustomers(currentBusiness.id),
+          loadActiveCashRegister(currentBusiness.id)
         ]);
+
         setLoading(false);
       } catch (error) {
-        console.error("Error in POS initialization:", error);
+        console.error("Error loading data:", error);
+        toast({
+          title: "Error",
+          description: "Error al cargar datos",
+          variant: "destructive",
+        });
         setLoading(false);
       }
     }
