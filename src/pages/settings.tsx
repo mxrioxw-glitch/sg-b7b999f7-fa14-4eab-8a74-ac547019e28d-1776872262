@@ -136,8 +136,6 @@ export default function SettingsPage() {
         return;
       }
       
-      setUserId(user.id);
-
       // CRITICAL: Check if user is Super Admin FIRST
       const { data: profile } = await supabase
         .from("profiles")
@@ -170,6 +168,12 @@ export default function SettingsPage() {
 
   async function loadData() {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/auth/login");
+        return;
+      }
+
       const { data: profile } = await supabase
         .from("profiles")
         .select("full_name")
@@ -230,7 +234,6 @@ export default function SettingsPage() {
 
       await loadEmployees(currentBusiness.id);
       await loadPaymentMethods(currentBusiness.id);
-
       setPlanName("Plan Ilimitado");
     } catch (error) {
       console.error("Error checking access:", error);
@@ -285,8 +288,10 @@ export default function SettingsPage() {
       setNewEmployeeEmail("");
       setNewEmployeePassword("");
       setNewEmployeeName("");
-      setIsNewEmployeeDialogOpen(false);
-      await loadEmployees();
+      
+      if (businessId) {
+        await loadEmployees(businessId);
+      }
     } catch (error: any) {
       console.error(error);
       toast({
