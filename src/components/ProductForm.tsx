@@ -10,21 +10,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Trash2, Upload, X, DollarSign, Tag, Package, Info, CheckCircle2, Save } from "lucide-react";
+import { X, Upload, Plus, Trash2, Image as ImageIcon } from "lucide-react";
 import { productService } from "@/services/productService";
-import { categoryService } from "@/services/categoryService";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { businessService } from "@/services/businessService";
+import type { Database } from "@/integrations/supabase/types";
 import { storageService } from "@/services/storageService";
-import { getInventoryItems } from "@/services/inventoryService";
-import { subscriptionService } from "@/services/subscriptionService";
-import { UpgradePlanModal } from "@/components/UpgradePlanModal";
-import type { Tables } from "@/integrations/supabase/types";
+import { FeatureGuard } from "./FeatureGuard";
 
-type Product = Tables<"products">;
-type Category = Tables<"categories">;
-type InventoryItem = Tables<"inventory_items">;
+type Product = Database["public"]["Tables"]["products"]["Row"];
+type Category = Database["public"]["Tables"]["categories"]["Row"];
+type InventoryItem = Database["public"]["Tables"]["inventory_items"]["Row"];
 
 interface ProductFormProps {
   product?: Product | null;
@@ -322,35 +316,16 @@ export function ProductForm({ product, onSuccess, trigger }: ProductFormProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!businessId) return;
 
-    if (!product) {
-      const canAdd = await subscriptionService.canAddProduct();
-      if (!canAdd.canAdd) {
-        const plan = await subscriptionService.getCurrentPlan();
-        setCurrentPlan(plan as "basic" | "professional" | "premium");
-
-        const business = await businessService.getCurrentBusiness();
-        if (business) {
-          const { count } = await supabase
-            .from("products")
-            .select("*", { count: "exact", head: true })
-            .eq("business_id", business.id);
-
-          setProductCount(count || 0);
-        }
-
-        setShowUpgradeModal(true);
-        return;
-      }
-    }
-
-    setLoading(true);
+    setIsLoading(true);
 
     try {
-      const business = await businessService.getCurrentBusiness();
-      if (!business) throw new Error("No business found");
+      let finalImageUrl = imageUrl;
 
-      const finalImageUrl = await uploadImageToStorage(business.id);
+      if (imageFile) {
+        finalImageUrl = await uploadImageToStorage(businessId);
+      }
 
       const productData = {
         category_id: categoryId || undefined,
@@ -371,7 +346,7 @@ export function ProductForm({ product, onSuccess, trigger }: ProductFormProps) {
         if (result.error || !result.product) throw new Error(result.error || "Error");
         savedProduct = result.product;
       } else {
-        const result = await productService.createProduct(business.id, productData);
+        const result = await productService.createProduct(businessId, productData);
         if (result.error || !result.product) throw new Error(result.error || "Error");
         savedProduct = result.product;
       }

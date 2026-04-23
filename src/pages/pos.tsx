@@ -19,7 +19,6 @@ import { productService, type ProductWithDetails } from "@/services/productServi
 import { getCashRegisters, openCashRegister, type CashRegister } from "@/services/cashRegisterService";
 import { getCustomers, redeemLoyaltyPoints } from "@/services/customerService";
 import { saleService } from "@/services/saleService";
-import { subscriptionService } from "@/services/subscriptionService";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobileOrTablet } from "@/hooks/use-mobile";
@@ -29,6 +28,8 @@ import { requireAuth } from "@/middleware/auth";
 import { requireActiveSubscription } from "@/middleware/subscription";
 import type { Business } from "@/services/businessService";
 import { GetServerSidePropsContext } from "next";
+import { CategoryManager } from "@/components/CategoryManager";
+import { cashRegisterService } from "@/services/cashRegisterService";
 
 interface CartItem {
   id: string;

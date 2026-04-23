@@ -28,7 +28,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { businessService } from "@/services/businessService";
 import { productService } from "@/services/productService";
 import { categoryService } from "@/services/categoryService";
-import { subscriptionService } from "@/services/subscriptionService";
 import { 
   Plus, 
   Search, 

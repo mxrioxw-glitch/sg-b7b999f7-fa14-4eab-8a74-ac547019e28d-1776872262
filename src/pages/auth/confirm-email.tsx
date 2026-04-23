@@ -7,7 +7,6 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { businessService } from "@/services/businessService";
-import { subscriptionService } from "@/services/subscriptionService";
 import { CheckCircle2, XCircle, Loader2, Store } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
