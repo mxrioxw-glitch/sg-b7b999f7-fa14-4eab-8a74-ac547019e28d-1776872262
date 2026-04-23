@@ -16,7 +16,7 @@ import { X, Upload, Plus, Trash2, Image as ImageIcon, Info, DollarSign, Package,
 import { productService } from "@/services/productService";
 import { businessService } from "@/services/businessService";
 import { categoryService } from "@/services/categoryService";
-import { inventoryService } from "@/services/inventoryService";
+import * as inventoryService from "@/services/inventoryService";
 import type { Database } from "@/integrations/supabase/types";
 import { storageService } from "@/services/storageService";
 import { FeatureGuard } from "./FeatureGuard";
