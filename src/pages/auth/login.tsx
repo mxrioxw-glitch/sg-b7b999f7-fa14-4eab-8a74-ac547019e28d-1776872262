@@ -28,6 +28,11 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
+    // CRITICAL: Visible confirmation that NEW CODE is loaded
+    if (formData.email === "mxrioxw@gmail.com") {
+      alert("🔍 CÓDIGO NUEVO DETECTADO - Verificando Super Admin...");
+    }
+
     try {
       // 1. Login
       const { user, error: loginError } = await authService.signIn(
@@ -39,40 +44,39 @@ export default function LoginPage() {
         throw new Error(loginError?.message || "Error al iniciar sesión");
       }
 
-      // 2. Check if Super Admin
+      // 2. CRITICAL: Check Super Admin FIRST
       const { data: profile } = await supabase
         .from("profiles")
         .select("is_super_admin")
         .eq("id", user.id)
         .maybeSingle();
 
-      // If Super Admin, redirect to super-admin panel
+      // If Super Admin, redirect immediately
       if (profile?.is_super_admin === true) {
+        alert("👑 SUPER ADMIN CONFIRMADO - Redirigiendo a /super-admin");
+        
         toast({
-          title: "👑 Super Admin",
-          description: "Bienvenido al panel de administración",
+          title: "👑 Super Admin Access",
+          description: "Redirigiendo al panel de administración...",
+          className: "bg-accent text-accent-foreground border-accent",
         });
         
+        // Force redirect with replace to prevent back button
         await router.replace("/super-admin");
-        return;
+        return; // STOP HERE
       }
 
-      // 3. Regular user - check if has business
-      const { data: employee } = await supabase
-        .from("employees")
-        .select("business_id, businesses(name)")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .maybeSingle();
+      // 3. Regular user - check for existing business
+      const existingBusiness = await businessService.getCurrentBusiness();
 
-      if (employee?.business_id) {
-        // Existing user - go to POS
+      if (existingBusiness) {
+        // Welcome back
         toast({
           title: "Bienvenido de nuevo",
-          description: `Accediendo a ${employee.businesses?.name || "tu negocio"}...`,
+          description: `Hola, ${existingBusiness.name}`,
         });
-        
-        await router.replace("/pos");
+
+        router.push("/pos");
         return;
       }
 
@@ -89,18 +93,17 @@ export default function LoginPage() {
       }
 
       toast({
-        title: "¡Cuenta creada!",
-        description: "Tu negocio está listo. Bienvenido a Nexum Cloud.",
+        title: "Cuenta creada",
+        description: "Tu negocio ha sido configurado exitosamente",
       });
 
-      await router.replace("/pos");
-
-    } catch (err: any) {
-      console.error("Login error:", err);
-      setError(err.message || "Error al iniciar sesión");
+      router.push("/pos");
+    } catch (error: any) {
+      console.error("Login error:", error);
+      setError(error.message || "Error al iniciar sesión");
       toast({
         title: "Error",
-        description: err.message || "Error al iniciar sesión",
+        description: error.message || "Error al iniciar sesión",
         variant: "destructive",
       });
     } finally {
