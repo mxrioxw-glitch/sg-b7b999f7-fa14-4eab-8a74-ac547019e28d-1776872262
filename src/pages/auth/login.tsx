@@ -63,7 +63,7 @@ export default function LoginPage() {
         
         // Force redirect with replace to prevent back button
         await router.replace("/super-admin");
-        return; // STOP HERE
+        return; // CRITICAL: STOP HERE - Do NOT create business for Super Admin
       }
 
       // 3. Regular user - check for existing business
@@ -80,7 +80,7 @@ export default function LoginPage() {
         return;
       }
 
-      // 4. New user - create business
+      // 4. New user - create business (ONLY for non-Super Admin users)
       const businessData = {
         name: `Negocio de ${user.email.split("@")[0]}`,
         owner_id: user.id,
