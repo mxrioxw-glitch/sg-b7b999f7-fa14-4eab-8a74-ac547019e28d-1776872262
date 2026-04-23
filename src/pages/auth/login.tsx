@@ -107,73 +107,38 @@ export default function LoginPage() {
   return (
     <>
       <SEO 
-        title="Iniciar Sesión - Nexum Cloud POS"
-        description="Sistema punto de venta en la nube - Gestiona tu negocio desde cualquier lugar"
+        title="Iniciar Sesión - NextCoffee"
+        description="Accede a tu cuenta de NextCoffee POS"
       />
       
-      <div className="min-h-screen flex bg-background">
-        {/* Left Panel - Branding (Desktop only) */}
-        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary via-primary to-secondary relative overflow-hidden">
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-0 left-0 w-96 h-96 bg-accent rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 right-0 w-96 h-96 bg-accent rounded-full blur-3xl"></div>
+      <div className="min-h-screen bg-background flex">
+        {/* Left Panel - Branding (Hidden on mobile) */}
+        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary via-primary to-secondary p-12 relative overflow-hidden">
+          {/* Background Effects */}
+          <div className="absolute inset-0">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-accent/20 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary-foreground/10 rounded-full blur-3xl"></div>
           </div>
 
           {/* Content */}
-          <div className="relative z-10 flex flex-col justify-between p-12 text-white">
+          <div className="relative z-10 flex flex-col justify-between w-full max-w-md mx-auto">
             {/* Logo & Title */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="h-14 w-14 rounded-2xl bg-accent flex items-center justify-center shadow-lg">
-                  <Coffee className="h-8 w-8 text-accent-foreground" />
+            <div className="space-y-6">
+              <Link href="/" className="inline-flex items-center gap-3 group">
+                <div className="h-14 w-14 rounded-2xl bg-primary-foreground/10 backdrop-blur-sm flex items-center justify-center border border-primary-foreground/20 transition-transform group-hover:scale-105">
+                  <Coffee className="h-8 w-8 text-primary-foreground" />
                 </div>
-                <div>
-                  <h1 className="text-3xl font-bold">Nexum Cloud</h1>
-                  <p className="text-white/80 text-sm">Sistema POS Profesional</p>
-                </div>
-              </div>
-            </div>
+                <span className="text-2xl font-bold text-primary-foreground">NextCoffee</span>
+              </Link>
 
-            {/* Main Message */}
-            <div className="space-y-8">
-              <div className="space-y-4">
-                <h2 className="text-4xl font-bold leading-tight">
+              <div className="space-y-3">
+                <h1 className="text-4xl font-bold text-primary-foreground leading-tight">
                   Gestiona tu negocio con confianza
-                </h2>
-                <p className="text-xl text-white/90 leading-relaxed">
-                  Sistema completo de punto de venta diseñado para cafeterías, restaurantes y negocios modernos.
+                </h1>
+                <p className="text-lg text-primary-foreground/90">
+                  Sistema POS completo para cafeterías y restaurantes modernos
                 </p>
               </div>
-
-              {/* Features Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                  <ShoppingCart className="h-8 w-8 mb-3 text-accent" />
-                  <h3 className="font-semibold mb-1">Ventas Rápidas</h3>
-                  <p className="text-sm text-white/80">Interfaz táctil optimizada</p>
-                </div>
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                  <BarChart3 className="h-8 w-8 mb-3 text-accent" />
-                  <h3 className="font-semibold mb-1">Reportes</h3>
-                  <p className="text-sm text-white/80">Análisis en tiempo real</p>
-                </div>
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                  <TrendingUp className="h-8 w-8 mb-3 text-accent" />
-                  <h3 className="font-semibold mb-1">Inventario</h3>
-                  <p className="text-sm text-white/80">Control automático</p>
-                </div>
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                  <Users className="h-8 w-8 mb-3 text-accent" />
-                  <h3 className="font-semibold mb-1">Clientes</h3>
-                  <p className="text-sm text-white/80">Gestión completa</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="text-sm text-white/60">
-              © {new Date().getFullYear()} Nexum Cloud. Sistema POS profesional en la nube.
             </div>
           </div>
         </div>
@@ -187,7 +152,7 @@ export default function LoginPage() {
                 <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center">
                   <Coffee className="h-7 w-7 text-primary-foreground" />
                 </div>
-                <h1 className="text-2xl font-bold text-foreground">Nexum Cloud</h1>
+                <h1 className="text-2xl font-bold text-foreground">NextCoffee</h1>
               </div>
               <p className="text-sm text-muted-foreground">Sistema POS Profesional</p>
             </div>

@@ -72,8 +72,8 @@ export default function ResetPasswordPage() {
   return (
     <>
       <SEO 
-        title="Restablecer Contraseña - Nexum Cloud"
-        description="Restablece tu contraseña en Nexum Cloud"
+        title="Restablecer Contraseña - NextCoffee"
+        description="Crea una nueva contraseña para tu cuenta"
       />
       
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -83,7 +83,7 @@ export default function ResetPasswordPage() {
               <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
                 <Store className="h-7 w-7 text-primary-foreground" />
               </div>
-              <h1 className="font-heading text-3xl font-bold">Nexum Cloud</h1>
+              <h1 className="font-heading text-3xl font-bold">NextCoffee</h1>
             </div>
           </div>
 

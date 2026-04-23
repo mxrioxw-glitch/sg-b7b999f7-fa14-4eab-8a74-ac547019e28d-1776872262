@@ -148,7 +148,7 @@ export default function HomePage() {
   return (
     <>
       <SEO 
-        title="Inicio - Nexum Cloud POS"
+        title="Inicio - NextCoffee POS"
         description="Panel principal de tu sistema punto de venta"
       />
       

@@ -95,8 +95,8 @@ export default function RegisterPage() {
   return (
     <>
       <SEO 
-        title="Crear Cuenta - Nexum Cloud"
-        description="Crea tu cuenta en Nexum Cloud y comienza tu prueba gratis"
+        title="Crear Cuenta - NextCoffee"
+        description="Regístrate en NextCoffee POS"
       />
       
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -106,7 +106,7 @@ export default function RegisterPage() {
               <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
                 <Store className="h-7 w-7 text-primary-foreground" />
               </div>
-              <h1 className="font-heading text-3xl font-bold">Nexum Cloud</h1>
+              <h1 className="font-heading text-3xl font-bold">NextCoffee</h1>
             </div>
             <p className="text-muted-foreground">
               Crea tu cuenta y comienza tu prueba gratis de 7 días

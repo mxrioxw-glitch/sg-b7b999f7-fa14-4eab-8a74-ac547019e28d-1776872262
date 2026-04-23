@@ -39,10 +39,10 @@ export function SEOElements({
 // SEO component for use in pages/_app.tsx or individual pages (uses next/head)
 // Note: Flattened structure (no fragment) for better Next.js Head compatibility during hot reload
 export function SEO({
-  title = "Nexum Cloud - Sistema POS en la Nube",
-  description = "Sistema punto de venta completo en la nube. Gestiona ventas, inventario, clientes y más desde cualquier lugar.",
+  title = "NextCoffee - Sistema POS en la Nube",
+  description = "Sistema punto de venta profesional para cafeterías y restaurantes. Gestiona ventas, inventario, clientes y reportes.",
   image = "/og-image.png",
-  url = "https://nexumcloud.com"
+  url
 }: SEOProps) {
   return (
     <Head>

@@ -28,7 +28,7 @@ export default function LandingPage() {
   return (
     <>
       <SEO 
-        title="Nexum Cloud - Sistema POS en la Nube"
+        title="NextCoffee - Sistema POS en la Nube"
         description="Sistema punto de venta completo para cafeterías y restaurantes. Gestiona ventas, inventario, clientes y reportes desde cualquier lugar."
       />
       
@@ -40,7 +40,7 @@ export default function LandingPage() {
               <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center transition-transform group-hover:scale-105">
                 <Coffee className="h-6 w-6 text-primary-foreground" />
               </div>
-              <span className="text-xl font-bold text-foreground">Nexum Cloud</span>
+              <span className="text-xl font-bold text-foreground">NextCoffee</span>
             </Link>
 
             <div className="flex items-center gap-4">
@@ -65,7 +65,7 @@ export default function LandingPage() {
             <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/20 rounded-full blur-3xl"></div>
           </div>
 
-          <div className="container mx-auto px-4 py-12 sm:py-16 lg:py-20 max-w-7xl">
+          <div className="container mx-auto px-4 py-6 sm:py-8 lg:py-12 max-w-7xl">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               {/* Left: Content */}
               <div className="space-y-8">
@@ -264,7 +264,7 @@ export default function LandingPage() {
               <div className="space-y-6">
                 <Badge variant="outline">Beneficios</Badge>
                 <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-                  ¿Por qué elegir Nexum Cloud?
+                  ¿Por qué elegir NextCoffee?
                 </h2>
                 
                 <div className="space-y-4">
@@ -338,7 +338,7 @@ export default function LandingPage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-muted-foreground mb-4">
-                      Desde que implementamos Nexum Cloud, nuestras ventas aumentaron un 35%. La facilidad de uso y los reportes en tiempo real nos permiten tomar mejores decisiones cada día.
+                      Desde que implementamos NextCoffee, nuestras ventas aumentaron un 35%. La facilidad de uso y los reportes en tiempo real nos permiten tomar mejores decisiones cada día.
                     </p>
                     <div>
                       <p className="font-semibold text-foreground">María González</p>
@@ -364,7 +364,7 @@ export default function LandingPage() {
                 Comienza hoy mismo
               </h2>
               <p className="text-xl text-primary-foreground/90 max-w-2xl mx-auto">
-                Únete a cientos de negocios que ya confían en Nexum Cloud para gestionar sus ventas
+                Únete a cientos de negocios que ya confían en NextCoffee para gestionar sus ventas
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -408,7 +408,7 @@ export default function LandingPage() {
                   <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
                     <Coffee className="h-6 w-6 text-primary-foreground" />
                   </div>
-                  <span className="text-xl font-bold text-foreground">Nexum Cloud</span>
+                  <span className="text-xl font-bold text-foreground">NextCoffee</span>
                 </Link>
                 <p className="text-sm text-muted-foreground">
                   Sistema POS profesional en la nube para negocios modernos.
@@ -445,7 +445,7 @@ export default function LandingPage() {
 
             <div className="border-t pt-8">
               <p className="text-center text-sm text-muted-foreground">
-                © {new Date().getFullYear()} Nexum Cloud. Sistema POS profesional en la nube.
+                © {new Date().getFullYear()} NextCoffee. Sistema POS profesional en la nube.
               </p>
             </div>
           </div>
