@@ -43,13 +43,6 @@ export default function ConfirmEmailPage() {
               throw new Error(businessError || "No se pudo crear el negocio");
             }
 
-            // Crear suscripción trial
-            const { error: subscriptionError } = await subscriptionService.createTrialSubscription(business.id);
-            
-            if (subscriptionError) {
-              console.error("Error creating trial subscription:", subscriptionError);
-            }
-
             // Crear empleado owner
             const { error: employeeError } = await supabase
               .from("employees")

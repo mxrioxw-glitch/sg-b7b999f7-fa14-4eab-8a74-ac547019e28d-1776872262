@@ -29,7 +29,11 @@ import { requireActiveSubscription } from "@/middleware/subscription";
 import type { Business } from "@/services/businessService";
 import { GetServerSidePropsContext } from "next";
 import { CategoryManager } from "@/components/CategoryManager";
-import { cashRegisterService } from "@/services/cashRegisterService";
+import { useToast } from "@/hooks/use-toast";
+import { productService } from "@/services/productService";
+import { categoryService } from "@/services/categoryService";
+import { businessService } from "@/services/businessService";
+import { getCashRegisters, openCashRegister, closeCashRegister } from "@/services/cashRegisterService";
 
 interface CartItem {
   id: string;
@@ -102,33 +106,14 @@ function POSContent() {
         }
 
         // Get user's business
-        const business = await businessService.getCurrentBusiness();
-        if (!business) {
-          router.push("/");
+        const currentBusiness = await businessService.getCurrentBusiness();
+        if (!currentBusiness) {
+          router.push("/auth/login");
           return;
         }
 
-        // SOLO verificar suscripción si el usuario es el DUEÑO del negocio
-        // Los empleados/cajeros NO deben ver mensajes de suscripción
-        const isOwner = business.owner_id === user.id;
-        
-        if (isOwner) {
-          // Solo el dueño ve notificaciones de suscripción
-          const isActive = await subscriptionService.isSubscriptionActive();
-          if (!isActive) {
-            toast({
-              title: "⚠️ Suscripción Requerida",
-              description: "Tu período de prueba ha expirado. Por favor, actualiza tu suscripción.",
-              variant: "destructive",
-              duration: 5000,
-            });
-            router.push("/subscription");
-            return;
-          }
-        }
-        // Si es empleado, continuar normalmente SIN verificar suscripción
-
-        setBusiness(business);
+        setBusiness(currentBusiness);
+        setBusinessName(currentBusiness.name);
 
         // Load data
         await Promise.all([
