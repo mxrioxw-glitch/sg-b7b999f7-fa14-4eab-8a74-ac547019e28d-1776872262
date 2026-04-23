@@ -11,9 +11,20 @@ import { CustomerIdentificationModal } from "@/components/CustomerIdentification
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { TicketPreview } from "@/components/TicketPreview";
 import { QuickCashRegister } from "@/components/QuickCashRegister";
-import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Search, Package, ShoppingCart, ChevronLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useIsMobileOrTablet } from "@/hooks/use-mobile";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+
+import { businessService } from "@/services/businessService";
+import { categoryService, type Category } from "@/services/categoryService";
+import { productService, type ProductWithDetails } from "@/services/productService";
+import { getCashRegisters, openCashRegister, type CashRegister } from "@/services/cashRegisterService";
+import { getCustomers, redeemLoyaltyPoints } from "@/services/customerService";
+import { saleService } from "@/services/saleService";
 
 interface CartItem {
   id: string;
@@ -31,8 +42,6 @@ interface Customer {
   name: string;
   points: number;
 }
-
-export const getServerSideProps = requireActiveSubscription;
 
 export default function POSPage() {
   const router = useRouter();
