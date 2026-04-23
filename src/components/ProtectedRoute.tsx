@@ -46,19 +46,19 @@ export function ProtectedRoute({ children, requiredPermission, requireWrite = fa
 
       console.log("✅ [PROTECTED ROUTE] User found:", user.id);
 
-      // Check if user is Super Admin
+      // CRITICAL: Check Super Admin FIRST - bypass all checks
       const { data: profile } = await supabase
         .from("profiles")
         .select("is_super_admin")
         .eq("id", user.id)
         .maybeSingle();
 
-      // Super Admins have access to everything
-      if (profile?.is_super_admin) {
-        console.log("✅ [PROTECTED ROUTE] Super Admin - full access granted");
+      // Super Admins have access to EVERYTHING
+      if (profile?.is_super_admin === true) {
+        console.log("👑 [PROTECTED ROUTE] Super Admin detected - granting full access");
         setHasAccess(true);
         setLoading(false);
-        return;
+        return; // STOP HERE - no subscription checks needed
       }
 
       // Get user's business
