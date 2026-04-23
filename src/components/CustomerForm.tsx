@@ -37,6 +37,9 @@ export function CustomerForm({ open, onOpenChange, customer, businessId, onSave 
         phone: formData.phone || null,
         notes: formData.notes || null,
         loyalty_points: customer?.loyalty_points || 0,
+        address: null,
+        tax_id: null,
+        is_active: true,
       });
 
       toast({

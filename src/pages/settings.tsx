@@ -396,6 +396,7 @@ export default function SettingsPage() {
       await paymentMethodService.createPaymentMethod(businessId, {
         name: newPaymentMethod.trim(),
         is_active: true,
+        type: "cash",
       });
 
       toast({

@@ -99,19 +99,31 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const priceId = subscription.items.data[0]?.price.id;
 
   // Determinar el tipo de plan según el priceId
-  let planType: "basic" | "professional" | "premium" = "basic";
+  let planType = "basic";
   if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRICE_PROFESSIONAL) {
     planType = "professional";
   } else if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM) {
     planType = "premium";
   }
 
+  // Obtener plan_id
+  const { data: planData } = await supabase
+    .from("subscription_plans")
+    .select("id")
+    .ilike("name", planType)
+    .single();
+
+  if (!planData) {
+    console.error("No se encontró el plan_id para", planType);
+    return;
+  }
+
   // Actualizar suscripción en la base de datos
   await supabase
     .from("subscriptions")
     .update({
-      status: "active" as const,
-      plan: planType,
+      status: "active" as any,
+      plan_id: planData.id,
       current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
       current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
     })
@@ -127,18 +139,24 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   }
 
   const priceId = subscription.items.data[0]?.price.id;
-  let planType: "basic" | "professional" | "premium" = "basic";
+  let planType = "basic";
   if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRICE_PROFESSIONAL) {
     planType = "professional";
   } else if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM) {
     planType = "premium";
   }
 
+  const { data: planData } = await supabase
+    .from("subscription_plans")
+    .select("id")
+    .ilike("name", planType)
+    .single();
+
   await supabase
     .from("subscriptions")
     .update({
-      status: subscription.status === "active" ? ("active" as const) : ("canceled" as const),
-      plan: planType,
+      status: subscription.status === "active" ? ("active" as any) : ("canceled" as any),
+      plan_id: planData?.id,
       current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
       current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
     })
@@ -156,7 +174,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   await supabase
     .from("subscriptions")
     .update({
-      status: "canceled" as const,
+      status: "canceled" as any,
       current_period_end: new Date().toISOString(),
     })
     .eq("business_id", businessId);
@@ -175,7 +193,7 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
   await supabase
     .from("subscriptions")
     .update({
-      status: "active" as const,
+      status: "active" as any,
       current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
       current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
     })
@@ -195,7 +213,7 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   await supabase
     .from("subscriptions")
     .update({
-      status: "past_due" as const,
+      status: "past_due" as any,
     })
     .eq("business_id", businessId);
 }

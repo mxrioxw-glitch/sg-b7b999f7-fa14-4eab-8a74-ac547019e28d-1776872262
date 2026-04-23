@@ -62,9 +62,7 @@ export default function RegisterPage() {
       // Solo registrar usuario - el setup se hace en el primer login
       const { user, error: signUpError } = await authService.signUp(
         formData.email, 
-        formData.password, 
-        formData.fullName,
-        formData.businessName
+        formData.password
       );
 
       if (signUpError || !user) {
