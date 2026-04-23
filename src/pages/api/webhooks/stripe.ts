@@ -110,9 +110,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   await supabase
     .from("subscriptions")
     .update({
-      stripe_customer_id: customerId,
-      stripe_subscription_id: subscriptionId,
-      status: "active",
+      status: "active" as const,
       plan: planType,
       current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
       current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
@@ -139,7 +137,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   await supabase
     .from("subscriptions")
     .update({
-      status: subscription.status === "active" ? "active" : "canceled",
+      status: subscription.status === "active" ? ("active" as const) : ("canceled" as const),
       plan: planType,
       current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
       current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
@@ -158,7 +156,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   await supabase
     .from("subscriptions")
     .update({
-      status: "canceled",
+      status: "canceled" as const,
       current_period_end: new Date().toISOString(),
     })
     .eq("business_id", businessId);
@@ -177,7 +175,7 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
   await supabase
     .from("subscriptions")
     .update({
-      status: "active",
+      status: "active" as const,
       current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
       current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
     })
@@ -197,7 +195,7 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   await supabase
     .from("subscriptions")
     .update({
-      status: "past_due",
+      status: "past_due" as const,
     })
     .eq("business_id", businessId);
 }
