@@ -17,6 +17,7 @@ export type Database = {
     Tables: {
       businesses: {
         Row: {
+          accent_color: string | null
           address: string | null
           created_at: string | null
           currency: string | null
@@ -27,6 +28,10 @@ export type Database = {
           name: string
           owner_id: string
           phone: string | null
+          pos_name: string | null
+          primary_color: string | null
+          printer_width: string | null
+          secondary_color: string | null
           slug: string
           tax_included: boolean | null
           tax_rate: number | null
@@ -34,6 +39,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          accent_color?: string | null
           address?: string | null
           created_at?: string | null
           currency?: string | null
@@ -44,6 +50,10 @@ export type Database = {
           name: string
           owner_id: string
           phone?: string | null
+          pos_name?: string | null
+          primary_color?: string | null
+          printer_width?: string | null
+          secondary_color?: string | null
           slug: string
           tax_included?: boolean | null
           tax_rate?: number | null
@@ -51,6 +61,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          accent_color?: string | null
           address?: string | null
           created_at?: string | null
           currency?: string | null
@@ -61,6 +72,10 @@ export type Database = {
           name?: string
           owner_id?: string
           phone?: string | null
+          pos_name?: string | null
+          primary_color?: string | null
+          printer_width?: string | null
+          secondary_color?: string | null
           slug?: string
           tax_included?: boolean | null
           tax_rate?: number | null
@@ -513,12 +528,14 @@ export type Database = {
           category_id: string | null
           created_at: string | null
           description: string | null
+          generates_points: boolean | null
           has_extras: boolean | null
           has_variants: boolean | null
           id: string
           image_url: string | null
           is_active: boolean | null
           name: string
+          points_value: number | null
           updated_at: string | null
         }
         Insert: {
@@ -527,12 +544,14 @@ export type Database = {
           category_id?: string | null
           created_at?: string | null
           description?: string | null
+          generates_points?: boolean | null
           has_extras?: boolean | null
           has_variants?: boolean | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
           name: string
+          points_value?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -541,12 +560,14 @@ export type Database = {
           category_id?: string | null
           created_at?: string | null
           description?: string | null
+          generates_points?: boolean | null
           has_extras?: boolean | null
           has_variants?: boolean | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
           name?: string
+          points_value?: number | null
           updated_at?: string | null
         }
         Relationships: [
@@ -800,6 +821,7 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          billing_cycle: string | null
           business_id: string
           created_at: string | null
           current_period_end: string | null
@@ -807,11 +829,13 @@ export type Database = {
           id: string
           plan: Database["public"]["Enums"]["subscription_plan"]
           status: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id: string | null
           trial_end: string | null
           trial_start: string | null
           updated_at: string | null
         }
         Insert: {
+          billing_cycle?: string | null
           business_id: string
           created_at?: string | null
           current_period_end?: string | null
@@ -819,11 +843,13 @@ export type Database = {
           id?: string
           plan?: Database["public"]["Enums"]["subscription_plan"]
           status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
           trial_end?: string | null
           trial_start?: string | null
           updated_at?: string | null
         }
         Update: {
+          billing_cycle?: string | null
           business_id?: string
           created_at?: string | null
           current_period_end?: string | null
@@ -831,6 +857,7 @@ export type Database = {
           id?: string
           plan?: Database["public"]["Enums"]["subscription_plan"]
           status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
           trial_end?: string | null
           trial_start?: string | null
           updated_at?: string | null

@@ -63,9 +63,8 @@ export default function LoginPage() {
         const businessName = user.user_metadata?.business_name || `Negocio de ${fullName}`;
 
         // Crear business
-        const { data: businessData, error: businessError } = await businessService.createBusiness({
+        const { business: businessData, error: businessError } = await businessService.createBusiness({
           name: businessName,
-          owner_id: user.id,
           email: formData.email,
         });
 
@@ -80,8 +79,6 @@ export default function LoginPage() {
           .insert({
             business_id: businessData.id,
             user_id: user.id,
-            name: fullName,
-            email: formData.email,
             role: "owner",
             is_active: true,
           });
@@ -92,15 +89,7 @@ export default function LoginPage() {
         }
 
         // Crear suscripción trial
-        const trialEndDate = new Date();
-        trialEndDate.setDate(trialEndDate.getDate() + 7);
-
-        const { error: subscriptionError } = await subscriptionService.createSubscription({
-          business_id: businessData.id,
-          plan: "free",
-          status: "trialing",
-          current_period_end: trialEndDate.toISOString(),
-        });
+        const { error: subscriptionError } = await subscriptionService.createTrialSubscription(businessData.id);
 
         if (subscriptionError) {
           console.error("Error creating subscription:", subscriptionError);
