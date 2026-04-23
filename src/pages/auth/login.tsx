@@ -32,6 +32,9 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
+    // Flag to completely stop execution after super admin redirect
+    let isSuperAdmin = false;
+
     try {
       console.log("🔐 [LOGIN] Starting login process...");
       
@@ -47,7 +50,7 @@ export default function LoginPage() {
 
       console.log("✅ [LOGIN] User authenticated:", user.id);
 
-      // 2. CRITICAL: Check Super Admin FIRST
+      // 2. CRITICAL: Check Super Admin FIRST - before any business logic
       const { data: profile } = await supabase
         .from("profiles")
         .select("is_super_admin")
@@ -56,12 +59,10 @@ export default function LoginPage() {
 
       console.log("🔍 [LOGIN] Profile check:", { is_super_admin: profile?.is_super_admin });
 
-      // ⚡ SUPER ADMIN PATH - NO business, NO subscription, JUST redirect
+      // If Super Admin, set flag and redirect immediately
       if (profile?.is_super_admin === true) {
+        isSuperAdmin = true; // Set flag to stop execution
         console.log("👑 [LOGIN] SUPER ADMIN DETECTED - Skipping all business logic");
-        console.log("🚀 [LOGIN] Redirecting directly to /super-admin");
-        
-        setLoading(false); // Stop loading immediately
         
         toast({
           title: "👑 Super Admin Access",
@@ -69,26 +70,35 @@ export default function LoginPage() {
           className: "bg-accent text-accent-foreground border-accent",
         });
         
-        // Immediate redirect and STOP execution
-        router.push("/super-admin");
-        return; // CRITICAL: Exit function completely
+        console.log("🚀 [LOGIN] Redirecting directly to /super-admin");
+        setLoading(false);
+        await router.push("/super-admin");
+        return; // STOP HERE - no business creation
       }
 
-      // 3. REGULAR USER PATH - only execute if NOT super admin
-      console.log("👤 [LOGIN] Regular user - proceeding with business logic...");
+      // 3. Safety check - if somehow flag is set, stop execution
+      if (isSuperAdmin) {
+        console.log("🛑 [LOGIN] Super admin flag set - stopping execution");
+        return;
+      }
 
+      console.log("👤 [LOGIN] Regular user - checking business...");
+
+      // 4. Regular user flow - check business
       const { data: existingBusiness } = await supabase
         .from("businesses")
         .select("id")
         .eq("owner_id", user.id)
         .maybeSingle();
 
+      // 5. If NO business, create setup (first login)
       if (!existingBusiness) {
         console.log("🆕 [LOGIN] First login - creating business setup");
 
         const fullName = user.user_metadata?.full_name || formData.email.split("@")[0];
         const businessName = user.user_metadata?.business_name || `Negocio de ${fullName}`;
 
+        // Create business
         const { business: businessData, error: businessError } = await businessService.createBusiness({
           name: businessName,
           email: formData.email,
@@ -101,6 +111,7 @@ export default function LoginPage() {
 
         console.log("✅ [LOGIN] Business created:", businessData.id);
 
+        // Create employee owner
         const { error: employeeError } = await supabase
           .from("employees")
           .insert({
@@ -117,7 +128,32 @@ export default function LoginPage() {
 
         console.log("✅ [LOGIN] Employee created");
 
-        const { error: subscriptionError } = await subscriptionService.createTrialSubscription(businessData.id);
+        // Create trial subscription
+        const { data: basicPlan } = await supabase
+          .from("subscription_plans")
+          .select("id")
+          .ilike("name", "Básico")
+          .maybeSingle();
+
+        if (!basicPlan) {
+          console.error("❌ [LOGIN] Básico plan not found");
+          throw new Error("Plan Básico no encontrado");
+        }
+
+        const now = new Date();
+        const trialEnd = new Date();
+        trialEnd.setDate(trialEnd.getDate() + 7);
+
+        const { error: subscriptionError } = await supabase
+          .from("subscriptions")
+          .insert({
+            business_id: businessData.id,
+            plan_id: basicPlan.id,
+            status: "trialing",
+            current_period_start: now.toISOString(),
+            current_period_end: trialEnd.toISOString(),
+            trial_end: trialEnd.toISOString(),
+          });
 
         if (subscriptionError) {
           console.error("❌ [LOGIN] Error creating subscription:", subscriptionError);
@@ -140,6 +176,7 @@ export default function LoginPage() {
         });
       }
 
+      // 6. Redirect to POS
       console.log("🔄 [LOGIN] Redirecting to /pos");
       router.push("/pos");
 
@@ -147,7 +184,10 @@ export default function LoginPage() {
       console.error("💥 [LOGIN] Login error:", err);
       setError(err.message || "Error al iniciar sesión. Verifica tus credenciales.");
     } finally {
-      setLoading(false);
+      // Only set loading to false if not super admin (already set above)
+      if (!isSuperAdmin) {
+        setLoading(false);
+      }
     }
   };
 
