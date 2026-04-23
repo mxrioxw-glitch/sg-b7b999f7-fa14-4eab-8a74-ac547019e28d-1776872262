@@ -100,14 +100,24 @@ export default function SuperAdminPage() {
         return;
       }
 
-      if (session.user.email !== "mxrioxw@gmail.com") {
+      // Check is_super_admin flag in database instead of hardcoded email
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_super_admin")
+        .eq("id", session.user.id)
+        .maybeSingle();
+
+      if (profile?.is_super_admin !== true) {
+        console.log("❌ Not a Super Admin - redirecting to /");
         router.push("/");
         return;
       }
 
+      console.log("✅ Super Admin verified - loading data");
       setAuthorized(true);
       await loadData();
     } catch (err) {
+      console.error("Authorization error:", err);
       router.push("/auth/login");
     }
   };
