@@ -1,68 +1,44 @@
 import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { ThemeProvider } from "@/contexts/ThemeProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
-  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    // CRITICAL: Check Super Admin status on EVERY route change
-    checkSuperAdmin();
-  }, [router.pathname]);
+    // Simple auth check - redirect to login if not authenticated
+    // Except for public pages (auth pages)
+    const publicPages = ["/auth/login", "/auth/register", "/auth/recovery", "/auth/reset-password", "/auth/confirm-email", "/auth/verify-email", "/404"];
+    
+    const checkAuth = async () => {
+      if (publicPages.includes(router.pathname)) {
+        return; // Skip auth check for public pages
+      }
 
-  async function checkSuperAdmin() {
-    try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (!user) {
-        setChecking(false);
-        return;
+      if (!session) {
+        router.replace("/auth/login");
       }
+    };
 
-      // Check if Super Admin
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("is_super_admin")
-        .eq("id", user.id)
-        .maybeSingle();
+    checkAuth();
 
-      // If Super Admin and NOT on super-admin page, redirect
-      if (profile?.is_super_admin === true) {
-        console.log("👑 [_APP] Super Admin detected");
-        
-        // FORCE redirect to super-admin if not already there
-        if (router.pathname !== "/super-admin") {
-          console.log("🚀 [_APP] Forcing redirect to /super-admin");
-          await router.replace("/super-admin");
-        }
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        router.replace("/auth/login");
       }
+    });
 
-      setChecking(false);
-    } catch (error) {
-      console.error("[_APP] Error checking Super Admin:", error);
-      setChecking(false);
-    }
-  }
-
-  // Show nothing while checking to prevent flash of wrong content
-  if (checking) {
-    return (
-      <ThemeProvider>
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Cargando...</p>
-          </div>
-        </div>
-      </ThemeProvider>
-    );
-  }
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router.pathname]);
 
   return (
     <ThemeProvider>
