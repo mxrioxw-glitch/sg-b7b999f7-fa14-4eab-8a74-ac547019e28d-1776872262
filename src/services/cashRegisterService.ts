@@ -3,30 +3,35 @@ import type { Tables } from "@/integrations/supabase/types";
 
 export type CashRegister = Tables<"cash_registers">;
 
-export async function getCashRegisters(businessId: string): Promise<any[]> {
-  const { data, error } = await supabase
-    .from("cash_registers")
-    .select(`
-      *,
-      employees (
-        id,
-        user_id,
-        role,
-        profiles (
-          full_name,
-          email
+export async function getCashRegisters(businessId: string): Promise<CashRegister[]> {
+  try {
+    const { data, error } = await supabase
+      .from("cash_registers")
+      .select(`
+        *,
+        employees (
+          id,
+          user_id,
+          role,
+          profiles (
+            full_name,
+            email
+          )
         )
-      )
-    `)
-    .eq("business_id", businessId)
-    .order("opened_at", { ascending: false });
+      `)
+      .eq("business_id", businessId)
+      .order("opening_time", { ascending: false });
 
-  if (error) {
-    console.error("Error fetching cash registers:", error);
+    if (error) {
+      console.error("Error fetching cash registers:", error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Error in getCashRegisters:", error);
     throw error;
   }
-
-  return data || [];
 }
 
 export async function getActiveCashRegister(businessId: string, employeeId: string): Promise<any | null> {
@@ -36,7 +41,7 @@ export async function getActiveCashRegister(businessId: string, employeeId: stri
     .eq("business_id", businessId)
     .eq("employee_id", employeeId)
     .eq("status", "open")
-    .order("opened_at", { ascending: false })
+    .order("opening_time", { ascending: false })
     .limit(1)
     .maybeSingle();
 
