@@ -37,6 +37,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      console.log("🔐 [LOGIN] Starting login process...");
+      
       // 1. Login
       const { user, error: loginError } = await authService.signIn(
         formData.email,
@@ -47,51 +49,61 @@ export default function LoginPage() {
         throw new Error(loginError?.message || "Error al iniciar sesión");
       }
 
-      // 2. Verificar si es Super Admin
+      console.log("✅ [LOGIN] User authenticated:", user.id);
+
+      // 2. CRITICAL: Check Super Admin FIRST - before any business logic
       const { data: profile } = await supabase
         .from("profiles")
         .select("is_super_admin")
         .eq("id", user.id)
         .maybeSingle();
 
-      // Si es Super Admin, redirigir directamente a /super-admin
-      if (profile?.is_super_admin) {
+      console.log("🔍 [LOGIN] Profile check:", { is_super_admin: profile?.is_super_admin });
+
+      // If Super Admin, redirect immediately and STOP
+      if (profile?.is_super_admin === true) {
+        console.log("👑 [LOGIN] Super Admin detected - redirecting to /super-admin");
         toast({
-          title: "✅ Super Admin Access",
+          title: "👑 Super Admin Access",
           description: "Bienvenido al panel de administración",
           className: "bg-accent text-accent-foreground border-accent",
         });
-        router.push("/super-admin");
-        return;
+        
+        // Force immediate redirect
+        await router.push("/super-admin");
+        return; // STOP HERE - no business creation
       }
 
-      // 3. Si NO es Super Admin, verificar si ya tiene business
+      console.log("👤 [LOGIN] Regular user - checking business...");
+
+      // 3. Regular user flow - check business
       const { data: existingBusiness } = await supabase
         .from("businesses")
         .select("id")
         .eq("owner_id", user.id)
         .maybeSingle();
 
-      // 4. Si NO tiene business, crear todo (primer login)
+      // 4. If NO business, create setup (first login)
       if (!existingBusiness) {
-        console.log("First login - creating business setup");
+        console.log("🆕 [LOGIN] First login - creating business setup");
 
-        // Obtener metadata del usuario
         const fullName = user.user_metadata?.full_name || formData.email.split("@")[0];
         const businessName = user.user_metadata?.business_name || `Negocio de ${fullName}`;
 
-        // Crear business
+        // Create business
         const { business: businessData, error: businessError } = await businessService.createBusiness({
           name: businessName,
           email: formData.email,
         });
 
         if (businessError || !businessData) {
-          console.error("Error creating business:", businessError);
+          console.error("❌ [LOGIN] Error creating business:", businessError);
           throw new Error("Error al configurar el negocio");
         }
 
-        // Crear empleado owner
+        console.log("✅ [LOGIN] Business created:", businessData.id);
+
+        // Create employee owner
         const { error: employeeError } = await supabase
           .from("employees")
           .insert({
@@ -102,17 +114,21 @@ export default function LoginPage() {
           });
 
         if (employeeError) {
-          console.error("Error creating employee:", employeeError);
+          console.error("❌ [LOGIN] Error creating employee:", employeeError);
           throw new Error("Error al crear el empleado");
         }
 
-        // Crear suscripción trial
+        console.log("✅ [LOGIN] Employee created");
+
+        // Create trial subscription
         const { error: subscriptionError } = await subscriptionService.createTrialSubscription(businessData.id);
 
         if (subscriptionError) {
-          console.error("Error creating subscription:", subscriptionError);
+          console.error("❌ [LOGIN] Error creating subscription:", subscriptionError);
           throw new Error("Error al crear la suscripción");
         }
+
+        console.log("✅ [LOGIN] Trial subscription created");
 
         toast({
           title: "✅ Bienvenido a Nexum Cloud",
@@ -120,6 +136,7 @@ export default function LoginPage() {
           className: "bg-accent text-accent-foreground border-accent",
         });
       } else {
+        console.log("✅ [LOGIN] Existing business found - welcome back");
         toast({
           title: "✅ Sesión iniciada",
           description: "Bienvenido de nuevo",
@@ -127,11 +144,12 @@ export default function LoginPage() {
         });
       }
 
-      // 5. Redirigir al POS
+      // 5. Redirect to POS
+      console.log("🔄 [LOGIN] Redirecting to /pos");
       router.push("/pos");
 
     } catch (err: any) {
-      console.error("Login error:", err);
+      console.error("💥 [LOGIN] Login error:", err);
       setError(err.message || "Error al iniciar sesión. Verifica tus credenciales.");
     } finally {
       setLoading(false);

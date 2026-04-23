@@ -298,7 +298,6 @@ export const subscriptionService = {
           status: "trialing",
           current_period_start: now.toISOString(),
           current_period_end: trialEnd.toISOString(),
-          trial_start: now.toISOString(),
           trial_end: trialEnd.toISOString(),
         } as any)
         .select()
