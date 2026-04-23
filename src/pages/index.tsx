@@ -13,7 +13,7 @@ export default function LandingPage() {
   useEffect(() => {
     // Check if user is already logged in
     const checkAuth = async () => {
-      const { default: authService } = await import("@/services/authService");
+      const { authService } = await import("@/services/authService");
       const session = await authService.getCurrentSession();
       
       if (session) {
