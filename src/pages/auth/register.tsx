@@ -8,10 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { authService } from "@/services/authService";
-import { businessService } from "@/services/businessService";
-import { subscriptionService } from "@/services/subscriptionService";
-import { supabase } from "@/integrations/supabase/client";
-import { Coffee, AlertCircle, CheckCircle2, Store } from "lucide-react";
+import { Store, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function RegisterPage() {
@@ -62,7 +59,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // 1. Registrar usuario
+      // Solo registrar usuario - el setup se hace en el primer login
       const { user, error: signUpError } = await authService.signUp(
         formData.email, 
         formData.password, 
@@ -77,63 +74,18 @@ export default function RegisterPage() {
         throw new Error(errorMsg);
       }
 
-      // 2. Esperar un momento para que Supabase procese el registro
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // 3. Crear el business
-      const { data: businessData, error: businessError } = await businessService.createBusiness({
-        name: formData.businessName,
-        owner_id: user.id,
-        email: formData.email,
-      });
-
-      if (businessError || !businessData) {
-        throw new Error("Error al crear el negocio");
-      }
-
-      // 4. Crear empleado owner
-      const { data: employeeData, error: employeeError } = await supabase
-        .from("employees")
-        .insert({
-          business_id: businessData.id,
-          user_id: user.id,
-          name: formData.fullName,
-          email: formData.email,
-          role: "owner",
-          is_active: true,
-        })
-        .select()
-        .single();
-
-      if (employeeError || !employeeData) {
-        throw new Error("Error al crear el empleado");
-      }
-
-      // 5. Crear suscripción trial
-      const trialEndDate = new Date();
-      trialEndDate.setDate(trialEndDate.getDate() + 7);
-
-      const { error: subscriptionError } = await subscriptionService.createSubscription({
-        business_id: businessData.id,
-        plan: "free",
-        status: "trialing",
-        current_period_end: trialEndDate.toISOString(),
-      });
-
-      if (subscriptionError) {
-        console.error("Error creating subscription:", subscriptionError);
-        throw new Error("Error al crear la suscripción");
-      }
-
-      // 6. Toast de éxito y redirección
+      // Success - redirigir a login
       toast({
-        title: "✅ ¡Cuenta creada exitosamente!",
-        description: "Bienvenido a Nexum Cloud - 7 días de prueba gratis",
+        title: "✅ Cuenta creada exitosamente",
+        description: "Ahora inicia sesión para comenzar",
         className: "bg-accent text-accent-foreground border-accent",
       });
 
-      // Redirigir al POS
-      router.push("/pos");
+      // Redirigir a login
+      setTimeout(() => {
+        router.push("/auth/login");
+      }, 1000);
+
     } catch (err: any) {
       console.error("Registration error:", err);
       setError(err.message || "Error en el registro. Por favor, intenta de nuevo.");

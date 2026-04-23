@@ -17,7 +17,6 @@ export type Database = {
     Tables: {
       businesses: {
         Row: {
-          accent_color: string | null
           address: string | null
           created_at: string | null
           currency: string | null
@@ -26,12 +25,8 @@ export type Database = {
           is_active: boolean | null
           logo_url: string | null
           name: string
-          owner_id: string | null
+          owner_id: string
           phone: string | null
-          pos_name: string | null
-          primary_color: string | null
-          printer_width: string | null
-          secondary_color: string | null
           slug: string
           tax_included: boolean | null
           tax_rate: number | null
@@ -39,7 +34,6 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          accent_color?: string | null
           address?: string | null
           created_at?: string | null
           currency?: string | null
@@ -48,12 +42,8 @@ export type Database = {
           is_active?: boolean | null
           logo_url?: string | null
           name: string
-          owner_id?: string | null
+          owner_id: string
           phone?: string | null
-          pos_name?: string | null
-          primary_color?: string | null
-          printer_width?: string | null
-          secondary_color?: string | null
           slug: string
           tax_included?: boolean | null
           tax_rate?: number | null
@@ -61,7 +51,6 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          accent_color?: string | null
           address?: string | null
           created_at?: string | null
           currency?: string | null
@@ -70,12 +59,8 @@ export type Database = {
           is_active?: boolean | null
           logo_url?: string | null
           name?: string
-          owner_id?: string | null
+          owner_id?: string
           phone?: string | null
-          pos_name?: string | null
-          primary_color?: string | null
-          printer_width?: string | null
-          secondary_color?: string | null
           slug?: string
           tax_included?: boolean | null
           tax_rate?: number | null
@@ -259,15 +244,7 @@ export type Database = {
           id?: string
           module?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "employee_permissions_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       employees: {
         Row: {
@@ -392,22 +369,7 @@ export type Database = {
           reference_id?: string | null
           reference_type?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "inventory_movements_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inventory_movements_inventory_item_id_fkey"
-            columns: ["inventory_item_id"]
-            isOneToOne: false
-            referencedRelation: "inventory_items"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       payment_methods: {
         Row: {
@@ -507,36 +469,7 @@ export type Database = {
           quantity_per_unit?: number
           variant_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "product_inventory_items_extra_id_fkey"
-            columns: ["extra_id"]
-            isOneToOne: false
-            referencedRelation: "product_extras"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "product_inventory_items_inventory_item_id_fkey"
-            columns: ["inventory_item_id"]
-            isOneToOne: false
-            referencedRelation: "inventory_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "product_inventory_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "product_inventory_items_variant_id_fkey"
-            columns: ["variant_id"]
-            isOneToOne: false
-            referencedRelation: "product_variants"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       product_variants: {
         Row: {
@@ -580,14 +513,12 @@ export type Database = {
           category_id: string | null
           created_at: string | null
           description: string | null
-          generates_points: boolean | null
           has_extras: boolean | null
           has_variants: boolean | null
           id: string
           image_url: string | null
           is_active: boolean | null
           name: string
-          points_value: number | null
           updated_at: string | null
         }
         Insert: {
@@ -596,14 +527,12 @@ export type Database = {
           category_id?: string | null
           created_at?: string | null
           description?: string | null
-          generates_points?: boolean | null
           has_extras?: boolean | null
           has_variants?: boolean | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
           name: string
-          points_value?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -612,14 +541,12 @@ export type Database = {
           category_id?: string | null
           created_at?: string | null
           description?: string | null
-          generates_points?: boolean | null
           has_extras?: boolean | null
           has_variants?: boolean | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
           name?: string
-          points_value?: number | null
           updated_at?: string | null
         }
         Relationships: [
@@ -764,7 +691,6 @@ export type Database = {
           employee_id: string
           id: string
           notes: string | null
-          payment_method_id: string | null
           status: Database["public"]["Enums"]["sale_status"]
           subtotal: number
           tax_amount: number | null
@@ -778,7 +704,6 @@ export type Database = {
           employee_id: string
           id?: string
           notes?: string | null
-          payment_method_id?: string | null
           status?: Database["public"]["Enums"]["sale_status"]
           subtotal: number
           tax_amount?: number | null
@@ -792,7 +717,6 @@ export type Database = {
           employee_id?: string
           id?: string
           notes?: string | null
-          payment_method_id?: string | null
           status?: Database["public"]["Enums"]["sale_status"]
           subtotal?: number
           tax_amount?: number | null
@@ -825,13 +749,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sales_payment_method_id_fkey"
-            columns: ["payment_method_id"]
-            isOneToOne: false
-            referencedRelation: "payment_methods"
             referencedColumns: ["id"]
           },
         ]
@@ -883,49 +800,37 @@ export type Database = {
       }
       subscriptions: {
         Row: {
-          billing_cycle: string | null
           business_id: string
           created_at: string | null
           current_period_end: string | null
           current_period_start: string | null
           id: string
           plan: Database["public"]["Enums"]["subscription_plan"]
-          plan_type: string | null
           status: Database["public"]["Enums"]["subscription_status"]
-          stripe_customer_id: string | null
-          stripe_subscription_id: string | null
           trial_end: string | null
           trial_start: string | null
           updated_at: string | null
         }
         Insert: {
-          billing_cycle?: string | null
           business_id: string
           created_at?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
           plan?: Database["public"]["Enums"]["subscription_plan"]
-          plan_type?: string | null
           status?: Database["public"]["Enums"]["subscription_status"]
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
           trial_end?: string | null
           trial_start?: string | null
           updated_at?: string | null
         }
         Update: {
-          billing_cycle?: string | null
           business_id?: string
           created_at?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
           plan?: Database["public"]["Enums"]["subscription_plan"]
-          plan_type?: string | null
           status?: Database["public"]["Enums"]["subscription_status"]
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
           trial_end?: string | null
           trial_start?: string | null
           updated_at?: string | null
