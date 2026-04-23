@@ -232,35 +232,34 @@ export default function KardexPage() {
                       {movements.map((movement) => (
                         <TableRow key={movement.id}>
                           <TableCell className="text-sm">
-                            {formatDate(movement.created_at)}
+                            {new Date(movement.created_at).toLocaleDateString("es-MX")}
                           </TableCell>
                           <TableCell>
                             <Badge
                               variant={
-                                movement.movement_type === "in"
+                                movement.type === "in"
                                   ? "default"
-                                  : movement.movement_type === "out"
+                                  : movement.type === "out"
                                   ? "destructive"
-                                  : "outline"
+                                  : "secondary"
                               }
-                              className="gap-1"
                             >
-                              {movement.movement_type === "in" ? (
-                                <TrendingUp className="w-3 h-3" />
-                              ) : (
-                                <TrendingDown className="w-3 h-3" />
-                              )}
-                              {getMovementTypeLabel(movement.movement_type)}
+                              {movement.type === "in" ? "Entrada" : movement.type === "out" ? "Salida" : "Ajuste"}
                             </Badge>
                           </TableCell>
-                          <TableCell>
-                            {getReferenceTypeLabel(movement.reference_type)}
+                          <TableCell className="text-right font-mono">
+                            {movement.quantity}
                           </TableCell>
-                          <TableCell className="text-right font-medium">
-                            {movement.movement_type === "in" ? "+" : "-"}
-                            {Number(movement.quantity).toFixed(2)}
+                          <TableCell className="text-sm text-muted-foreground">
+                            {movement.reference_type === "sale"
+                              ? "Venta"
+                              : movement.reference_type === "purchase"
+                              ? "Compra"
+                              : movement.reference_type === "adjustment"
+                              ? "Ajuste Manual"
+                              : "Otro"}
                           </TableCell>
-                          <TableCell className="text-muted-foreground text-sm">
+                          <TableCell className="text-sm">
                             {movement.notes || "-"}
                           </TableCell>
                         </TableRow>

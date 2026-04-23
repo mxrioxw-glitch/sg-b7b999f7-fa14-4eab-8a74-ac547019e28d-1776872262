@@ -82,6 +82,9 @@ export const saleService = {
             quantity: item.quantity,
             unit_price: item.unitPrice,
             subtotal: item.subtotal,
+            total: item.subtotal, // total equals subtotal for now
+            tax_amount: 0,
+            discount_amount: 0,
             notes: item.notes,
           })
           .select()
@@ -249,6 +252,9 @@ export async function createSale(data: {
           quantity: item.quantity,
           unit_price: item.unitPrice,
           subtotal: item.subtotal,
+          total: item.subtotal, // total equals subtotal
+          tax_amount: 0,
+          discount_amount: 0,
           notes: item.notes,
         })
         .select()
@@ -333,18 +339,14 @@ async function deductSingleInventoryItem(
 ): Promise<void> {
   try {
     // Get current stock
-    const { data: inventoryItem, error: fetchError } = await supabase
+    const { data: item } = await supabase
       .from("inventory_items")
       .select("current_stock")
       .eq("id", inventoryItemId)
       .single();
 
-    if (fetchError || !inventoryItem) {
-      console.error("Error fetching inventory item:", fetchError);
-      return;
-    }
-
-    const newStock = Number(inventoryItem.current_stock) - quantityToDeduct;
+    const previousStock = item ? Number(item.current_stock) : 0;
+    const newStock = previousStock - quantityToDeduct;
 
     // Update stock
     await supabase
@@ -361,6 +363,8 @@ async function deductSingleInventoryItem(
       reference_type: "sale",
       reference_id: saleId,
       notes: notes,
+      previous_stock: previousStock,
+      new_stock: newStock,
     });
   } catch (error) {
     console.error("Error deducting single inventory item:", error);

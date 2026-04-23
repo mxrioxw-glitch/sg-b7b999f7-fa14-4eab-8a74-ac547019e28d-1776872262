@@ -192,6 +192,20 @@ export async function recordInventoryMovement(movement: {
   reference_id: string | null;
   notes?: string;
 }): Promise<void> {
+  // Get current stock first
+  const { data: item } = await supabase
+    .from("inventory_items")
+    .select("current_stock")
+    .eq("id", movement.inventory_item_id)
+    .single();
+
+  const previousStock = item ? Number(item.current_stock) : 0;
+  const newStock = movement.type === "in" 
+    ? previousStock + movement.quantity 
+    : movement.type === "out" 
+    ? previousStock - movement.quantity 
+    : previousStock + movement.quantity; // adjustment can be + or -
+
   const { error } = await supabase
     .from("inventory_movements")
     .insert({
@@ -202,6 +216,8 @@ export async function recordInventoryMovement(movement: {
       reference_type: movement.reference_type,
       reference_id: movement.reference_id,
       notes: movement.notes || null,
+      previous_stock: previousStock,
+      new_stock: newStock,
     });
 
   if (error) {
