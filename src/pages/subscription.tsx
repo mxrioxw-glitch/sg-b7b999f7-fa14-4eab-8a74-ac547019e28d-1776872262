@@ -290,17 +290,15 @@ export default function SubscriptionPage() {
 
       if (!selectedPlanData) throw new Error("Plan no encontrado");
 
-      const updatePayload: any = {
-        plan_id: selectedPlanData.id,
-        status: "active",
-        current_period_start: now.toISOString(),
-        current_period_end: periodEnd.toISOString(),
-        billing_cycle: billingCycle,
-      };
-
       const { error } = await supabase
         .from("subscriptions")
-        .update(updatePayload)
+        .update({
+          plan_id: selectedPlanData.id,
+          status: "active",
+          current_period_start: now.toISOString(),
+          current_period_end: periodEnd.toISOString(),
+          billing_cycle: billingCycle,
+        } as any)
         .eq("business_id", businessId);
 
       if (error) throw error;
