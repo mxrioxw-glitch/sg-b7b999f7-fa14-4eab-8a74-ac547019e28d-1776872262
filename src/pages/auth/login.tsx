@@ -1,14 +1,19 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import { Eye, EyeOff, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { SEO } from "@/components/SEO";
 import { useToast } from "@/hooks/use-toast";
 import { authService } from "@/services/authService";
 import { businessService } from "@/services/businessService";
-import { subscriptionService } from "@/services/subscriptionService";
 import { supabase } from "@/integrations/supabase/client";
+
+// FORCED RECOMPILE: 2026-04-23 07:43:00 UTC
+// This comment forces Next.js to recompile this file
 
 export default function LoginPage() {
   const router = useRouter();
