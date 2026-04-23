@@ -19,30 +19,14 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-type BusinessWithSubscription = Tables<"businesses"> & {
-  subscriptions: Tables<"subscriptions">[];
+type BusinessData = Tables<"businesses"> & {
   profiles?: Tables<"profiles">;
 };
-
-type SubscriptionPlan = Tables<"subscription_plans">;
 
 type MetricsData = {
   totalBusinesses: number;
   activeBusinesses: number;
   inactiveBusinesses: number;
-  trialingBusinesses: number;
-  mrr: number;
-  arr: number;
-  conversionRate: number;
-  growthRate: number;
-};
-
-type PlanStats = {
-  planId: string;
-  planName: string;
-  count: number;
-  revenue: number;
-  percentage: number;
 };
 
 export default function SuperAdminPage() {
@@ -50,22 +34,13 @@ export default function SuperAdminPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
-  const [businesses, setBusinesses] = useState<BusinessWithSubscription[]>([]);
-  const [filteredBusinesses, setFilteredBusinesses] = useState<BusinessWithSubscription[]>([]);
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
-  const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [businesses, setBusinesses] = useState<BusinessData[]>([]);
+  const [filteredBusinesses, setFilteredBusinesses] = useState<BusinessData[]>([]);
   const [metrics, setMetrics] = useState<MetricsData>({
     totalBusinesses: 0,
     activeBusinesses: 0,
-    inactiveBusinesses: 0,
-    trialingBusinesses: 0,
-    mrr: 0,
-    arr: 0,
-    conversionRate: 0,
-    growthRate: 0
+    inactiveBusinesses: 0
   });
-  const [planStats, setPlanStats] = useState<PlanStats[]>([]);
   
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -139,36 +114,24 @@ export default function SuperAdminPage() {
 
   const loadData = async () => {
     try {
-      const [businessesData, plansData] = await Promise.all([
-        supabase
+      const businessesData = await supabase
           .from("businesses")
           .select(`
             *,
-            subscriptions (*),
             profiles:owner_id (*)
           `)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("subscription_plans")
-          .select("*")
-          .order("price_monthly", { ascending: true })
-      ]);
+          .order("created_at", { ascending: false });
 
       if (businessesData.error) {
         console.error("Error cargando negocios:", businessesData.error);
         throw businessesData.error;
       }
-      if (plansData.error) {
-        console.error("Error cargando planes:", plansData.error);
-        throw plansData.error;
-      }
 
-      const loadedBusinesses = (businessesData.data || []) as unknown as BusinessWithSubscription[];
+      const loadedBusinesses = (businessesData.data || []) as unknown as BusinessData[];
       
       setBusinesses(loadedBusinesses);
-      setPlans(plansData.data || []);
 
-      calculateMetrics(loadedBusinesses, plansData.data || []);
+      calculateMetrics(loadedBusinesses);
       setLoading(false);
     } catch (err) {
       console.error("Error loading data:", err);
@@ -181,60 +144,14 @@ export default function SuperAdminPage() {
     }
   };
 
-  const calculateMetrics = (businessList: BusinessWithSubscription[], plansList: SubscriptionPlan[]) => {
-    const now = new Date();
-    
-    // Contar negocios activos (con suscripción activa y current_period_end futuro)
-    const active = businessList.filter(b => {
-      const sub = b.subscriptions?.[0];
-      if (!sub) return false;
-      return sub.status === "active" && (!sub.current_period_end || new Date(sub.current_period_end) > now);
-    }).length;
-
-    // Contar negocios en trial (subscription.status === 'trialing')
-    const trial = businessList.filter(b => {
-      const sub = b.subscriptions?.[0];
-      return sub && sub.status === "trialing";
-    }).length;
-
-    // Negocios inactivos (no tienen suscripción o suscripción expirada/cancelada)
-    const inactive = businessList.filter(b => {
-      const sub = b.subscriptions?.[0];
-      if (!sub) return true;
-      
-      const isExpiredStatus = sub.status === "canceled" || sub.status === "expired" || sub.status === "past_due";
-      const isPeriodExpired = sub.current_period_end && new Date(sub.current_period_end) < now;
-      
-      return isExpiredStatus || isPeriodExpired;
-    }).length;
-
-    // Calcular MRR (solo suscripciones activas)
-    let totalMRR = 0;
-    businessList.forEach(b => {
-      const sub = b.subscriptions?.[0];
-      if (sub && sub.status === "active") {
-        const plan = plansList.find(p => p.id === sub.plan_id);
-        if (plan) {
-          const monthlyAmount = sub.billing_cycle === "annual" 
-            ? Number(plan.price_yearly) / 12 
-            : Number(plan.price_monthly);
-          totalMRR += monthlyAmount;
-        }
-      }
-    });
-
-    const arr = totalMRR * 12;
-    const conversionRate = trial > 0 ? (active / trial) * 100 : 0;
+  const calculateMetrics = (businessList: BusinessData[]) => {
+    const active = businessList.filter(b => b.is_active).length;
+    const inactive = businessList.filter(b => !b.is_active).length;
 
     setMetrics({
       totalBusinesses: businessList.length,
       activeBusinesses: active,
       inactiveBusinesses: inactive,
-      trialingBusinesses: trial,
-      mrr: totalMRR,
-      arr: arr,
-      conversionRate: conversionRate,
-      growthRate: 0,
     });
   };
 
@@ -254,8 +171,9 @@ export default function SuperAdminPage() {
     // Status filter
     if (statusFilter !== "all") {
       filtered = filtered.filter(b => {
-        const subscription = b.subscriptions?.[0];
-        return subscription?.status === statusFilter;
+        if (statusFilter === "active") return b.is_active;
+        if (statusFilter === "inactive") return !b.is_active;
+        return true;
       });
     }
 
@@ -288,45 +206,6 @@ export default function SuperAdminPage() {
     }
   };
 
-  const handleEditPlan = (plan: SubscriptionPlan) => {
-    setEditingPlan({ ...plan });
-    setEditDialogOpen(true);
-  };
-
-  const handleSavePlan = async () => {
-    if (!editingPlan) return;
-
-    try {
-      const { error } = await supabase
-        .from("subscription_plans")
-        .update({
-          price_monthly: editingPlan.price_monthly,
-          price_yearly: editingPlan.price_yearly,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", editingPlan.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "✅ Plan actualizado",
-        description: `Los precios de ${editingPlan.name} se actualizaron`,
-        className: "bg-accent text-accent-foreground border-accent",
-      });
-
-      setEditDialogOpen(false);
-      setEditingPlan(null);
-      await loadData();
-    } catch (err) {
-      console.error("Error:", err);
-      toast({
-        title: "❌ Error",
-        description: "No se pudo actualizar el plan",
-        variant: "destructive",
-      });
-    }
-  };
-
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
@@ -340,19 +219,6 @@ export default function SuperAdminPage() {
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
-  };
-
-  const getPlanName = (planId: string | null) => {
-    if (!planId) return "-";
-    const plan = plans.find(p => p.id === planId);
-    return plan ? plan.name : planId;
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN'
-    }).format(amount);
   };
 
   const formatDate = (dateString: string | null) => {
@@ -410,7 +276,7 @@ export default function SuperAdminPage() {
           </div>
 
           {/* Métricas principales */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             {/* Total Negocios */}
             <div className="bg-card rounded-lg border border-border p-6">
               <div className="flex items-center justify-between mb-4">
@@ -452,99 +318,6 @@ export default function SuperAdminPage() {
               </h3>
               <p className="text-sm text-muted-foreground">Negocios Inactivos</p>
             </div>
-
-            {/* En Prueba */}
-            <div className="bg-card rounded-lg border border-border p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-yellow-500/10 rounded-lg">
-                  <Clock className="h-6 w-6 text-yellow-600" />
-                </div>
-                <Calendar className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <h3 className="text-2xl font-bold text-foreground mb-1">
-                {metrics.trialingBusinesses}
-              </h3>
-              <p className="text-sm text-muted-foreground">En Prueba</p>
-            </div>
-          </div>
-
-          {/* Plan Distribution & Management */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* Plan Stats */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Distribución por Plan</CardTitle>
-                    <CardDescription>Usuarios activos en cada plan</CardDescription>
-                  </div>
-                  <PieChart className="h-5 w-5 text-muted" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {planStats.map((stat) => (
-                    <div key={stat.planId} className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{stat.planName}</span>
-                        <span className="text-muted-foreground">{stat.count} usuarios</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-accent rounded-full transition-all"
-                            style={{ width: `${stat.percentage}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-muted-foreground min-w-[3rem] text-right">
-                          {stat.percentage.toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        MRR: {formatCurrency(stat.revenue)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Plan Management */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Configuración de Planes</CardTitle>
-                    <CardDescription>Editar precios y características</CardDescription>
-                  </div>
-                  <BarChart3 className="h-5 w-5 text-muted" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {plans.map((plan) => (
-                    <div 
-                      key={plan.id}
-                      className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/5 transition-colors"
-                    >
-                      <div className="flex-1">
-                        <div className="font-medium">{plan.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {formatCurrency(Number(plan.price_monthly))}/mes · {formatCurrency(Number(plan.price_yearly))}/año
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleEditPlan(plan)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Businesses Table */}
@@ -576,9 +349,7 @@ export default function SuperAdminPage() {
                     <SelectContent>
                       <SelectItem value="all">Todos</SelectItem>
                       <SelectItem value="active">Activos</SelectItem>
-                      <SelectItem value="trialing">En Prueba</SelectItem>
-                      <SelectItem value="canceled">Cancelados</SelectItem>
-                      <SelectItem value="past_due">Vencidos</SelectItem>
+                      <SelectItem value="inactive">Inactivos</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -591,10 +362,7 @@ export default function SuperAdminPage() {
                     <TableRow>
                       <TableHead>Negocio</TableHead>
                       <TableHead>Owner</TableHead>
-                      <TableHead>Plan</TableHead>
                       <TableHead>Estado</TableHead>
-                      <TableHead>Ciclo</TableHead>
-                      <TableHead>Fin Trial</TableHead>
                       <TableHead>Creado</TableHead>
                       <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
@@ -602,13 +370,12 @@ export default function SuperAdminPage() {
                   <TableBody>
                     {filteredBusinesses.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                           No se encontraron negocios
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredBusinesses.map((business) => {
-                        const subscription = business.subscriptions[0];
                         return (
                           <TableRow key={business.id}>
                             <TableCell>
@@ -619,19 +386,10 @@ export default function SuperAdminPage() {
                               <div className="text-sm">{business.profiles?.full_name || "-"}</div>
                               <div className="text-xs text-muted-foreground">{business.profiles?.email || "-"}</div>
                             </TableCell>
-                            <TableCell>{getPlanName(subscription?.plan_id || null)}</TableCell>
                             <TableCell>
-                              {subscription ? getStatusBadge(subscription.status) : "-"}
-                            </TableCell>
-                            <TableCell>
-                              {subscription?.billing_cycle === "yearly" ? (
-                                <Badge variant="outline">Anual</Badge>
-                              ) : subscription?.billing_cycle === "monthly" ? (
-                                <Badge variant="outline">Mensual</Badge>
-                              ) : "-"}
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              {formatDate(subscription?.trial_end || null)}
+                              <Badge variant={business.is_active ? "default" : "secondary"}>
+                                {business.is_active ? "Activo" : "Inactivo"}
+                              </Badge>
                             </TableCell>
                             <TableCell className="text-sm">
                               {formatDate(business.created_at)}
@@ -672,72 +430,6 @@ export default function SuperAdminPage() {
           </Card>
         </div>
       </div>
-
-      {/* Edit Plan Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Precios del Plan</DialogTitle>
-            <DialogDescription>
-              Actualizar los precios de {editingPlan?.name}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {editingPlan && (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="monthly">Precio Mensual (MXN)</Label>
-                <Input
-                  id="monthly"
-                  type="number"
-                  step="0.01"
-                  value={editingPlan.price_monthly}
-                  onChange={(e) => setEditingPlan({
-                    ...editingPlan,
-                    price_monthly: e.target.value as any
-                  })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="yearly">Precio Anual (MXN)</Label>
-                <Input
-                  id="yearly"
-                  type="number"
-                  step="0.01"
-                  value={editingPlan.price_yearly}
-                  onChange={(e) => setEditingPlan({
-                    ...editingPlan,
-                    price_yearly: e.target.value as any
-                  })}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Ahorro anual: {formatCurrency(
-                    (Number(editingPlan.price_monthly) * 12) - Number(editingPlan.price_yearly)
-                  )}
-                </p>
-              </div>
-
-              <div className="rounded-lg bg-muted p-4">
-                <p className="text-sm font-medium mb-2">Vista previa:</p>
-                <div className="space-y-1 text-sm text-muted-foreground">
-                  <p>Mensual: {formatCurrency(Number(editingPlan.price_monthly))}/mes</p>
-                  <p>Anual: {formatCurrency(Number(editingPlan.price_yearly))}/año ({formatCurrency(Number(editingPlan.price_yearly) / 12)}/mes)</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSavePlan} className="bg-accent hover:bg-accent/90">
-              Guardar Cambios
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

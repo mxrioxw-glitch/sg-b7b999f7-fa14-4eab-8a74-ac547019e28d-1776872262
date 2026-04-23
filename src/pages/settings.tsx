@@ -24,11 +24,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { Building2, DollarSign, CreditCard, Users, Settings as SettingsIcon, Save, Plus, Pencil, Trash2, Upload, X, Check, AlertCircle, Zap, ChevronRight, ArrowLeft, Palette, Printer
 } from "lucide-react";
 import type { Business } from "@/services/businessService";
-import { requireActiveSubscription } from "@/middleware/subscription";
 import { UpgradePlanModal } from "@/components/UpgradePlanModal";
-import { subscriptionService } from "@/services/subscriptionService";
-
-export const getServerSideProps = requireActiveSubscription;
 
 type SettingsView = "menu" | "business" | "employees" | "payments" | "taxes" | "printer" | "customization";
 
@@ -199,27 +195,7 @@ export default function SettingsPage() {
       await loadEmployees(currentBusiness.id);
       await loadPaymentMethods(currentBusiness.id);
 
-      const subscription = await supabase
-        .from("subscriptions")
-        .select("plan_id")
-        .eq("business_id", currentBusiness.id)
-        .maybeSingle();
-
-      if (subscription.data) {
-        const { data: planData } = await supabase
-          .from("subscription_plans")
-          .select("name")
-          .eq("id", subscription.data.plan_id)
-          .maybeSingle();
-
-        const planStr = planData ? planData.name.toLowerCase() : "basic";
-        const planNames: Record<string, string> = {
-          basic: "Plan Básico",
-          professional: "Plan Profesional",
-          premium: "Plan Premium",
-        };
-        setPlanName(planNames[planStr] || "Plan Básico");
-      }
+      setPlanName("Plan Ilimitado");
     } catch (error) {
       console.error("Error checking access:", error);
       toast({
@@ -252,21 +228,6 @@ export default function SettingsPage() {
 
   async function handleCreateEmployee() {
     if (!businessId || !newEmployeeEmail || !newEmployeePassword || !newEmployeeName) return;
-
-    const canAdd = await subscriptionService.canAddEmployee();
-    if (!canAdd.canAdd) {
-      const plan = await subscriptionService.getCurrentPlan();
-      setCurrentPlan(plan as "basic" | "professional" | "premium");
-      
-      const { count } = await supabase
-        .from("employees")
-        .select("*", { count: "exact", head: true })
-        .eq("business_id", businessId);
-      
-      setEmployeeCount(count || 0);
-      setShowUpgradeModal(true);
-      return;
-    }
 
     setCreatingEmployee(true);
     try {

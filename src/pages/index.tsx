@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingScreen } from "@/components/ui/loading";
 import { businessService } from "@/services/businessService";
-import { subscriptionService } from "@/services/subscriptionService";
 import { employeeService } from "@/services/employeeService";
 import { getCashRegisters, openCashRegister, closeCashRegister } from "@/services/cashRegisterService";
 import { supabase } from "@/integrations/supabase/client";
@@ -141,23 +140,7 @@ export default function HomePage() {
         setEmployeeId(currentEmployee.id);
       }
 
-      // Get subscription
-      const subscription = await subscriptionService.getCurrentSubscription();
-      if (subscription) {
-        const { data: planData } = await supabase
-          .from("subscription_plans")
-          .select("name")
-          .eq("id", subscription.plan_id)
-          .maybeSingle();
-
-        const planStr = planData ? planData.name.toLowerCase() : "basic";
-        const planNames: Record<string, string> = {
-          basic: "Plan Básico",
-          professional: "Plan Profesional",
-          premium: "Plan Premium",
-        };
-        setPlanName(planNames[planStr] || "Plan Básico");
-      }
+      setPlanName("Plan Ilimitado");
 
       // Get today's stats
       const today = new Date();
