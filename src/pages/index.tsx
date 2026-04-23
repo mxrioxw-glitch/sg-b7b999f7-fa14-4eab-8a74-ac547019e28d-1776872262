@@ -65,7 +65,7 @@ export default function LandingPage() {
             <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/20 rounded-full blur-3xl"></div>
           </div>
 
-          <div className="container mx-auto px-4 py-20 sm:py-32 max-w-7xl">
+          <div className="container mx-auto px-4 py-12 sm:py-16 lg:py-20 max-w-7xl">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               {/* Left: Content */}
               <div className="space-y-8">
