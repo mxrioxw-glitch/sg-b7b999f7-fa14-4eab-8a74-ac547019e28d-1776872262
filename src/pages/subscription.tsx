@@ -290,8 +290,7 @@ export default function SubscriptionPage() {
 
       if (!selectedPlanData) throw new Error("Plan no encontrado");
 
-      // Create update object with explicit any type to bypass strict typing
-      const updateData: any = {
+      const updatePayload: any = {
         plan_id: selectedPlanData.id,
         status: "active",
         current_period_start: now.toISOString(),
@@ -299,10 +298,8 @@ export default function SubscriptionPage() {
         billing_cycle: billingCycle,
       };
 
-      // @ts-expect-error - Supabase generated types have strict validation that conflicts with dynamic updates
-      const { error } = await supabase
-        .from("subscriptions")
-        .update(updateData)
+      const { error } = await (supabase.from("subscriptions") as any)
+        .update(updatePayload)
         .eq("business_id", businessId);
 
       if (error) throw error;
