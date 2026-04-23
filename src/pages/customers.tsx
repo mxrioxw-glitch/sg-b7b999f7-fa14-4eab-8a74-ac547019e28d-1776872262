@@ -99,7 +99,7 @@ function CustomersContent() {
       }
 
       setBusinessId(currentBusiness.id);
-      await loadData(currentBusiness.id);
+      await loadData();
       setLoading(false);
     } catch (error) {
       console.error("Error checking access:", error);

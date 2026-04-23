@@ -158,7 +158,7 @@ export default function SettingsPage() {
       }
 
       setBusinessId(currentBusiness.id);
-      await loadData(currentBusiness.id);
+      await loadData();
       setLoading(false);
     } catch (error) {
       console.error("Error checking access:", error);
@@ -166,7 +166,7 @@ export default function SettingsPage() {
     }
   }
 
-  async function loadData(businessId: string) {
+  async function loadData() {
     try {
       const { data: profile } = await supabase
         .from("profiles")
@@ -265,29 +265,26 @@ export default function SettingsPage() {
 
     setCreatingEmployee(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No hay usuario autenticado");
+      
       const result = await employeeService.createEmployeeAccount({
         email: newEmployeeEmail,
         password: newEmployeePassword,
-        full_name: newEmployeeName,
-        business_id: businessId,
-        role: newEmployeeRole,
+        name: newEmployeeName,
+        businessId: businessId,
+        role: "cashier",
+        ownerId: user.id
       });
 
-      if (!result.success) {
-        throw new Error(result.error || "Error al crear empleado");
-      }
+      if (result.error) throw new Error(result.error);
 
-      toast({
-        title: "Empleado Creado",
-        description: `${newEmployeeName} ha sido agregado al equipo.`,
-      });
-
-      setNewEmployeeName("");
+      toast({ title: "Empleado creado" });
       setNewEmployeeEmail("");
       setNewEmployeePassword("");
-      setNewEmployeeRole("cashier");
-
-      await loadEmployees(businessId);
+      setNewEmployeeName("");
+      setShowNewEmployeeDialog(false);
+      await loadEmployees();
     } catch (error: any) {
       console.error("Error creating employee:", error);
       toast({
