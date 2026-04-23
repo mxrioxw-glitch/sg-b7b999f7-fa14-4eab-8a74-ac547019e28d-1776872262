@@ -25,10 +25,13 @@ export function useSubscription() {
   });
 
   useEffect(() => {
+    console.log("🔄 [SUBSCRIPTION HOOK] useEffect triggered - starting subscription check");
+    console.log("🔄 [SUBSCRIPTION HOOK] Current pathname:", router.pathname);
     checkSubscription();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      console.log("🔄 [SUBSCRIPTION HOOK] Auth state changed - rechecking subscription");
       checkSubscription();
     });
 
@@ -51,17 +54,24 @@ export function useSubscription() {
       }
 
       console.log("✅ [SUBSCRIPTION HOOK] User found:", user.id);
+      console.log("✅ [SUBSCRIPTION HOOK] User email:", user.email);
 
       // CRITICAL: Check if user is Super Admin FIRST
+      console.log("🔍 [SUBSCRIPTION HOOK] Checking if user is Super Admin...");
       const { data: profile } = await supabase
         .from("profiles")
         .select("is_super_admin")
         .eq("id", user.id)
         .maybeSingle();
 
+      console.log("🔍 [SUBSCRIPTION HOOK] Profile data:", profile);
+      console.log("🔍 [SUBSCRIPTION HOOK] is_super_admin value:", profile?.is_super_admin);
+
       // Super Admins bypass ALL subscription checks
       if (profile?.is_super_admin === true) {
-        console.log("👑 [SUBSCRIPTION HOOK] Super Admin detected - bypassing all subscription checks");
+        console.log("👑👑👑 [SUBSCRIPTION HOOK] SUPER ADMIN DETECTED 👑👑👑");
+        console.log("✅ [SUBSCRIPTION HOOK] Bypassing ALL subscription checks");
+        console.log("✅ [SUBSCRIPTION HOOK] Setting unlimited access");
         setSubscriptionStatus({
           isActive: true,
           isTrial: false,
@@ -70,6 +80,7 @@ export function useSubscription() {
           status: "active",
           loading: false,
         });
+        console.log("✅ [SUBSCRIPTION HOOK] Super Admin status set - DONE");
         return; // STOP HERE for Super Admins
       }
 

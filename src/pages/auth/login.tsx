@@ -37,6 +37,7 @@ export default function LoginPage() {
 
     try {
       console.log("🔐 [LOGIN] Starting login process...");
+      console.log("🔐 [LOGIN] Email:", formData.email);
       
       // 1. Login
       const { user, error: loginError } = await authService.signIn(
@@ -49,20 +50,30 @@ export default function LoginPage() {
       }
 
       console.log("✅ [LOGIN] User authenticated:", user.id);
+      console.log("✅ [LOGIN] User email:", user.email);
 
       // 2. CRITICAL: Check Super Admin FIRST - before any business logic
-      const { data: profile } = await supabase
+      console.log("🔍 [LOGIN] Checking if user is Super Admin...");
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("is_super_admin")
         .eq("id", user.id)
         .maybeSingle();
 
-      console.log("🔍 [LOGIN] Profile check:", { is_super_admin: profile?.is_super_admin });
+      console.log("🔍 [LOGIN] Profile data:", profile);
+      console.log("🔍 [LOGIN] Profile error:", profileError);
+      console.log("🔍 [LOGIN] is_super_admin value:", profile?.is_super_admin);
+      console.log("🔍 [LOGIN] is_super_admin type:", typeof profile?.is_super_admin);
 
       // If Super Admin, set flag and redirect immediately
       if (profile?.is_super_admin === true) {
         isSuperAdmin = true; // Set flag to stop execution
-        console.log("👑 [LOGIN] SUPER ADMIN DETECTED - Skipping all business logic");
+        console.log("👑👑👑 [LOGIN] SUPER ADMIN DETECTED 👑👑👑");
+        console.log("🛑 [LOGIN] STOPPING ALL BUSINESS LOGIC");
+        console.log("🛑 [LOGIN] NO BUSINESS WILL BE CREATED");
+        console.log("🛑 [LOGIN] NO SUBSCRIPTION WILL BE CREATED");
+        
+        setLoading(false);
         
         toast({
           title: "👑 Super Admin Access",
@@ -70,11 +81,13 @@ export default function LoginPage() {
           className: "bg-accent text-accent-foreground border-accent",
         });
         
-        console.log("🚀 [LOGIN] Redirecting directly to /super-admin");
-        setLoading(false);
+        console.log("🚀 [LOGIN] Redirecting directly to /super-admin NOW");
         await router.push("/super-admin");
+        console.log("✅ [LOGIN] Redirect completed");
         return; // STOP HERE - no business creation
       }
+
+      console.log("👤 [LOGIN] NOT a Super Admin - this is a regular user");
 
       // 3. Safety check - if somehow flag is set, stop execution
       if (isSuperAdmin) {
