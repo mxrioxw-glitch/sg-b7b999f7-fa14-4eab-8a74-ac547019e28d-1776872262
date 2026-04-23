@@ -135,6 +135,8 @@ export default function SettingsPage() {
         router.push("/auth/login");
         return;
       }
+      
+      setUserId(user.id);
 
       // CRITICAL: Check if user is Super Admin FIRST
       const { data: profile } = await supabase
@@ -271,11 +273,11 @@ export default function SettingsPage() {
       const result = await employeeService.createEmployeeAccount({
         email: newEmployeeEmail,
         password: newEmployeePassword,
-        name: newEmployeeName,
-        businessId: businessId,
+        full_name: newEmployeeName,
+        business_id: businessId,
         role: "cashier",
-        ownerId: user.id
-      });
+        owner_id: user.id
+      } as any);
 
       if (result.error) throw new Error(result.error);
 
@@ -283,14 +285,14 @@ export default function SettingsPage() {
       setNewEmployeeEmail("");
       setNewEmployeePassword("");
       setNewEmployeeName("");
-      setShowNewEmployeeDialog(false);
+      setIsNewEmployeeDialogOpen(false);
       await loadEmployees();
     } catch (error: any) {
-      console.error("Error creating employee:", error);
+      console.error(error);
       toast({
         title: "Error",
-        description: error.message || "No se pudo crear el empleado.",
-        variant: "destructive",
+        description: error.message || "Error al crear empleado",
+        variant: "destructive"
       });
     } finally {
       setCreatingEmployee(false);
