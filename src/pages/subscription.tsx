@@ -204,7 +204,7 @@ export default function SubscriptionPage() {
             current_period_end: trialEnd.toISOString(),
             trial_start: new Date().toISOString(),
             trial_end: trialEnd.toISOString(),
-          })
+          } as any)
           .select()
           .single();
 
