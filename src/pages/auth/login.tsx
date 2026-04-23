@@ -1,18 +1,14 @@
-import { SEO } from "@/components/SEO";
+import { useState } from "react";
+import { useRouter } from "next/router";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import Link from "next/link";
-import { useRouter } from "next/router";
-import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { authService } from "@/services/authService";
 import { businessService } from "@/services/businessService";
 import { subscriptionService } from "@/services/subscriptionService";
 import { supabase } from "@/integrations/supabase/client";
-import { Store, AlertCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -51,7 +47,7 @@ export default function LoginPage() {
 
       console.log("✅ [LOGIN] User authenticated:", user.id);
 
-      // 2. CRITICAL: Check Super Admin FIRST - before any business logic
+      // 2. CRITICAL: Check Super Admin FIRST
       const { data: profile } = await supabase
         .from("profiles")
         .select("is_super_admin")
@@ -60,37 +56,39 @@ export default function LoginPage() {
 
       console.log("🔍 [LOGIN] Profile check:", { is_super_admin: profile?.is_super_admin });
 
-      // If Super Admin, redirect immediately and STOP
+      // ⚡ SUPER ADMIN PATH - NO business, NO subscription, JUST redirect
       if (profile?.is_super_admin === true) {
-        console.log("👑 [LOGIN] Super Admin detected - redirecting to /super-admin");
+        console.log("👑 [LOGIN] SUPER ADMIN DETECTED - Skipping all business logic");
+        console.log("🚀 [LOGIN] Redirecting directly to /super-admin");
+        
+        setLoading(false); // Stop loading immediately
+        
         toast({
           title: "👑 Super Admin Access",
           description: "Bienvenido al panel de administración",
           className: "bg-accent text-accent-foreground border-accent",
         });
         
-        // Force immediate redirect
-        await router.push("/super-admin");
-        return; // STOP HERE - no business creation
+        // Immediate redirect and STOP execution
+        router.push("/super-admin");
+        return; // CRITICAL: Exit function completely
       }
 
-      console.log("👤 [LOGIN] Regular user - checking business...");
+      // 3. REGULAR USER PATH - only execute if NOT super admin
+      console.log("👤 [LOGIN] Regular user - proceeding with business logic...");
 
-      // 3. Regular user flow - check business
       const { data: existingBusiness } = await supabase
         .from("businesses")
         .select("id")
         .eq("owner_id", user.id)
         .maybeSingle();
 
-      // 4. If NO business, create setup (first login)
       if (!existingBusiness) {
         console.log("🆕 [LOGIN] First login - creating business setup");
 
         const fullName = user.user_metadata?.full_name || formData.email.split("@")[0];
         const businessName = user.user_metadata?.business_name || `Negocio de ${fullName}`;
 
-        // Create business
         const { business: businessData, error: businessError } = await businessService.createBusiness({
           name: businessName,
           email: formData.email,
@@ -103,7 +101,6 @@ export default function LoginPage() {
 
         console.log("✅ [LOGIN] Business created:", businessData.id);
 
-        // Create employee owner
         const { error: employeeError } = await supabase
           .from("employees")
           .insert({
@@ -120,7 +117,6 @@ export default function LoginPage() {
 
         console.log("✅ [LOGIN] Employee created");
 
-        // Create trial subscription
         const { error: subscriptionError } = await subscriptionService.createTrialSubscription(businessData.id);
 
         if (subscriptionError) {
@@ -144,7 +140,6 @@ export default function LoginPage() {
         });
       }
 
-      // 5. Redirect to POS
       console.log("🔄 [LOGIN] Redirecting to /pos");
       router.push("/pos");
 
@@ -157,102 +152,124 @@ export default function LoginPage() {
   };
 
   return (
-    <>
-      <SEO 
-        title="Iniciar Sesión - Nexum Cloud"
-        description="Inicia sesión en tu cuenta de Nexum Cloud"
-      />
-      
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
-                <Store className="h-7 w-7 text-primary-foreground" />
-              </div>
-              <h1 className="font-heading text-3xl font-bold">Nexum Cloud</h1>
-            </div>
+    <div className="min-h-screen flex">
+      {/* Left side - Login Form */}
+      <div className="flex-1 flex items-center justify-center p-8 bg-background">
+        <div className="w-full max-w-md space-y-8">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold tracking-tight text-foreground mb-2">
+              Nexum Cloud
+            </h1>
             <p className="text-muted-foreground">
-              Inicia sesión en tu cuenta
+              Sistema POS en la Nube
             </p>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Iniciar Sesión</CardTitle>
-              <CardDescription>
-                Ingresa tus credenciales para continuar
-              </CardDescription>
-            </CardHeader>
-            
-            <form onSubmit={handleSubmit}>
-              <CardContent className="space-y-4">
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
+          <div className="bg-card p-8 rounded-lg border border-border shadow-lg">
+            <h2 className="text-2xl font-semibold mb-6 text-center">
+              Iniciar Sesión
+            </h2>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">Correo electrónico</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="tu@email.com"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    disabled={loading}
-                  />
-                </div>
+            {error && (
+              <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                <p className="text-sm text-destructive">{error}</p>
+              </div>
+            )}
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Contraseña</Label>
-                    <Link 
-                      href="/auth/recovery" 
-                      className="text-sm text-accent hover:underline"
-                    >
-                      ¿Olvidaste tu contraseña?
-                    </Link>
-                  </div>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-              </CardContent>
-
-              <CardFooter className="flex flex-col space-y-4">
-                <Button 
-                  type="submit" 
-                  className="w-full"
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="tu@email.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
                   disabled={loading}
-                >
-                  {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
-                </Button>
+                  className="h-12"
+                />
+              </div>
 
-                <p className="text-sm text-center text-muted">
-                  ¿No tienes cuenta?{" "}
-                  <Link 
-                    href="/auth/register" 
-                    className="text-accent hover:underline font-medium"
-                  >
-                    Regístrate gratis
-                  </Link>
-                </p>
-              </CardFooter>
+              <div className="space-y-2">
+                <Label htmlFor="password">Contraseña</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  disabled={loading}
+                  className="h-12"
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <Link
+                  href="/auth/recovery"
+                  className="text-sm text-primary hover:underline"
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full h-12 text-base"
+                disabled={loading}
+              >
+                {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
+              </Button>
             </form>
-          </Card>
+
+            <div className="mt-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                ¿No tienes cuenta?{" "}
+                <Link
+                  href="/auth/register"
+                  className="text-primary hover:underline font-medium"
+                >
+                  Regístrate gratis
+                </Link>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
-    </>
+
+      {/* Right side - Hero */}
+      <div className="hidden lg:flex flex-1 bg-primary items-center justify-center p-12">
+        <div className="max-w-lg text-center space-y-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/20 rounded-full text-accent-foreground text-sm font-medium">
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z" />
+            </svg>
+            Sistema POS en la Nube
+          </div>
+
+          <h2 className="text-5xl font-bold text-primary-foreground">
+            Nexum Cloud
+          </h2>
+
+          <p className="text-xl text-primary-foreground/90">
+            El sistema punto de venta completo para tu negocio. Gestiona ventas, inventario, clientes y reportes desde cualquier lugar.
+          </p>
+
+          <div className="grid grid-cols-2 gap-6 pt-8">
+            <div className="space-y-2">
+              <div className="text-3xl font-bold text-accent">7 días</div>
+              <div className="text-primary-foreground/80">Prueba gratis</div>
+            </div>
+            <div className="space-y-2">
+              <div className="text-3xl font-bold text-accent">24/7</div>
+              <div className="text-primary-foreground/80">Soporte</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
