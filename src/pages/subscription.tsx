@@ -194,11 +194,25 @@ export default function SubscriptionPage() {
         const trialEnd = new Date();
         trialEnd.setDate(trialEnd.getDate() + 7); // 7 days trial
 
+        // Get the Básico plan for trial
+        const { data: basicPlan } = await supabase
+          .from("subscription_plans")
+          .select("id")
+          .ilike("name", "Básico")
+          .maybeSingle();
+
+        if (!basicPlan) {
+          console.error("❌ Básico plan not found");
+          // Continue without creating subscription - user can subscribe later
+          setLoading(false);
+          return;
+        }
+
         const { data: newSubscription, error: createError } = await supabase
           .from("subscriptions")
           .insert({
             business_id: business.id,
-            plan_id: "premium-plan-id", // placeholder, will fall back correctly
+            plan_id: basicPlan.id,
             status: "trialing",
             current_period_start: new Date().toISOString(),
             current_period_end: trialEnd.toISOString(),
@@ -209,6 +223,7 @@ export default function SubscriptionPage() {
 
         if (createError) {
           console.error("Error creating trial subscription:", createError);
+          setLoading(false);
           return;
         }
 
@@ -216,6 +231,7 @@ export default function SubscriptionPage() {
         setIsInTrial(true);
         setEffectivePlan("premium");
         setDaysRemaining(7);
+        setLoading(false);
         return;
       }
 
