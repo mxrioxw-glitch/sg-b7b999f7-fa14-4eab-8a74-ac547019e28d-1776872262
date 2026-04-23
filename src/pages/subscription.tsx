@@ -290,7 +290,7 @@ export default function SubscriptionPage() {
 
       if (!selectedPlanData) throw new Error("Plan no encontrado");
 
-      const { error } = await supabase
+      const { error } = await (supabase
         .from("subscriptions")
         .update({
           plan_id: selectedPlanData.id,
@@ -298,8 +298,8 @@ export default function SubscriptionPage() {
           current_period_start: now.toISOString(),
           current_period_end: periodEnd.toISOString(),
           billing_cycle: billingCycle,
-        } as any)
-        .eq("business_id", businessId);
+        })
+        .eq("business_id", businessId) as any);
 
       if (error) throw error;
 
