@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { Eye, EyeOff, Zap } from "lucide-react";
+import { Eye, EyeOff, Coffee, TrendingUp, BarChart3, Users, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SEO } from "@/components/SEO";
 import { useToast } from "@/hooks/use-toast";
 import { authService } from "@/services/authService";
@@ -28,13 +28,11 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    // CRITICAL: Visible confirmation that NEW CODE is loaded
     if (formData.email === "mxrioxw@gmail.com") {
-      alert("🔍 CÓDIGO NUEVO DETECTADO - Verificando Super Admin...");
+      console.log("🔍 Super Admin login detected");
     }
 
     try {
-      // 1. Login
       const { user, error: loginError } = await authService.signIn(
         formData.email,
         formData.password
@@ -44,35 +42,28 @@ export default function LoginPage() {
         throw new Error(loginError?.message || "Error al iniciar sesión");
       }
 
-      // 2. CRITICAL: Check Super Admin FIRST
       const { data: profile } = await supabase
         .from("profiles")
         .select("is_super_admin")
         .eq("id", user.id)
         .maybeSingle();
 
-      // If Super Admin, redirect immediately
       if (profile?.is_super_admin === true) {
-        alert("👑 SUPER ADMIN CONFIRMADO - Redirigiendo a /super-admin");
-        
         toast({
-          title: "👑 Super Admin Access",
-          description: "Redirigiendo al panel de administración...",
+          title: "👑 Super Admin",
+          description: "Accediendo al panel de administración...",
           className: "bg-accent text-accent-foreground border-accent",
         });
         
-        // Force redirect with replace to prevent back button
         await router.replace("/super-admin");
-        return; // CRITICAL: STOP HERE - Do NOT create business for Super Admin
+        return;
       }
 
-      // 3. Regular user - check for existing business
       const existingBusiness = await businessService.getCurrentBusiness();
 
       if (existingBusiness) {
-        // Welcome back
         toast({
-          title: "Bienvenido de nuevo",
+          title: "¡Bienvenido de nuevo!",
           description: `Hola, ${existingBusiness.name}`,
         });
 
@@ -80,7 +71,6 @@ export default function LoginPage() {
         return;
       }
 
-      // 4. New user - create business (ONLY for non-Super Admin users)
       const businessData = {
         name: `Negocio de ${user.email.split("@")[0]}`,
         owner_id: user.id,
@@ -93,7 +83,7 @@ export default function LoginPage() {
       }
 
       toast({
-        title: "Cuenta creada",
+        title: "¡Cuenta creada!",
         description: "Tu negocio ha sido configurado exitosamente",
       });
 
@@ -102,8 +92,8 @@ export default function LoginPage() {
       console.error("Login error:", error);
       setError(error.message || "Error al iniciar sesión");
       toast({
-        title: "Error",
-        description: error.message || "Error al iniciar sesión",
+        title: "Error al iniciar sesión",
+        description: error.message || "Verifica tus credenciales e intenta de nuevo",
         variant: "destructive",
       });
     } finally {
@@ -115,117 +105,229 @@ export default function LoginPage() {
     <>
       <SEO 
         title="Iniciar Sesión - Nexum Cloud POS"
-        description="Accede a tu sistema POS en la nube"
+        description="Sistema punto de venta en la nube - Gestiona tu negocio desde cualquier lugar"
       />
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
-        <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center">
-          {/* Left side - Branding */}
-          <div className="hidden lg:block space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center">
-                <Zap className="h-7 w-7 text-primary-foreground" />
+      
+      <div className="min-h-screen flex bg-background">
+        {/* Left Panel - Branding (Desktop only) */}
+        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary via-primary to-secondary relative overflow-hidden">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-0 left-0 w-96 h-96 bg-accent rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 right-0 w-96 h-96 bg-accent rounded-full blur-3xl"></div>
+          </div>
+
+          {/* Content */}
+          <div className="relative z-10 flex flex-col justify-between p-12 text-white">
+            {/* Logo & Title */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="h-14 w-14 rounded-2xl bg-accent flex items-center justify-center shadow-lg">
+                  <Coffee className="h-8 w-8 text-accent-foreground" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold">Nexum Cloud</h1>
+                  <p className="text-white/80 text-sm">Sistema POS Profesional</p>
+                </div>
               </div>
-              <h1 className="text-4xl font-bold text-foreground">Nexum Cloud</h1>
             </div>
-            <p className="text-xl text-muted-foreground leading-relaxed">
-              El sistema punto de venta completo para tu negocio. Gestiona ventas, inventario, clientes y reportes desde cualquier lugar.
-            </p>
-            <div className="space-y-4 pt-4">
-              <div className="flex items-start gap-3">
-                <div className="h-6 w-6 rounded-full bg-accent flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-accent-foreground text-xs">✓</span>
-                </div>
-                <p className="text-muted-foreground">Sistema en la nube - accede desde cualquier dispositivo</p>
+
+            {/* Main Message */}
+            <div className="space-y-8">
+              <div className="space-y-4">
+                <h2 className="text-4xl font-bold leading-tight">
+                  Gestiona tu negocio con confianza
+                </h2>
+                <p className="text-xl text-white/90 leading-relaxed">
+                  Sistema completo de punto de venta diseñado para cafeterías, restaurantes y negocios modernos.
+                </p>
               </div>
-              <div className="flex items-start gap-3">
-                <div className="h-6 w-6 rounded-full bg-accent flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-accent-foreground text-xs">✓</span>
+
+              {/* Features Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                  <ShoppingCart className="h-8 w-8 mb-3 text-accent" />
+                  <h3 className="font-semibold mb-1">Ventas Rápidas</h3>
+                  <p className="text-sm text-white/80">Interfaz táctil optimizada</p>
                 </div>
-                <p className="text-muted-foreground">Gestión completa de inventario y productos</p>
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                  <BarChart3 className="h-8 w-8 mb-3 text-accent" />
+                  <h3 className="font-semibold mb-1">Reportes</h3>
+                  <p className="text-sm text-white/80">Análisis en tiempo real</p>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                  <TrendingUp className="h-8 w-8 mb-3 text-accent" />
+                  <h3 className="font-semibold mb-1">Inventario</h3>
+                  <p className="text-sm text-white/80">Control automático</p>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                  <Users className="h-8 w-8 mb-3 text-accent" />
+                  <h3 className="font-semibold mb-1">Clientes</h3>
+                  <p className="text-sm text-white/80">Gestión completa</p>
+                </div>
               </div>
-              <div className="flex items-start gap-3">
-                <div className="h-6 w-6 rounded-full bg-accent flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-accent-foreground text-xs">✓</span>
+            </div>
+
+            {/* Footer */}
+            <div className="text-sm text-white/60">
+              © {new Date().getFullYear()} Nexum Cloud. Sistema POS profesional en la nube.
+            </div>
+          </div>
+        </div>
+
+        {/* Right Panel - Login Form */}
+        <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
+          <div className="w-full max-w-md space-y-8">
+            {/* Mobile Logo */}
+            <div className="lg:hidden text-center space-y-2">
+              <div className="inline-flex items-center gap-3">
+                <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center">
+                  <Coffee className="h-7 w-7 text-primary-foreground" />
                 </div>
-                <p className="text-muted-foreground">Reportes y análisis en tiempo real</p>
+                <h1 className="text-2xl font-bold text-foreground">Nexum Cloud</h1>
+              </div>
+              <p className="text-sm text-muted-foreground">Sistema POS Profesional</p>
+            </div>
+
+            {/* Login Card */}
+            <Card className="border-2 shadow-xl">
+              <CardHeader className="space-y-1 pb-6">
+                <CardTitle className="text-2xl sm:text-3xl font-bold text-center">
+                  Iniciar Sesión
+                </CardTitle>
+                <CardDescription className="text-center text-base">
+                  Ingresa tus credenciales para acceder
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  {/* Email Field */}
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-base font-medium">
+                      Correo Electrónico
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="tu@email.com"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      required
+                      disabled={loading}
+                      className="h-12 text-base"
+                    />
+                  </div>
+
+                  {/* Password Field */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password" className="text-base font-medium">
+                        Contraseña
+                      </Label>
+                      <Link
+                        href="/auth/recovery"
+                        className="text-sm text-accent hover:text-accent/80 font-medium transition-colors"
+                      >
+                        ¿Olvidaste tu contraseña?
+                      </Link>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        required
+                        disabled={loading}
+                        className="h-12 text-base pr-12"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Error Message */}
+                  {error && (
+                    <div className="p-4 bg-destructive/10 border-2 border-destructive/20 rounded-lg">
+                      <p className="text-sm font-medium text-destructive">{error}</p>
+                    </div>
+                  )}
+
+                  {/* Submit Button */}
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 text-base font-semibold" 
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                        Iniciando sesión...
+                      </div>
+                    ) : (
+                      "Iniciar Sesión"
+                    )}
+                  </Button>
+
+                  {/* Divider */}
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-border"></div>
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="px-4 bg-card text-muted-foreground">
+                        ¿No tienes cuenta?
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Register Link */}
+                  <div className="text-center">
+                    <Link
+                      href="/auth/register"
+                      className="inline-flex items-center justify-center gap-2 text-base font-semibold text-accent hover:text-accent/80 transition-colors"
+                    >
+                      Crear cuenta gratis
+                      <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
+                    </Link>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* Trust Indicators */}
+            <div className="text-center space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Usado por negocios en todo el mundo
+              </p>
+              <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <div className="h-2 w-2 rounded-full bg-accent"></div>
+                  <span>Seguro</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="h-2 w-2 rounded-full bg-accent"></div>
+                  <span>Confiable</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="h-2 w-2 rounded-full bg-accent"></div>
+                  <span>24/7</span>
+                </div>
               </div>
             </div>
           </div>
-
-          {/* Right side - Login form */}
-          <Card className="w-full">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl font-bold">Iniciar Sesión</CardTitle>
-              <CardDescription>
-                Ingresa tus credenciales para acceder al sistema
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="tu@email.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Contraseña</Label>
-                    <Link
-                      href="/auth/recovery"
-                      className="text-xs text-muted-foreground hover:text-foreground"
-                    >
-                      ¿Olvidaste tu contraseña?
-                    </Link>
-                  </div>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      required
-                      disabled={loading}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                {error && (
-                  <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                    <p className="text-sm text-destructive">{error}</p>
-                  </div>
-                )}
-
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
-                </Button>
-
-                <div className="text-center text-sm">
-                  <span className="text-foreground/60">¿No tienes cuenta? </span>
-                  <Link
-                    href="/auth/register"
-                    className="text-primary hover:text-primary/80 font-medium"
-                  >
-                    Regístrate aquí
-                  </Link>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </>
