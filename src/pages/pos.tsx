@@ -11,29 +11,9 @@ import { CustomerIdentificationModal } from "@/components/CustomerIdentification
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { TicketPreview } from "@/components/TicketPreview";
 import { QuickCashRegister } from "@/components/QuickCashRegister";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { businessService } from "@/services/businessService";
-import { categoryService, type Category } from "@/services/categoryService";
-import { productService, type ProductWithDetails } from "@/services/productService";
-import { getCashRegisters, openCashRegister, type CashRegister } from "@/services/cashRegisterService";
-import { getCustomers, redeemLoyaltyPoints } from "@/services/customerService";
-import { saleService } from "@/services/saleService";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { useIsMobileOrTablet } from "@/hooks/use-mobile";
-import { Search, Package, ShoppingCart, ChevronLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { requireAuth } from "@/middleware/auth";
-import { requireActiveSubscription } from "@/middleware/subscription";
-import type { Business } from "@/services/businessService";
-import { GetServerSidePropsContext } from "next";
-import { CategoryManager } from "@/components/CategoryManager";
-import { useToast } from "@/hooks/use-toast";
-import { productService } from "@/services/productService";
-import { categoryService } from "@/services/categoryService";
-import { businessService } from "@/services/businessService";
-import { getCashRegisters, openCashRegister, closeCashRegister } from "@/services/cashRegisterService";
 
 interface CartItem {
   id: string;
@@ -55,18 +35,12 @@ interface Customer {
 export const getServerSideProps = requireActiveSubscription;
 
 export default function POSPage() {
-  return (
-    <ProtectedRoute requiredPermission="pos">
-      <POSContent />
-    </ProtectedRoute>
-  );
-}
-
-function POSContent() {
   const router = useRouter();
   const { toast } = useToast();
+  
+  const [business, setBusiness] = useState<any>(null);
+  const [businessName, setBusinessName] = useState("");
   const [loading, setLoading] = useState(true);
-  const [business, setBusiness] = useState<Business | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [products, setProducts] = useState<ProductWithDetails[]>([]);

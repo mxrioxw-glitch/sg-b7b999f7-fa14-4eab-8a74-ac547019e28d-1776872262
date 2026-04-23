@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { X, Upload, Plus, Trash2, Image as ImageIcon, Info, DollarSign, Package, CheckCircle2, Tag, Save } from "lucide-react";
@@ -95,6 +97,7 @@ export function ProductForm({ product, onSuccess, trigger }: ProductFormProps) {
   const [newCategoryName, setNewCategoryName] = useState("");
   const imageInputRef = useRef<HTMLInputElement>(null);
   
+  const [businessId, setBusinessId] = useState<string>("");
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<"basic" | "professional" | "premium">("basic");
   const [productCount, setProductCount] = useState(0);
@@ -118,6 +121,7 @@ export function ProductForm({ product, onSuccess, trigger }: ProductFormProps) {
       setHasExtras(product.has_extras || false);
       setGeneratesPoints(product.generates_points || false);
       setPointsValue(product.points_value || 0);
+      setBusinessId(product.business_id || "");
       loadProductDetails();
     } else if (open) {
       resetForm();
@@ -146,10 +150,12 @@ export function ProductForm({ product, onSuccess, trigger }: ProductFormProps) {
     try {
       const business = await businessService.getCurrentBusiness();
       if (!business) return;
+      
+      setBusinessId(business.id);
 
       const [categoriesData, inventoryData] = await Promise.all([
         categoryService.getCategories(business.id),
-        getInventoryItems(business.id)
+        inventoryService.getInventoryItems(business.id)
       ]);
 
       setCategories(categoriesData);
@@ -322,7 +328,7 @@ export function ProductForm({ product, onSuccess, trigger }: ProductFormProps) {
     e.preventDefault();
     if (!businessId) return;
 
-    setIsLoading(true);
+    setLoading(true);
 
     try {
       let finalImageUrl = imageUrl;
