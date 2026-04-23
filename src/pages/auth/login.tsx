@@ -13,12 +13,14 @@ import { supabase } from "@/integrations/supabase/client";
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [debugInfo, setDebugInfo] = useState(""); // Visual debug on UI
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
@@ -30,16 +32,13 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setDebugInfo("🔐 Iniciando sesión...");
     setLoading(true);
 
-    console.log("═══════════════════════════════════════════════");
-    console.log("🔐 LOGIN VERSION: 2026-04-23 08:10 UTC");
-    console.log("═══════════════════════════════════════════════");
-
     try {
-      console.log("🔐 Attempting login for:", formData.email);
+      setDebugInfo(`🔐 Email: ${formData.email}`);
       
-      // 1. AUTHENTICATE USER
+      // 1. Login
       const { user, error: loginError } = await authService.signIn(
         formData.email,
         formData.password
@@ -49,37 +48,37 @@ export default function LoginPage() {
         throw new Error(loginError?.message || "Error al iniciar sesión");
       }
 
-      console.log("✅ User authenticated:", user.id);
+      setDebugInfo(`✅ Usuario autenticado: ${user.id.substring(0, 8)}...`);
 
-      // 2. CHECK IF SUPER ADMIN - THIS IS THE ONLY THING THAT MATTERS
-      console.log("🔍 Checking Super Admin status...");
+      // 2. CRITICAL: Check Super Admin FIRST
       const { data: profile } = await supabase
         .from("profiles")
         .select("is_super_admin")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
-      console.log("👤 Profile:", profile);
-      console.log("👤 is_super_admin:", profile?.is_super_admin);
+      setDebugInfo(`🔍 is_super_admin: ${profile?.is_super_admin}`);
 
-      // 3. IF SUPER ADMIN → GO TO /super-admin AND STOP
+      // If Super Admin, redirect immediately
       if (profile?.is_super_admin === true) {
-        console.log("👑👑👑 SUPER ADMIN DETECTED 👑👑👑");
-        console.log("🚀 Redirecting to /super-admin");
+        setDebugInfo("👑👑👑 SUPER ADMIN DETECTADO 👑👑👑");
         
         toast({
-          title: "👑 Super Admin",
-          description: "Bienvenido al panel de administración",
-          className: "bg-accent text-accent-foreground",
+          title: "👑 Super Admin Access",
+          description: "Redirigiendo al panel de administración...",
+          className: "bg-accent text-accent-foreground border-accent",
         });
 
-        setLoading(false);
-        await router.push("/super-admin");
-        console.log("✅ Redirect complete");
-        return; // STOP - DO NOT CONTINUE
+        setDebugInfo("🚀 Redirigiendo a /super-admin...");
+        
+        // Force redirect with replace to prevent back button
+        await router.replace("/super-admin");
+        
+        setDebugInfo("✅ Redirect completado");
+        return; // STOP HERE
       }
 
-      console.log("👤 Regular user - checking/creating business...");
+      setDebugInfo("👤 Usuario regular - verificando negocio...");
 
       // 4. REGULAR USER - Check if business exists
       const { data: existingBusiness } = await supabase
@@ -262,19 +261,24 @@ export default function LoginPage() {
                 >
                   {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
                 </Button>
-              </form>
 
-              <div className="mt-6 text-center">
-                <p className="text-sm text-muted-foreground">
-                  ¿No tienes cuenta?{" "}
+                <div className="text-center text-sm">
+                  <span className="text-foreground/60">¿No tienes cuenta? </span>
                   <Link
                     href="/auth/register"
-                    className="text-primary hover:underline font-medium"
+                    className="text-primary hover:text-primary/80 font-medium"
                   >
-                    Regístrate gratis
+                    Regístrate aquí
                   </Link>
-                </p>
-              </div>
+                </div>
+
+                {/* Visual Debug Info - only shown during loading */}
+                {loading && debugInfo && (
+                  <div className="mt-4 p-3 bg-muted rounded-md border border-border">
+                    <p className="text-xs font-mono whitespace-pre-wrap">{debugInfo}</p>
+                  </div>
+                )}
+              </form>
             </div>
           </div>
         </div>
