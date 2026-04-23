@@ -115,14 +115,28 @@ export default function HomePage() {
 
       setUserEmail(user.email || "");
 
-      // Get profile
+      // CRITICAL: Check Super Admin FIRST before ANY other logic
       const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_super_admin")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      // If Super Admin, redirect immediately
+      if (profile?.is_super_admin === true) {
+        console.log("👑 Super Admin detected on Home - redirecting to /super-admin");
+        router.replace("/super-admin");
+        return; // STOP - don't load business data
+      }
+
+      // Get profile
+      const { data: profileData } = await supabase
         .from("profiles")
         .select("full_name")
         .eq("id", user.id)
         .maybeSingle();
 
-      setUserName(profile?.full_name || user.email?.split("@")[0] || "Usuario");
+      setUserName(profileData?.full_name || user.email?.split("@")[0] || "Usuario");
 
       // Get business
       const business = await businessService.getBusinessByOwnerId(user.id);
