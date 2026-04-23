@@ -202,7 +202,6 @@ export default function SubscriptionPage() {
             status: "trialing",
             current_period_start: new Date().toISOString(),
             current_period_end: trialEnd.toISOString(),
-            trial_start: new Date().toISOString(),
             trial_end: trialEnd.toISOString(),
           } as any)
           .select()
