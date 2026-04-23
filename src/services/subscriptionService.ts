@@ -269,33 +269,50 @@ export const subscriptionService = {
     return { canAdd: true };
   },
 
-  async createTrialSubscription(businessId: string): Promise<{ error: string | null }> {
-    const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + 7); // 7 days trial
+  /**
+   * Create a trial subscription for a new business
+   */
+  async createTrialSubscription(businessId: string) {
+    try {
+      // Get the Básico plan (free trial default)
+      const { data: basicPlan } = await supabase
+        .from("subscription_plans")
+        .select("id")
+        .ilike("name", "Básico")
+        .single();
 
-    // First get the premium plan ID
-    const { data: premiumPlan } = await supabase
-      .from("subscription_plans")
-      .select("id")
-      .ilike("name", "premium")
-      .single();
+      if (!basicPlan) {
+        console.error("Básico plan not found");
+        return { error: new Error("Plan Básico no encontrado") };
+      }
 
-    if (!premiumPlan) {
-      return { error: "Plan Premium no encontrado para trial" };
+      const now = new Date();
+      const trialEnd = new Date();
+      trialEnd.setDate(trialEnd.getDate() + 7); // 7 days trial
+
+      const { data, error } = await supabase
+        .from("subscriptions")
+        .insert({
+          business_id: businessId,
+          plan_id: basicPlan.id,
+          status: "trialing",
+          current_period_start: now.toISOString(),
+          current_period_end: trialEnd.toISOString(),
+          trial_start: now.toISOString(),
+          trial_end: trialEnd.toISOString(),
+        } as any)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error creating trial subscription:", error);
+        return { error };
+      }
+
+      return { data, error: null };
+    } catch (err) {
+      console.error("Unexpected error creating trial subscription:", err);
+      return { error: err as Error };
     }
-
-    const insertPayload: any = {
-      business_id: businessId,
-      plan_id: premiumPlan.id,
-      status: "trialing",
-      current_period_start: new Date().toISOString(),
-      current_period_end: trialEnd.toISOString(),
-      trial_start: new Date().toISOString(),
-      trial_end: trialEnd.toISOString(),
-    };
-
-    const { error } = await supabase.from("subscriptions").insert(insertPayload);
-
-    return { error: error?.message || null };
   },
 };
