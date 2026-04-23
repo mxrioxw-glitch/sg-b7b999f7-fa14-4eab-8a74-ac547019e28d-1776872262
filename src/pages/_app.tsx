@@ -117,13 +117,21 @@ export default function App({ Component, pageProps }: AppProps) {
       }
     }
 
-    // Cargar colores al montar
-    loadCustomColors();
+    // Esperar un tick antes de cargar para evitar race condition
+    const timer = setTimeout(() => {
+      if (isMounted) {
+        loadCustomColors();
+      }
+    }, 100);
 
     // Re-load colors when auth state changes
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        loadCustomColors();
+        setTimeout(() => {
+          if (isMounted) {
+            loadCustomColors();
+          }
+        }, 100);
       }
       if (event === 'SIGNED_OUT') {
         // Restaurar colores por defecto al cerrar sesión
@@ -138,6 +146,7 @@ export default function App({ Component, pageProps }: AppProps) {
 
     return () => {
       isMounted = false;
+      clearTimeout(timer);
       authListener?.subscription.unsubscribe();
     };
   }, []);
