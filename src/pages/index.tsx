@@ -144,12 +144,19 @@ export default function HomePage() {
       // Get subscription
       const subscription = await subscriptionService.getCurrentSubscription();
       if (subscription) {
+        const { data: planData } = await supabase
+          .from("subscription_plans")
+          .select("name")
+          .eq("id", subscription.plan_id)
+          .maybeSingle();
+
+        const planStr = planData ? planData.name.toLowerCase() : "basic";
         const planNames: Record<string, string> = {
           basic: "Plan Básico",
           professional: "Plan Profesional",
           premium: "Plan Premium",
         };
-        setPlanName(planNames[subscription.plan] || "Plan Básico");
+        setPlanName(planNames[planStr] || "Plan Básico");
       }
 
       // Get today's stats

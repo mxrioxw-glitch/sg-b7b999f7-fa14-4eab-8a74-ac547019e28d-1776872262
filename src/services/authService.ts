@@ -146,6 +146,19 @@ export const authService = {
     }
   },
 
+  // Resend verification email
+  async resendVerificationEmail(email: string): Promise<{ error: string | null }> {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+      return { error: error ? error.message : null };
+    } catch (error) {
+      return { error: "Unexpected error" };
+    }
+  },
+
   // Confirm email (REQUIRED)
   async confirmEmail(token: string, type: 'signup' | 'recovery' | 'email_change' = 'signup'): Promise<{ user: AuthUser | null; error: AuthError | null }> {
     try {

@@ -78,17 +78,24 @@ export default function ProfilePage() {
         // Get subscription for plan name
         const { data: subscription } = await supabase
           .from("subscriptions")
-          .select("plan")
+          .select("plan_id")
           .eq("business_id", employee.business_id)
           .maybeSingle();
 
         if (subscription) {
+          const { data: planData } = await supabase
+            .from("subscription_plans")
+            .select("name")
+            .eq("id", subscription.plan_id)
+            .maybeSingle();
+
+          const planStr = planData ? planData.name.toLowerCase() : "basic";
           const planNames: Record<string, string> = {
             basic: "Plan Básico",
             professional: "Plan Profesional",
             premium: "Plan Premium",
           };
-          setPlanName(planNames[subscription.plan] || "Plan Básico");
+          setPlanName(planNames[planStr] || "Plan Básico");
         }
       }
     } catch (error) {
