@@ -151,7 +151,7 @@ export default function SuperAdminPage() {
         supabase
           .from("subscription_plans")
           .select("*")
-          .order("sort_order", { ascending: true })
+          .order("price_monthly", { ascending: true })
       ]);
 
       if (businessesData.error) {
