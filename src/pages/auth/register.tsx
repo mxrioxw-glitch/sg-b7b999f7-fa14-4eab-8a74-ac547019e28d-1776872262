@@ -62,12 +62,12 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // 1. Registrar usuario con nombre del negocio en metadatos
+      // 1. Registrar usuario
       const { user, error: signUpError } = await authService.signUp(
         formData.email, 
         formData.password, 
         formData.fullName,
-        formData.businessName  // ← IMPORTANTE: pasar businessName aquí
+        formData.businessName
       );
 
       if (signUpError || !user) {
@@ -77,21 +77,63 @@ export default function RegisterPage() {
         throw new Error(errorMsg);
       }
 
-      // Guardar el nombre del negocio en localStorage como respaldo
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('pendingBusinessName', formData.businessName);
-        localStorage.setItem('pendingUserEmail', formData.email);
+      // 2. Esperar un momento para que Supabase procese el registro
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // 3. Crear el business
+      const { data: businessData, error: businessError } = await businessService.createBusiness({
+        name: formData.businessName,
+        owner_id: user.id,
+        email: formData.email,
+      });
+
+      if (businessError || !businessData) {
+        throw new Error("Error al crear el negocio");
       }
 
-      // 2. Redirigir a la página de verificación de email
+      // 4. Crear empleado owner
+      const { data: employeeData, error: employeeError } = await supabase
+        .from("employees")
+        .insert({
+          business_id: businessData.id,
+          user_id: user.id,
+          name: formData.fullName,
+          email: formData.email,
+          role: "owner",
+          is_active: true,
+        })
+        .select()
+        .single();
+
+      if (employeeError || !employeeData) {
+        throw new Error("Error al crear el empleado");
+      }
+
+      // 5. Crear suscripción trial
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + 7);
+
+      const { error: subscriptionError } = await subscriptionService.createSubscription({
+        business_id: businessData.id,
+        plan: "free",
+        status: "trialing",
+        current_period_end: trialEndDate.toISOString(),
+      });
+
+      if (subscriptionError) {
+        console.error("Error creating subscription:", subscriptionError);
+        throw new Error("Error al crear la suscripción");
+      }
+
+      // 6. Toast de éxito y redirección
       toast({
         title: "✅ ¡Cuenta creada exitosamente!",
-        description: "Por favor, verifica tu correo electrónico",
+        description: "Bienvenido a Nexum Cloud - 7 días de prueba gratis",
         className: "bg-accent text-accent-foreground border-accent",
       });
 
-      // Redirigir a página de verificación con el email
-      router.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}`);
+      // Redirigir al POS
+      router.push("/pos");
     } catch (err: any) {
       console.error("Registration error:", err);
       setError(err.message || "Error en el registro. Por favor, intenta de nuevo.");
