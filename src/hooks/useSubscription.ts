@@ -56,7 +56,7 @@ export function useSubscription() {
       console.log("✅ [SUBSCRIPTION HOOK] User found:", user.id);
       console.log("✅ [SUBSCRIPTION HOOK] User email:", user.email);
 
-      // CRITICAL: Check if user is Super Admin FIRST
+      // CRITICAL: Check if user is Super Admin FIRST - BEFORE any other logic
       console.log("🔍 [SUBSCRIPTION HOOK] Checking if user is Super Admin...");
       const { data: profile } = await supabase
         .from("profiles")
@@ -71,6 +71,7 @@ export function useSubscription() {
       if (profile?.is_super_admin === true) {
         console.log("👑👑👑 [SUBSCRIPTION HOOK] SUPER ADMIN DETECTED 👑👑👑");
         console.log("✅ [SUBSCRIPTION HOOK] Bypassing ALL subscription checks");
+        console.log("✅ [SUBSCRIPTION HOOK] NO REDIRECT to /subscription");
         console.log("✅ [SUBSCRIPTION HOOK] Setting unlimited access");
         setSubscriptionStatus({
           isActive: true,
@@ -81,21 +82,26 @@ export function useSubscription() {
           loading: false,
         });
         console.log("✅ [SUBSCRIPTION HOOK] Super Admin status set - DONE");
-        return; // STOP HERE for Super Admins
+        return; // CRITICAL: STOP HERE - no redirects for Super Admins
       }
 
       console.log("👤 [SUBSCRIPTION HOOK] Regular user - checking subscription...");
 
       // Get user's business
-      const business = await businessService.getCurrentBusiness();
-      
-      if (!business) {
-        console.log("❌ [SUBSCRIPTION HOOK] No business found");
+      const { data: employee } = await supabase
+        .from("employees")
+        .select("business_id")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (!employee) {
+        console.log("❌ [SUBSCRIPTION HOOK] No active employee record");
         setSubscriptionStatus(prev => ({ ...prev, loading: false }));
         return;
       }
 
-      console.log("✅ [SUBSCRIPTION HOOK] Business found:", business.id);
+      console.log("✅ [SUBSCRIPTION HOOK] Business found:", employee.business_id);
 
       // Get subscription
       const { data: subscription } = await supabase
@@ -103,59 +109,66 @@ export function useSubscription() {
         .select(`
           *,
           subscription_plans (
-            name
+            name,
+            features
           )
         `)
-        .eq("business_id", business.id)
+        .eq("business_id", employee.business_id)
+        .order("created_at", { ascending: false })
         .maybeSingle();
 
       if (!subscription) {
-        console.log("⚠️ [SUBSCRIPTION HOOK] No subscription found - redirecting to subscription page");
+        console.log("⚠️ [SUBSCRIPTION HOOK] No subscription found for business");
+        console.log("🔄 [SUBSCRIPTION HOOK] Redirecting to /subscription");
         setSubscriptionStatus(prev => ({ ...prev, loading: false }));
-        router.push("/subscription");
+        
+        // Only redirect if not already on subscription page
+        if (router.pathname !== "/subscription" && router.pathname !== "/super-admin") {
+          router.push("/subscription");
+        }
         return;
       }
 
       console.log("✅ [SUBSCRIPTION HOOK] Subscription found:", subscription.status);
 
       const now = new Date();
-      const endDate = new Date(subscription.current_period_end);
-      const isTrialing = subscription.status === "trialing" && endDate > now;
-      const isActive = subscription.status === "active" || isTrialing;
+      const isTrial = subscription.status === "trialing";
+      const periodEnd = new Date(subscription.current_period_end);
+      const daysRemaining = Math.max(0, Math.ceil((periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
 
-      // Calculate days remaining
-      let daysRemaining = 0;
-      if (subscription.current_period_end) {
-        const diff = endDate.getTime() - now.getTime();
-        daysRemaining = Math.ceil(diff / (1000 * 60 * 60 * 24));
+      // Check if subscription is valid
+      const isActive = ["active", "trialing"].includes(subscription.status) && periodEnd > now;
+
+      if (!isActive) {
+        console.log("⚠️ [SUBSCRIPTION HOOK] Subscription inactive or expired");
+        console.log("🔄 [SUBSCRIPTION HOOK] Redirecting to /subscription");
+        setSubscriptionStatus({
+          isActive: false,
+          isTrial: false,
+          daysRemaining: 0,
+          planName: subscription.subscription_plans?.name || "",
+          status: subscription.status,
+          loading: false,
+        });
+
+        // Only redirect if not already on subscription page
+        if (router.pathname !== "/subscription" && router.pathname !== "/super-admin") {
+          router.push("/subscription");
+        }
+        return;
       }
 
-      const planName = subscription.subscription_plans?.name || "Unknown";
-
-      console.log("📊 [SUBSCRIPTION HOOK] Status:", {
-        isActive,
-        isTrialing,
-        daysRemaining,
-        planName,
-        status: subscription.status
-      });
-
+      console.log("✅ [SUBSCRIPTION HOOK] Subscription is active");
       setSubscriptionStatus({
-        isActive,
-        isTrial: isTrialing,
-        daysRemaining: Math.max(0, daysRemaining),
-        planName,
+        isActive: true,
+        isTrial,
+        daysRemaining,
+        planName: subscription.subscription_plans?.name || "",
         status: subscription.status,
         loading: false,
       });
-
-      // Redirect to subscription page if not active and not already there
-      if (!isActive && router.pathname !== "/subscription") {
-        console.log("⚠️ [SUBSCRIPTION HOOK] Subscription expired - redirecting to subscription page");
-        router.push("/subscription");
-      }
     } catch (error) {
-      console.error("💥 [SUBSCRIPTION HOOK] Error checking subscription:", error);
+      console.error("❌ [SUBSCRIPTION HOOK] Error checking subscription:", error);
       setSubscriptionStatus(prev => ({ ...prev, loading: false }));
     }
   }
