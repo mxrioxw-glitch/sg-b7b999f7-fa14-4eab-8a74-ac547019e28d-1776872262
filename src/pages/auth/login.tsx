@@ -92,11 +92,13 @@ export default function LoginPage() {
         owner_id: user.id,
       };
 
-      const newBusiness = await businessService.createBusiness(businessData);
+      const result = await businessService.createBusiness(businessData);
 
-      if (!newBusiness) {
-        throw new Error("Error al crear el negocio");
+      if (result.error || !result.business) {
+        throw new Error(result.error || "Error al crear el negocio");
       }
+
+      const newBusiness = result.business;
 
       setDebugMsg("Negocio creado - configurando trial...");
 
