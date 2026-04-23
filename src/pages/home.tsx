@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { businessService } from "@/services/businessService";
 import { saleService } from "@/services/saleService";
-import { inventoryService } from "@/services/inventoryService";
+import { getInventoryItems } from "@/services/inventoryService";
 import { employeeService } from "@/services/employeeService";
 
 interface CashRegister {
@@ -101,18 +101,19 @@ export default function HomePage() {
       today.setHours(0, 0, 0, 0);
 
       const [salesData, inventoryData, cashRegistersData] = await Promise.all([
-        saleService.getSales(currentBusiness.id, {
-          startDate: today.toISOString(),
-        }),
-        inventoryService.getInventoryItems(currentBusiness.id),
+        saleService.getSales(currentBusiness.id),
+        getInventoryItems(currentBusiness.id),
         getCashRegisters(currentBusiness.id)
       ]);
 
       // Calculate stats
-      const todaySalesTotal = salesData.reduce((sum, sale) => sum + Number(sale.total), 0);
+      const todaySalesTotal = salesData
+        .filter(sale => new Date(sale.created_at) >= today)
+        .reduce((sum, sale) => sum + Number(sale.total), 0);
+      
       setTodaySales(todaySalesTotal);
 
-      const lowStockCount = inventoryData.filter(item => Number(item.current_stock) <= Number(item.min_stock_level)).length;
+      const lowStockCount = inventoryData.filter(item => Number(item.current_stock) <= Number(item.min_stock)).length;
       setLowStockItems(lowStockCount);
 
       // Check active cash register
