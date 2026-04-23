@@ -138,8 +138,8 @@ function InventoryContent() {
       <div className="flex-1">
         <Header onMenuClick={() => setIsSidebarOpen(true)} />
         <SEO 
-          title="Inventario - Nexum Cloud"
-          description="Gestión de inventario"
+          title="Inventario - NextCoffee"
+          description="Control de inventario"
         />
         <main className="p-8">
           <div className="mb-8">

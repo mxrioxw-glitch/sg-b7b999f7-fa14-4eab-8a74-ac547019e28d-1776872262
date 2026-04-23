@@ -208,7 +208,7 @@ function ProductsContent() {
       <div className="flex-1">
         <Header onMenuClick={() => setIsSidebarOpen(true)} />
         <SEO 
-          title="Productos - Nexum Cloud"
+          title="Productos - NextCoffee"
           description="Gestión de productos"
         />
         <main className="p-4 md:p-8">

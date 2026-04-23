@@ -258,8 +258,8 @@ export default function SuperAdminPage() {
   return (
     <>
       <SEO 
-        title="Super Admin Dashboard - Nexum Cloud"
-        description="Panel de administración de Nexum Cloud"
+        title="Super Admin Dashboard - NextCoffee"
+        description="Panel de administración de NextCoffee"
       />
       
       <div className="min-h-screen bg-background">

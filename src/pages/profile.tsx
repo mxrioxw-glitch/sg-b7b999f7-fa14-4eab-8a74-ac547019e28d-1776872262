@@ -191,8 +191,8 @@ export default function ProfilePage() {
           onMenuClick={() => setSidebarOpen(true)}
         />
         <SEO 
-          title="Mi Perfil - Nexum Cloud"
-          description="Gestiona tu perfil de Nexum Cloud"
+          title="Mi Perfil - NextCoffee"
+          description="Gestiona tu perfil de NextCoffee"
         />
         <main className="p-8">
           <div className="mb-8">

@@ -177,8 +177,8 @@ export default function DashboardPage() {
   return (
     <ProtectedRoute requiredPermission="pos">
       <SEO 
-        title="Dashboard - Nexum Cloud"
-        description="Panel de control de Nexum Cloud"
+        title="Dashboard - NextCoffee"
+        description="Panel de control de NextCoffee"
       />
       <div className="min-h-screen bg-background flex">
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />

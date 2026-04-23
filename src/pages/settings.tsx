@@ -680,7 +680,7 @@ export default function SettingsPage() {
   return (
     <ProtectedRoute requiredPermission="settings">
       <SEO 
-        title="Configuración - Nexum Cloud"
+        title="Configuración - NextCoffee"
         description="Configuración del sistema"
       />
       <div className="min-h-screen bg-background flex">

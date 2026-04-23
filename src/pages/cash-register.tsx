@@ -354,8 +354,8 @@ function CashRegisterContent() {
   return (
     <>
       <SEO 
-        title="Caja - Nexum Cloud"
-        description="Gestión de caja de Nexum Cloud"
+        title="Caja - NextCoffee"
+        description="Gestión de caja de NextCoffee"
       />
 
       <div className="flex min-h-screen bg-background">

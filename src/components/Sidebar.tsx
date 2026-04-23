@@ -139,7 +139,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           {!isCollapsed ? (
             <>
               <h1 className="font-heading text-xl font-bold text-foreground">
-                Nexum Cloud
+                NextCoffee
               </h1>
               <Button 
                 variant="ghost" 

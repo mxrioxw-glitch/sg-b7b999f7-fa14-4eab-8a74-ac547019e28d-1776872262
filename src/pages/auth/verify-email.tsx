@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { Mail, CheckCircle2, ArrowRight, RefreshCcw, Coffee } from "lucide-react";
+import { Mail, CheckCircle2, ArrowRight, RefreshCcw, Coffee, Store } from "lucide-react";
 import { useState } from "react";
 import { authService } from "@/services/authService";
 import { useToast } from "@/hooks/use-toast";
@@ -58,22 +58,24 @@ export default function VerifyEmailPage() {
   return (
     <>
       <SEO
-        title="Verifica tu correo - Nexum Cloud"
-        description="Verifica tu correo electrónico para activar tu cuenta de Nexum Cloud"
+        title="Verifica tu correo - NextCoffee"
+        description="Verifica tu correo electrónico para activar tu cuenta de NextCoffee"
       />
 
-      <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-background via-background to-accent/5">
-        <div className="w-full max-w-2xl space-y-8">
-          {/* Logo */}
-          <div className="text-center">
-            <div className="flex justify-center mb-6">
-              <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-xl">
-                <Coffee className="h-9 w-9 text-white" />
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="w-full max-w-2xl">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
+                <Store className="h-7 w-7 text-primary-foreground" />
               </div>
+              <h1 className="font-heading text-3xl font-bold">
+                NextCoffee
+              </h1>
             </div>
-            <h1 className="font-heading text-3xl font-bold text-foreground mb-2">
-              Nexum Cloud
-            </h1>
+            <p className="text-muted-foreground">
+              Sistema POS Profesional en la Nube
+            </p>
           </div>
 
           {/* Main Card */}
@@ -152,7 +154,15 @@ export default function VerifyEmailPage() {
                   Consejos útiles:
                 </p>
                 <ul className="text-sm text-muted-foreground space-y-1 ml-6">
-                  <li>• Revisa tu carpeta de spam o correo no deseado</li>
+                  <li className="flex gap-3">
+                    <Mail className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium mb-1">Revisa tu correo</p>
+                      <p className="text-sm text-muted-foreground">
+                        Busca un email de NextCoffee en tu bandeja de entrada
+                      </p>
+                    </div>
+                  </li>
                   <li>• El email puede tardar unos minutos en llegar</li>
                   <li>• Asegúrate de que tu email esté escrito correctamente</li>
                 </ul>

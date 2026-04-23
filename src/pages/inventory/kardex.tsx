@@ -131,8 +131,8 @@ export default function KardexPage() {
   return (
     <div className="min-h-screen bg-background flex">
       <SEO 
-        title="Kardex - Nexum Cloud"
-        description="Kardex y movimientos de inventario"
+        title="Kardex - NextCoffee"
+        description="Historial de movimientos de inventario"
       />
       <div className="flex min-h-screen bg-background">
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />

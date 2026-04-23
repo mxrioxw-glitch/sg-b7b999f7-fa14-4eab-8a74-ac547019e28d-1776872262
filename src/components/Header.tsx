@@ -26,7 +26,7 @@ interface HeaderProps {
 export function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [businessName, setBusinessName] = useState("Nexum Cloud");
+  const [businessName, setBusinessName] = useState("NextCoffee");
 
   useEffect(() => {
     loadUserData();

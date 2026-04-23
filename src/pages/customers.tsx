@@ -222,7 +222,7 @@ function CustomersContent() {
   return (
     <>
       <SEO 
-        title="Clientes - Nexum Cloud"
+        title="Clientes - NextCoffee"
         description="Gestión de clientes"
       />
 

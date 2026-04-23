@@ -406,8 +406,8 @@ export default function POSPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <SEO 
-        title="Punto de Venta - Nexum Cloud"
-        description="Sistema de punto de venta de Nexum Cloud"
+        title="Punto de Venta - NextCoffee"
+        description="Sistema de punto de venta de NextCoffee"
       />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
