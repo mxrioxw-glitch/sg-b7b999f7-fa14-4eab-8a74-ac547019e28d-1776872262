@@ -619,7 +619,7 @@ export default function SuperAdminPage() {
                               <div className="text-sm">{business.profiles?.full_name || "-"}</div>
                               <div className="text-xs text-muted-foreground">{business.profiles?.email || "-"}</div>
                             </TableCell>
-                            <TableCell>{getPlanName(subscription?.plan || null)}</TableCell>
+                            <TableCell>{getPlanName(subscription?.plan_id || null)}</TableCell>
                             <TableCell>
                               {subscription ? getStatusBadge(subscription.status) : "-"}
                             </TableCell>

@@ -567,8 +567,8 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       await businessService.updateBusiness(businessId, {
-        printer_width: printerWidth,
-      });
+        printer_width: parseInt(printerWidth.replace("mm", "")),
+      } as any);
 
       toast({
         title: "Configuración Guardada",

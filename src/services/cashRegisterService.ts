@@ -109,16 +109,18 @@ export async function closeCashRegister(data: {
   const expectedAmount = Number(register.opening_amount) + salesTotal;
   const difference = data.closingAmount - expectedAmount;
 
+  const updatePayload: any = {
+    status: "closed",
+    closing_amount: data.closingAmount,
+    expected_amount: expectedAmount,
+    difference: difference,
+    closed_at: new Date().toISOString(),
+    notes: data.notes || register.notes,
+  };
+
   const { data: closedRegister, error: updateError } = await supabase
     .from("cash_registers")
-    .update({
-      status: "closed",
-      closing_amount: data.closingAmount,
-      expected_amount: expectedAmount,
-      difference: difference,
-      closed_at: new Date().toISOString(),
-      notes: data.notes || register.notes,
-    })
+    .update(updatePayload)
     .eq("id", data.registerId)
     .select()
     .single();
