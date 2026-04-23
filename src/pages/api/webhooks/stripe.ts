@@ -99,7 +99,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const priceId = subscription.items.data[0]?.price.id;
 
   // Determinar el tipo de plan según el priceId
-  let planType = "basic";
+  let planType: "basic" | "professional" | "premium" = "basic";
   if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRICE_PROFESSIONAL) {
     planType = "professional";
   } else if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM) {
@@ -129,7 +129,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   }
 
   const priceId = subscription.items.data[0]?.price.id;
-  let planType = "basic";
+  let planType: "basic" | "professional" | "premium" = "basic";
   if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRICE_PROFESSIONAL) {
     planType = "professional";
   } else if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM) {
