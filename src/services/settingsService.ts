@@ -46,7 +46,7 @@ export const settingsService = {
       primary_color: data.primary_color || "#2A1810",
       secondary_color: data.secondary_color || "#4A3228",
       accent_color: data.accent_color || "#4A9C64",
-      printer_width: (data.printer_width as "58mm" | "80mm") || "80mm"
+      printer_width: (String(data.printer_width) + "mm" as "58mm" | "80mm") || "80mm"
     };
   },
 

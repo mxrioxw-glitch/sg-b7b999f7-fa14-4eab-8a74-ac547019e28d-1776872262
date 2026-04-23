@@ -54,27 +54,25 @@ export async function openCashRegister(data: {
   openingAmount: number;
   notes?: string;
 }): Promise<any> {
-  // Check if there's already an open register for this employee
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("No authenticated user");
+
+  // Check if there is already an open register for this employee
   const activeRegister = await getActiveCashRegister(data.businessId, data.employeeId);
   
   if (activeRegister) {
     throw new Error("There is already an open cash register for this employee");
   }
 
-  const insertPayload: any = {
-    business_id: data.businessId,
-    employee_id: data.employeeId,
-    opening_amount: data.openingAmount,
-    status: "open",
-  };
-  
-  if (data.notes) {
-    insertPayload.notes = data.notes;
-  }
-
   const { data: newRegister, error } = await supabase
     .from("cash_registers")
-    .insert(insertPayload)
+    .insert({
+      business_id: data.businessId,
+      employee_id: data.employeeId,
+      opening_amount: data.openingAmount,
+      status: "open" as any,
+      notes: data.notes || null,
+    } as any)
     .select()
     .single();
 

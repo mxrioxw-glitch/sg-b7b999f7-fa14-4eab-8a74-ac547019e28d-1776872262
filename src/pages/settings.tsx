@@ -179,7 +179,7 @@ export default function SettingsPage() {
         tax_rate: Number(currentBusiness.tax_rate) || 16,
         tax_included: currentBusiness.tax_included || false,
       });
-      setPrinterWidth((currentBusiness.printer_width as "58mm" | "80mm") || "80mm");
+      setPrinterWidth((String(currentBusiness.printer_width) + "mm" as "58mm" | "80mm") || "80mm");
       setCustomizationForm({
         pos_name: currentBusiness.pos_name || "Mi POS",
         primary_color: currentBusiness.primary_color || "#2A1810",
@@ -1068,7 +1068,7 @@ export default function SettingsPage() {
                         id="tax_rate"
                         type="number"
                         step="0.01"
-                        value={taxForm.tax_rate}
+                        value={taxForm.tax_rate.toString()}
                         onChange={(e) => setTaxForm({ ...taxForm, tax_rate: parseFloat(e.target.value) || 0 })}
                         placeholder="16.00"
                       />
