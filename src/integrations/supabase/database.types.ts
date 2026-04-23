@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -32,6 +32,7 @@ export type Database = {
           primary_color: string | null
           printer_width: number | null
           secondary_color: string | null
+          slug: string | null
           tax_included: boolean | null
           tax_rate: number | null
           timezone: string | null
@@ -53,6 +54,7 @@ export type Database = {
           primary_color?: string | null
           printer_width?: number | null
           secondary_color?: string | null
+          slug?: string | null
           tax_included?: boolean | null
           tax_rate?: number | null
           timezone?: string | null
@@ -74,6 +76,7 @@ export type Database = {
           primary_color?: string | null
           printer_width?: number | null
           secondary_color?: string | null
+          slug?: string | null
           tax_included?: boolean | null
           tax_rate?: number | null
           timezone?: string | null
@@ -753,6 +756,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          is_super_admin: boolean | null
           phone: string | null
           updated_at: string
         }
@@ -762,6 +766,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          is_super_admin?: boolean | null
           phone?: string | null
           updated_at?: string
         }
@@ -771,6 +776,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          is_super_admin?: boolean | null
           phone?: string | null
           updated_at?: string
         }
@@ -1141,7 +1147,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      promote_to_super_admin: {
+        Args: { user_email: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
