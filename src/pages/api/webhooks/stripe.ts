@@ -113,7 +113,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       stripe_customer_id: customerId,
       stripe_subscription_id: subscriptionId,
       status: "active",
-      plan_type: planType,
+      plan: planType,
       current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
       current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
     })
@@ -140,7 +140,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     .from("subscriptions")
     .update({
       status: subscription.status === "active" ? "active" : "canceled",
-      plan_type: planType,
+      plan: planType,
       current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
       current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
     })
