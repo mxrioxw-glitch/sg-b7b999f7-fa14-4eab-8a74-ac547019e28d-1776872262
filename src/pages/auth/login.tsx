@@ -37,6 +37,12 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
+    // 🚨 VERSION MARKER - If you see this, the new code is loaded
+    console.log("═══════════════════════════════════════════════");
+    console.log("🆕 CODE VERSION: 2026-04-23-07:50 UTC");
+    console.log("🆕 THIS IS THE UPDATED CODE WITH SUPER ADMIN FIX");
+    console.log("═══════════════════════════════════════════════");
+
     // Flag to completely stop execution after super admin redirect
     let isSuperAdmin = false;
 
