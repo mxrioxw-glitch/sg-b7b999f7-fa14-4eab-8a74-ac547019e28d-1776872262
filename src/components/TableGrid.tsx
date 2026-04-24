@@ -5,9 +5,10 @@ import { cn } from "@/lib/utils";
 interface TableGridProps {
   tables: any[];
   onTableClick: (table: any) => void;
+  selectedTableId?: string | null;
 }
 
-export function TableGrid({ tables, onTableClick }: TableGridProps) {
+export function TableGrid({ tables, onTableClick, selectedTableId }: TableGridProps) {
   const getTableStatus = (table: any) => {
     if (table.table_orders?.[0]?.status === "occupied") return "occupied";
     if (table.status === "dirty") return "dirty";

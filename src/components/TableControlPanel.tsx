@@ -67,6 +67,22 @@ export function TableControlPanel({
   const [orderNotes, setOrderNotes] = useState(order?.notes || "");
   const [items, setItems] = useState<any[]>(order?.table_order_items || []);
 
+  const pendingItems = items.filter(item => item.status === 'pending');
+
+  const getElapsedTime = (createdAt: string) => {
+    const now = new Date();
+    const created = new Date(createdAt);
+    const diffMs = now.getTime() - created.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+
+    if (diffMins < 60) {
+      return `${diffMins}m`;
+    }
+    const hours = Math.floor(diffMins / 60);
+    const mins = diffMins % 60;
+    return `${hours}h ${mins}m`;
+  };
+
   useEffect(() => {
     setItems(order?.table_order_items || []);
   }, [order]);
