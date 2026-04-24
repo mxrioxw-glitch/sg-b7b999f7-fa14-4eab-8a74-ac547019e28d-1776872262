@@ -1,585 +1,439 @@
-import { useState, useEffect } from "react";
-import { useRouter } from "next/router";
+import { SEO } from "@/components/SEO";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { 
-  TrendingUp, 
-  DollarSign, 
-  ShoppingCart, 
-  Users,
-  ArrowUp,
-  ArrowDown,
-  Package,
-  Clock,
-  TrendingDown,
-  Calendar as CalendarIcon,
-  ChevronDown
-} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from "react";
 import { businessService } from "@/services/businessService";
-import { getDashboardMetrics, type DashboardMetrics } from "@/services/dashboardService";
-import { requireActiveSubscription } from "@/middleware/subscription";
-import { SEO } from "@/components/SEO";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfDay, endOfDay } from "date-fns";
-import { es } from "date-fns/locale";
-import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { authService } from "@/services/authService";
+import { dashboardService } from "@/services/dashboardService";
+import { inventoryService } from "@/services/inventoryService";
+import { DollarSign, ShoppingCart, Users, TrendingUp, ArrowUpRight, ArrowDownRight, Clock, Package, AlertCircle, Star } from "lucide-react";
 
-export const getServerSideProps = requireActiveSubscription;
+interface TodayStats {
+  totalRevenue: number;
+  totalOrders: number;
+  uniqueCustomers: number;
+  averageTicket: number;
+}
 
-const CHART_COLORS = {
-  primary: "hsl(var(--primary))",
-  accent: "hsl(var(--accent))",
-  muted: "hsl(var(--muted))",
-  blue: "#3b82f6",
-  purple: "#a855f7",
-  green: "#22c55e",
-  orange: "#f97316",
-};
+interface ComparisonStats {
+  yesterdayRevenue: number;
+  weekRevenue: number;
+  revenueChange: number;
+}
 
-type DateRange = {
-  from: Date;
-  to: Date;
-};
+interface HourlySale {
+  hour: number;
+  total: number;
+  count: number;
+}
 
-type DateRangePreset = {
-  label: string;
-  getValue: () => DateRange;
-};
+interface TopProduct {
+  name: string;
+  quantity: number;
+  revenue: number;
+}
 
-const DATE_RANGE_PRESETS: DateRangePreset[] = [
-  {
-    label: "Hoy",
-    getValue: () => ({
-      from: startOfDay(new Date()),
-      to: endOfDay(new Date()),
-    }),
-  },
-  {
-    label: "Ayer",
-    getValue: () => ({
-      from: startOfDay(subDays(new Date(), 1)),
-      to: endOfDay(subDays(new Date(), 1)),
-    }),
-  },
-  {
-    label: "Últimos 7 días",
-    getValue: () => ({
-      from: startOfDay(subDays(new Date(), 6)),
-      to: endOfDay(new Date()),
-    }),
-  },
-  {
-    label: "Esta semana",
-    getValue: () => ({
-      from: startOfWeek(new Date(), { locale: es }),
-      to: endOfWeek(new Date(), { locale: es }),
-    }),
-  },
-  {
-    label: "Este mes",
-    getValue: () => ({
-      from: startOfMonth(new Date()),
-      to: endOfMonth(new Date()),
-    }),
-  },
-  {
-    label: "Últimos 30 días",
-    getValue: () => ({
-      from: startOfDay(subDays(new Date(), 29)),
-      to: endOfDay(new Date()),
-    }),
-  },
-];
+interface RecentSale {
+  id: string;
+  time: string;
+  total: number;
+  items: number;
+}
 
-export default function DashboardPage() {
-  const router = useRouter();
-  const [stats, setStats] = useState<DashboardMetrics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [businessName, setBusinessName] = useState("Mi Negocio");
+interface LowStockItem {
+  name: string;
+  current: number;
+  min: number;
+  unit: string;
+}
+
+export default function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRange>(() => DATE_RANGE_PRESETS[0].getValue());
-  const [selectedPreset, setSelectedPreset] = useState<string>("Hoy");
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [businessName, setBusinessName] = useState("");
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  // Stats states
+  const [todayStats, setTodayStats] = useState<TodayStats>({
+    totalRevenue: 0,
+    totalOrders: 0,
+    uniqueCustomers: 0,
+    averageTicket: 0,
+  });
+  const [comparisonStats, setComparisonStats] = useState<ComparisonStats>({
+    yesterdayRevenue: 0,
+    weekRevenue: 0,
+    revenueChange: 0,
+  });
+  const [hourlySales, setHourlySales] = useState<HourlySale[]>([]);
+  const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
+  const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
+  const [lowStockItems, setLowStockItems] = useState<LowStockItem[]>([]);
 
   useEffect(() => {
-    loadDashboardData();
-  }, [dateRange]);
+    loadData();
+  }, []);
 
-  async function loadDashboardData() {
+  const loadData = async () => {
     try {
+      setLoading(true);
+      
+      // Load user and business data
+      const session = await authService.getCurrentSession();
+      if (session?.user) {
+        setUserEmail(session.user.email || "");
+        setUserName(
+          session.user.user_metadata?.full_name ||
+          session.user.email?.split("@")[0] ||
+          ""
+        );
+      }
+
       const business = await businessService.getCurrentBusiness();
       if (business) {
-        setBusinessName(business.name || "Mi Negocio");
-        const dashboardStats = await getDashboardMetrics(business.id, dateRange.from, dateRange.to);
-        setStats(dashboardStats);
+        setBusinessName(business.name);
       }
+
+      // Load dashboard stats
+      const stats = await dashboardService.getTodayStats();
+      
+      setTodayStats({
+        totalRevenue: stats.totalRevenue || 0,
+        totalOrders: stats.totalOrders || 0,
+        uniqueCustomers: stats.uniqueCustomers || 0,
+        averageTicket: stats.averageTicket || 0,
+      });
+
+      // Calculate comparison stats
+      const yesterday = await dashboardService.getYesterdayRevenue();
+      const week = await dashboardService.getWeekRevenue();
+      const revenueChange = yesterday > 0 
+        ? ((stats.totalRevenue - yesterday) / yesterday) * 100 
+        : 0;
+
+      setComparisonStats({
+        yesterdayRevenue: yesterday,
+        weekRevenue: week,
+        revenueChange,
+      });
+
+      // Load hourly sales
+      const hourly = await dashboardService.getHourlySales();
+      setHourlySales(hourly);
+
+      // Load top products
+      const top = await dashboardService.getTopProducts(5);
+      setTopProducts(top);
+
+      // Load recent sales
+      const recent = await dashboardService.getRecentSales(5);
+      setRecentSales(recent);
+
+      // Load low stock items
+      const lowStock = await inventoryService.getLowStockItems();
+      setLowStockItems(lowStock.slice(0, 5));
+
     } catch (error) {
       console.error("Error loading dashboard:", error);
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  function handlePresetSelect(preset: DateRangePreset) {
-    const range = preset.getValue();
-    setDateRange(range);
-    setSelectedPreset(preset.label);
-    setIsCalendarOpen(false);
-  }
-
-  function handleCustomDateSelect(range: { from?: Date; to?: Date } | undefined) {
-    if (range?.from && range?.to) {
-      setDateRange({
-        from: startOfDay(range.from),
-        to: endOfDay(range.to),
-      });
-      setSelectedPreset("Personalizado");
-      setIsCalendarOpen(false);
-    }
-  }
-
-  function formatDateRange(): string {
-    if (selectedPreset !== "Personalizado") {
-      return selectedPreset;
-    }
-    return `${format(dateRange.from, "dd MMM", { locale: es })} - ${format(dateRange.to, "dd MMM", { locale: es })}`;
-  }
-
-  // Calculate growth percentage
-  const monthGrowth = stats && stats.previousMonthSales > 0
-    ? ((stats.monthSales - stats.previousMonthSales) / stats.previousMonthSales) * 100
-    : 0;
-
-  const avgOrderValue = stats && stats.todayOrders > 0
-    ? stats.todaySales / stats.todayOrders
-    : 0;
-
-  if (loading) {
-    return (
-      <ProtectedRoute requiredPermission="pos">
-        <div className="flex h-screen items-center justify-center bg-background">
-          <div className="text-center space-y-4">
-            <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
-            <p className="text-sm text-muted-foreground">Cargando dashboard...</p>
-          </div>
-        </div>
-      </ProtectedRoute>
-    );
-  }
+  const maxHourlySale = Math.max(...hourlySales.map(h => h.total), 1);
 
   return (
-    <ProtectedRoute requiredPermission="pos">
-      <SEO 
-        title="Dashboard - NextCoffee"
-        description="Panel de control de NextCoffee"
-      />
+    <ProtectedRoute>
+      <SEO title="Dashboard - NextCoffee" description="Panel de control" />
       <div className="min-h-screen bg-background flex">
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+        
         <div className="flex-1 flex flex-col">
-          <Header onMenuClick={() => setIsSidebarOpen(true)} />
-          
-          <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
-            <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
-              {/* Page Header with Date Selector */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="space-y-2">
-                  <h1 className="font-heading text-3xl md:text-4xl font-bold">Dashboard Ejecutivo</h1>
-                  <p className="text-base md:text-lg text-muted-foreground">
-                    Análisis en tiempo real de {businessName}
-                  </p>
-                </div>
+          <Header
+            businessName={businessName}
+            userName={userName}
+            userEmail={userEmail}
+            onMenuClick={() => setIsSidebarOpen(true)}
+          />
 
-                {/* Date Range Selector */}
-                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                  <PopoverTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      className={cn(
-                        "w-full sm:w-[280px] justify-start text-left font-normal border-2",
-                        !dateRange && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      <span className="flex-1">{formatDateRange()}</span>
-                      <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
-                    <div className="flex">
-                      {/* Presets */}
-                      <div className="border-r p-2 space-y-1 min-w-[140px]">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase px-2 py-1">
-                          Rápido
-                        </p>
-                        {DATE_RANGE_PRESETS.map((preset) => (
-                          <Button
-                            key={preset.label}
-                            variant="ghost"
-                            size="sm"
-                            className={cn(
-                              "w-full justify-start text-sm",
-                              selectedPreset === preset.label && "bg-accent text-accent-foreground"
-                            )}
-                            onClick={() => handlePresetSelect(preset)}
-                          >
-                            {preset.label}
-                          </Button>
-                        ))}
-                      </div>
-
-                      {/* Calendar */}
-                      <div className="p-3">
-                        <Calendar
-                          mode="range"
-                          selected={{ from: dateRange.from, to: dateRange.to }}
-                          onSelect={handleCustomDateSelect}
-                          numberOfMonths={1}
-                          locale={es}
-                          disabled={(date) => date > new Date()}
-                        />
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+          <main className="flex-1 p-4 md:p-8 space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+                <p className="text-muted-foreground mt-1">
+                  Resumen de tu negocio hoy
+                </p>
               </div>
+            </div>
 
-              {/* Enhanced Stats Cards */}
-              <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                {/* Today Sales Card */}
-                <Card className="relative overflow-hidden border-none shadow-lg">
-                  <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-accent/5" />
-                  <CardHeader className="relative pb-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                        Ventas de Hoy
-                      </CardTitle>
-                      <div className="p-2.5 rounded-xl bg-accent shadow-lg shadow-accent/20">
-                        <DollarSign className="h-5 w-5 text-white" />
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="relative">
-                    <div className="space-y-3">
-                      <div className="flex items-baseline gap-2">
-                        <div className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
-                          ${stats?.todaySales?.toFixed(2) || "0.00"}
-                        </div>
-                      </div>
-                      <div className="pt-2 border-t border-border/50">
-                        <p className="text-sm text-muted-foreground">
-                          <span className="font-semibold text-foreground">{stats?.todayOrders || 0}</span> órdenes completadas
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Month Sales Card */}
-                <Card className="relative overflow-hidden border-none shadow-lg">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-blue-500/5" />
-                  <CardHeader className="relative pb-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                        Ventas del Mes
-                      </CardTitle>
-                      <div className="p-2.5 rounded-xl bg-blue-500 shadow-lg shadow-blue-500/20">
-                        <TrendingUp className="h-5 w-5 text-white" />
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="relative">
-                    <div className="space-y-3">
-                      <div className="flex items-baseline gap-2">
-                        <div className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
-                          ${stats?.monthSales?.toFixed(2) || "0.00"}
-                        </div>
-                      </div>
-                      {monthGrowth !== 0 && (
-                        <div className={`
-                          inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold
-                          ${monthGrowth > 0 
-                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
-                            : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                          }
-                        `}>
-                          {monthGrowth > 0 ? (
-                            <ArrowUp className="h-3.5 w-3.5" />
-                          ) : (
-                            <ArrowDown className="h-3.5 w-3.5" />
-                          )}
-                          <span>{Math.abs(monthGrowth).toFixed(1)}%</span>
-                          <span className="opacity-70">vs mes anterior</span>
-                        </div>
+            {/* Main Stats - 4 cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Ingresos de Hoy */}
+              <Card className="border-2">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Ingresos de Hoy
+                  </CardTitle>
+                  <DollarSign className="h-5 w-5 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-foreground">
+                    ${todayStats.totalRevenue.toFixed(2)}
+                  </div>
+                  {comparisonStats.yesterdayRevenue > 0 && (
+                    <div className="flex items-center gap-1 mt-2">
+                      {comparisonStats.revenueChange >= 0 ? (
+                        <>
+                          <ArrowUpRight className="h-4 w-4 text-accent" />
+                          <span className="text-sm text-accent font-medium">
+                            +{comparisonStats.revenueChange.toFixed(1)}%
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <ArrowDownRight className="h-4 w-4 text-destructive" />
+                          <span className="text-sm text-destructive font-medium">
+                            {comparisonStats.revenueChange.toFixed(1)}%
+                          </span>
+                        </>
                       )}
-                      <div className="pt-2 border-t border-border/50">
-                        <p className="text-sm text-muted-foreground">
-                          Anterior: <span className="font-semibold text-foreground">${stats?.previousMonthSales?.toFixed(2) || "0.00"}</span>
-                        </p>
-                      </div>
+                      <span className="text-sm text-muted-foreground ml-1">vs ayer</span>
                     </div>
-                  </CardContent>
-                </Card>
+                  )}
+                </CardContent>
+              </Card>
 
-                {/* Average Order Value Card */}
-                <Card className="relative overflow-hidden border-none shadow-lg">
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-purple-500/5" />
-                  <CardHeader className="relative pb-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                        Ticket Promedio
-                      </CardTitle>
-                      <div className="p-2.5 rounded-xl bg-purple-500 shadow-lg shadow-purple-500/20">
-                        <ShoppingCart className="h-5 w-5 text-white" />
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="relative">
+              {/* Órdenes de Hoy */}
+              <Card className="border-2">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Órdenes de Hoy
+                  </CardTitle>
+                  <ShoppingCart className="h-5 w-5 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-foreground">
+                    {todayStats.totalOrders}
+                  </div>
+                  <div className="flex items-center gap-1 mt-2">
+                    <span className="text-sm text-muted-foreground">
+                      Ticket promedio: ${todayStats.averageTicket.toFixed(2)}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Clientes Hoy */}
+              <Card className="border-2">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Clientes Hoy
+                  </CardTitle>
+                  <Users className="h-5 w-5 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-foreground">
+                    {todayStats.uniqueCustomers}
+                  </div>
+                  <div className="flex items-center gap-1 mt-2">
+                    <span className="text-sm text-muted-foreground">
+                      Clientes únicos atendidos
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Ingresos Semana */}
+              <Card className="border-2">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Ingresos Semana
+                  </CardTitle>
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-foreground">
+                    ${comparisonStats.weekRevenue.toFixed(2)}
+                  </div>
+                  <div className="flex items-center gap-1 mt-2">
+                    <span className="text-sm text-muted-foreground">
+                      Últimos 7 días
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Charts Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Ventas por Hora */}
+              <Card className="border-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-primary" />
+                    Ventas por Hora
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {hourlySales.length > 0 ? (
                     <div className="space-y-3">
-                      <div className="flex items-baseline gap-2">
-                        <div className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
-                          ${avgOrderValue.toFixed(2)}
+                      {hourlySales.map((sale) => (
+                        <div key={sale.hour} className="space-y-1">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              {sale.hour}:00 - {sale.hour + 1}:00
+                            </span>
+                            <span className="font-medium">
+                              ${sale.total.toFixed(2)} ({sale.count})
+                            </span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-accent/70 transition-all"
+                              style={{ width: `${(sale.total / maxHourlySale) * 100}%` }}
+                            />
+                          </div>
                         </div>
-                      </div>
-                      <div className="pt-2 border-t border-border/50">
-                        <p className="text-sm text-muted-foreground">
-                          Basado en <span className="font-semibold text-foreground">{stats?.todayOrders || 0}</span> ventas
-                        </p>
-                      </div>
+                      ))}
                     </div>
-                  </CardContent>
-                </Card>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p>No hay ventas registradas hoy</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-                {/* Total Products Sold Card */}
-                <Card className="relative overflow-hidden border-none shadow-lg">
-                  <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-green-500/5" />
-                  <CardHeader className="relative pb-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                        Productos Activos
-                      </CardTitle>
-                      <div className="p-2.5 rounded-xl bg-green-500 shadow-lg shadow-green-500/20">
-                        <Package className="h-5 w-5 text-white" />
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="relative">
-                    <div className="space-y-3">
-                      <div className="flex items-baseline gap-2">
-                        <div className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
-                          {stats?.topProducts?.length || 0}
-                        </div>
-                        <span className="text-sm text-muted-foreground">en catálogo</span>
-                      </div>
-                      <div className="pt-2 border-t border-border/50">
-                        <p className="text-sm text-muted-foreground">
-                          Top 10 más vendidos abajo
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Charts Section */}
-              <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-2">
-                {/* Sales by Hour Chart */}
-                <Card className="shadow-lg border-none">
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-lg bg-accent/10">
-                        <Clock className="h-4 w-4 text-accent" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg md:text-xl">Ventas por Hora</CardTitle>
-                        <CardDescription>Distribución de ventas del día</CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {stats?.salesByHour && stats.salesByHour.length > 0 ? (
-                      <div className="h-[300px] md:h-[350px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={stats.salesByHour}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                            <XAxis 
-                              dataKey="hour" 
-                              tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                              tickLine={{ stroke: "hsl(var(--border))" }}
-                            />
-                            <YAxis 
-                              tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                              tickLine={{ stroke: "hsl(var(--border))" }}
-                              tickFormatter={(value) => `$${value}`}
-                            />
-                            <Tooltip 
-                              contentStyle={{ 
-                                backgroundColor: "hsl(var(--card))", 
-                                border: "1px solid hsl(var(--border))",
-                                borderRadius: "8px",
-                                boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)"
-                              }}
-                              formatter={(value: any) => [`$${Number(value).toFixed(2)}`, "Ventas"]}
-                            />
-                            <Bar 
-                              dataKey="total" 
-                              fill={CHART_COLORS.accent}
-                              radius={[8, 8, 0, 0]}
-                            />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    ) : (
-                      <div className="h-[300px] md:h-[350px] flex items-center justify-center">
-                        <div className="text-center space-y-2">
-                          <Clock className="h-12 w-12 text-muted-foreground mx-auto opacity-50" />
-                          <p className="text-muted-foreground font-medium">No hay ventas hoy</p>
-                          <p className="text-sm text-muted-foreground">Los datos aparecerán al registrar ventas</p>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Top Products Chart */}
-                <Card className="shadow-lg border-none">
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-lg bg-blue-500/10">
-                        <TrendingUp className="h-4 w-4 text-blue-500" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg md:text-xl">Productos Más Vendidos</CardTitle>
-                        <CardDescription>Top 10 productos del mes</CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {stats?.topProducts && stats.topProducts.length > 0 ? (
-                      <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2">
-                        {stats.topProducts.slice(0, 10).map((product: any, index: number) => {
-                          const maxRevenue = Math.max(...stats.topProducts.map((p: any) => p.revenue));
-                          const percentage = (product.revenue / maxRevenue) * 100;
-                          
-                          return (
-                            <div key={index} className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                  <div className={`
-                                    w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold
-                                    ${index === 0 ? "bg-yellow-500 text-white" : 
-                                      index === 1 ? "bg-gray-400 text-white" : 
-                                      index === 2 ? "bg-orange-600 text-white" : 
-                                      "bg-primary/10 text-primary"}
-                                  `}>
-                                    #{index + 1}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium line-clamp-1">
-                                      {product.productName || "Producto"}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {product.quantity} vendidos
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="text-sm font-bold shrink-0 ml-2">
-                                  ${Number(product.revenue || 0).toFixed(2)}
-                                </div>
-                              </div>
-                              <div className="relative h-2 bg-muted rounded-full overflow-hidden">
-                                <div 
-                                  className={`
-                                    absolute inset-y-0 left-0 rounded-full transition-all duration-500
-                                    ${index === 0 ? "bg-gradient-to-r from-yellow-500 to-yellow-400" : 
-                                      index === 1 ? "bg-gradient-to-r from-gray-400 to-gray-300" : 
-                                      index === 2 ? "bg-gradient-to-r from-orange-600 to-orange-500" : 
-                                      "bg-gradient-to-r from-primary to-primary/80"}
-                                  `}
-                                  style={{ width: `${percentage}%` }}
-                                />
-                              </div>
+              {/* Top 5 Productos */}
+              <Card className="border-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Star className="h-5 w-5 text-primary" />
+                    Top 5 Productos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {topProducts.length > 0 ? (
+                    <div className="space-y-4">
+                      {topProducts.map((product, index) => (
+                        <div key={index} className="flex items-center gap-3">
+                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span className="text-sm font-bold text-primary">
+                              {index + 1}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-foreground truncate">
+                              {product.name}
                             </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="h-[350px] flex items-center justify-center">
-                        <div className="text-center space-y-2">
-                          <Package className="h-12 w-12 text-muted-foreground mx-auto opacity-50" />
-                          <p className="text-muted-foreground font-medium">No hay datos de productos</p>
-                          <p className="text-sm text-muted-foreground">Los datos aparecerán al registrar ventas</p>
+                            <div className="text-sm text-muted-foreground">
+                              {product.quantity} vendidos
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-semibold text-foreground">
+                              ${product.revenue.toFixed(2)}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p>No hay productos vendidos hoy</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
 
-              {/* Performance Insights */}
-              {stats && stats.topProducts && stats.topProducts.length > 0 && (
-                <Card className="shadow-lg border-none bg-gradient-to-br from-accent/5 to-transparent">
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-lg bg-accent">
-                        <TrendingUp className="h-4 w-4 text-white" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg md:text-xl">Resumen del Rendimiento</CardTitle>
-                        <CardDescription>Métricas clave del negocio</CardDescription>
-                      </div>
+            {/* Tables Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Ventas Recientes */}
+              <Card className="border-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ShoppingCart className="h-5 w-5 text-primary" />
+                    Ventas Recientes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {recentSales.length > 0 ? (
+                    <div className="space-y-3">
+                      {recentSales.map((sale) => (
+                        <div
+                          key={sale.id}
+                          className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                        >
+                          <div>
+                            <div className="font-medium text-foreground">
+                              Venta #{sale.id.slice(0, 8)}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {sale.time} • {sale.items} items
+                            </div>
+                          </div>
+                          <div className="text-lg font-semibold text-foreground">
+                            ${sale.total.toFixed(2)}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                      <div className="space-y-2 p-4 rounded-lg bg-card border border-border">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <DollarSign className="h-4 w-4" />
-                          <span>Producto más rentable</span>
-                        </div>
-                        <p className="text-lg font-bold line-clamp-1">
-                          {stats.topProducts[0]?.productName || "N/A"}
-                        </p>
-                        <p className="text-sm text-accent font-semibold">
-                          ${Number(stats.topProducts[0]?.revenue || 0).toFixed(2)}
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2 p-4 rounded-lg bg-card border border-border">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Package className="h-4 w-4" />
-                          <span>Total unidades vendidas</span>
-                        </div>
-                        <p className="text-lg font-bold">
-                          {stats.topProducts.reduce((sum: number, p: any) => sum + (p.quantity || 0), 0)} unidades
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Este mes
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2 p-4 rounded-lg bg-card border border-border sm:col-span-2 lg:col-span-1">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <TrendingUp className="h-4 w-4" />
-                          <span>Crecimiento mensual</span>
-                        </div>
-                        <p className={`text-lg font-bold ${monthGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          {monthGrowth >= 0 ? "+" : ""}{monthGrowth.toFixed(1)}%
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          vs mes anterior
-                        </p>
-                      </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <ShoppingCart className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p>No hay ventas recientes</p>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Alertas de Inventario */}
+              <Card className="border-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5 text-destructive" />
+                    Alertas de Inventario
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {lowStockItems.length > 0 ? (
+                    <div className="space-y-3">
+                      {lowStockItems.map((item, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-3 rounded-lg border-2 border-destructive/20 bg-destructive/5"
+                        >
+                          <div className="flex-1">
+                            <div className="font-medium text-foreground">
+                              {item.name}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              Mínimo: {item.min} {item.unit}
+                            </div>
+                          </div>
+                          <Badge variant="destructive" className="ml-2">
+                            {item.current} {item.unit}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Package className="h-12 w-12 mx-auto mb-2 opacity-50 text-accent" />
+                      <p className="text-accent font-medium">¡Todo en orden!</p>
+                      <p className="text-sm mt-1">No hay items con stock bajo</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </main>
         </div>

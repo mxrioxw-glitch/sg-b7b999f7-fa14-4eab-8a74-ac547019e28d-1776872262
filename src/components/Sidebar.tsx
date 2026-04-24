@@ -18,7 +18,8 @@ import {
   MessageSquare,
   ChevronLeft,
   ChevronRight,
-  Warehouse
+  Warehouse,
+  Archive
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -92,16 +93,63 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   };
 
   const menuItems = [
-    { icon: LayoutDashboard, label: "Inicio", href: "/" },
-    { icon: ShoppingCart, label: "POS", href: "/pos" },
-    { icon: Package, label: "Productos", href: "/products" },
-    { icon: Warehouse, label: "Inventario", href: "/inventory" },
-    { icon: Users, label: "Clientes", href: "/customers" },
-    { icon: DollarSign, label: "Corte de Caja", href: "/cash-register" },
-    { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
-    { icon: UtensilsCrossed, label: "Comedor", href: "/comedor" },
-    { icon: ChefHat, label: "Pantalla de Cocina", href: "/kitchen-display" },
-    { icon: MessageSquare, label: "WhatsApp", href: "/whatsapp-orders" },
+    {
+      icon: BarChart3,
+      label: "Dashboard",
+      path: "/dashboard",
+      color: "text-primary",
+    },
+    {
+      icon: ShoppingCart,
+      label: "POS",
+      path: "/pos",
+      color: "text-accent",
+    },
+    {
+      icon: Package,
+      label: "Productos",
+      path: "/products",
+      color: "text-primary",
+    },
+    {
+      icon: Archive,
+      label: "Inventario",
+      path: "/inventory",
+      color: "text-primary",
+    },
+    {
+      icon: Users,
+      label: "Clientes",
+      path: "/customers",
+      color: "text-primary",
+    },
+    {
+      icon: DollarSign,
+      label: "Corte de Caja",
+      path: "/cash-register",
+      color: "text-primary",
+    },
+    {
+      icon: UtensilsCrossed,
+      label: "Comedor",
+      path: "/comedor",
+      color: "text-primary",
+      badge: "Próximamente",
+    },
+    {
+      icon: ChefHat,
+      label: "Pantalla de Cocina",
+      path: "/kitchen-display",
+      color: "text-primary",
+      badge: "Próximamente",
+    },
+    {
+      icon: MessageSquare,
+      label: "WhatsApp",
+      path: "/whatsapp-orders",
+      color: "text-primary",
+      badge: "Próximamente",
+    },
   ];
 
   const navItems = [
@@ -180,12 +228,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <nav className={`space-y-1 transition-all duration-300 ${isCollapsed ? "px-2" : "px-3"}`}>
             {menuItems.map((item) => {
               const Icon = item.icon;
-              const isActive = router.pathname === item.href;
+              const isActive = router.pathname === item.path;
               
               return (
                 <Link
-                  key={item.href}
-                  href={item.href}
+                  key={item.path}
+                  href={item.path}
                   className={`
                     flex items-center rounded-lg text-sm font-medium transition-all duration-200
                     ${isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2.5"}

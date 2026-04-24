@@ -23,6 +23,30 @@ export default function LoginPage() {
     password: "",
   });
 
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const { user, error } = await authService.signIn(email, password);
+      
+      if (error) {
+        setError(error);
+        setLoading(false);
+        return;
+      }
+
+      if (user) {
+        // Redirect to dashboard
+        window.location.href = "/dashboard";
+      }
+    } catch (err) {
+      setError("Error al iniciar sesión");
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
