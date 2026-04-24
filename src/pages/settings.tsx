@@ -1297,92 +1297,60 @@ export default function SettingsPage() {
                 </Card>
               )}
 
-              {activeTab === "plan" && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-bold text-foreground mb-2">
-                      Plan de Suscripción
-                    </h2>
-                    <p className="text-muted-foreground">
-                      Gestiona tu plan y facturación
-                    </p>
-                  </div>
+              {/* Employee Permissions Dialog */}
+              <Dialog open={employeeDialogOpen} onOpenChange={setEmployeeDialogOpen}>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Editar Permisos</DialogTitle>
+                    <DialogDescription>
+                      Configura los permisos de acceso para {editingEmployee?.user?.full_name || editingEmployee?.user?.email}
+                    </DialogDescription>
+                  </DialogHeader>
 
-                  {/* Coming Soon Card */}
-                  <Card className="border-2 border-dashed border-muted-foreground/20">
-                    <CardContent className="p-12 text-center">
-                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent/10 mb-4">
-                        <Clock className="h-8 w-8 text-accent" />
+                  {editingEmployee && (
+                    <div className="space-y-4">
+                      <div className="p-4 bg-muted rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1">
+                            <p className="font-medium">{editingEmployee.user?.full_name || "Sin nombre"}</p>
+                            <p className="text-sm text-muted-foreground">{editingEmployee.user?.email}</p>
+                          </div>
+                          <Badge variant={editingEmployee.role === "admin" ? "default" : "outline"}>
+                            {editingEmployee.role === "admin" ? "Administrador" : "Cajero"}
+                          </Badge>
+                        </div>
                       </div>
-                      <h3 className="text-2xl font-bold text-foreground mb-2">
-                        Próximamente
-                      </h3>
-                      <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                        El sistema de planes y suscripciones estará disponible muy pronto. Por ahora, disfruta de todas las funciones sin restricciones.
-                      </p>
-                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 text-accent text-sm font-medium">
-                        <CheckCircle2 className="h-4 w-4" />
-                        Todas las funciones desbloqueadas
+
+                      <PermissionSelector
+                        permissions={editingPermissions}
+                        onChange={(perms: any) => setEditingPermissions(perms)}
+                      />
+
+                      <div className="flex justify-end gap-2 pt-4">
+                        <Button variant="outline" onClick={() => setEmployeeDialogOpen(false)} disabled={saving}>
+                          Cancelar
+                        </Button>
+                        <Button onClick={handleSaveEmployeePermissions} disabled={saving}>
+                          {saving ? "Guardando..." : "Guardar Permisos"}
+                        </Button>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
             </div>
           </main>
         </div>
 
-        {/* Employee Permissions Dialog */}
-        <Dialog open={employeeDialogOpen} onOpenChange={setEmployeeDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Editar Permisos</DialogTitle>
-              <DialogDescription>
-                Configura los permisos de acceso para {editingEmployee?.user?.full_name || editingEmployee?.user?.email}
-              </DialogDescription>
-            </DialogHeader>
-
-            {editingEmployee && (
-              <div className="space-y-4">
-                <div className="p-4 bg-muted rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <p className="font-medium">{editingEmployee.user?.full_name || "Sin nombre"}</p>
-                      <p className="text-sm text-muted-foreground">{editingEmployee.user?.email}</p>
-                    </div>
-                    <Badge variant={editingEmployee.role === "admin" ? "default" : "outline"}>
-                      {editingEmployee.role === "admin" ? "Administrador" : "Cajero"}
-                    </Badge>
-                  </div>
-                </div>
-
-                <PermissionSelector
-                  permissions={editingPermissions}
-                  onChange={(perms: any) => setEditingPermissions(perms)}
-                />
-
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button variant="outline" onClick={() => setEmployeeDialogOpen(false)} disabled={saving}>
-                    Cancelar
-                  </Button>
-                  <Button onClick={handleSaveEmployeePermissions} disabled={saving}>
-                    {saving ? "Guardando..." : "Guardar Permisos"}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+        <UpgradePlanModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          limitType="employees"
+          currentPlan={currentPlan}
+          currentLimit={employeeCount}
+          suggestedPlan={currentPlan === "basic" ? "professional" : "premium"}
+        />
       </div>
-
-      <UpgradePlanModal
-        isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        limitType="employees"
-        currentPlan={currentPlan}
-        currentLimit={employeeCount}
-        suggestedPlan={currentPlan === "basic" ? "professional" : "premium"}
-      />
     </ProtectedRoute>
   );
 }
