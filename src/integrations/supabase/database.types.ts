@@ -1289,6 +1289,13 @@ export type Database = {
             referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tables_current_order_id_fkey"
+            columns: ["current_order_id"]
+            isOneToOne: false
+            referencedRelation: "table_orders"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
