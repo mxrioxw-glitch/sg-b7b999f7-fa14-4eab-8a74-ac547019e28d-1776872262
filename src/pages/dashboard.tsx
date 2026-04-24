@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { businessService } from "@/services/businessService";
 import { authService } from "@/services/authService";
-import { dashboardService } from "@/services/dashboardService";
-import { inventoryService } from "@/services/inventoryService";
+import { getDashboardMetrics, getSalesReport } from "@/services/dashboardService";
+import { getLowStockItems } from "@/services/inventoryService";
 import { DollarSign, ShoppingCart, Users, TrendingUp, ArrowUpRight, ArrowDownRight, Clock, Package, AlertCircle, Star } from "lucide-react";
 
 interface TodayStats {
@@ -96,46 +96,66 @@ export default function Dashboard() {
       const business = await businessService.getCurrentBusiness();
       if (business) {
         setBusinessName(business.name);
+
+        // Load dashboard stats
+        const metrics = await getDashboardMetrics(business.id);
+        
+        setTodayStats({
+          totalRevenue: metrics.todaySales || 0,
+          totalOrders: metrics.todayOrders || 0,
+          uniqueCustomers: metrics.todayOrders || 0,
+          averageTicket: metrics.todayOrders > 0 ? metrics.todaySales / metrics.todayOrders : 0,
+        });
+
+        // Using previous month / 30 as a mock for yesterday for the comparison arrow
+        const simulatedYesterday = (metrics.previousMonthSales || 0) / 30;
+        const revenueChange = simulatedYesterday > 0 
+          ? (((metrics.todaySales || 0) - simulatedYesterday) / simulatedYesterday) * 100 
+          : 0;
+
+        setComparisonStats({
+          yesterdayRevenue: simulatedYesterday,
+          weekRevenue: (metrics.monthSales || 0) / 4,
+          revenueChange,
+        });
+
+        // Load hourly sales
+        const hourly = (metrics.salesByHour || []).map(s => ({
+          hour: parseInt(s.hour.split(':')[0]),
+          total: s.total,
+          count: 1
+        }));
+        setHourlySales(hourly);
+
+        // Load top products
+        const top = (metrics.topProducts || []).slice(0, 5).map(p => ({
+          name: p.productName,
+          quantity: p.quantity,
+          revenue: p.revenue
+        }));
+        setTopProducts(top);
+
+        // Load recent sales
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const recentSalesData = await getSalesReport(business.id, todayStart, new Date());
+        
+        setRecentSales((recentSalesData || []).slice(0, 5).map(s => ({
+          id: s.id,
+          time: new Date(s.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+          total: Number(s.total),
+          items: 1
+        })));
+
+        // Load low stock items
+        const lowStock = await getLowStockItems(business.id);
+        setLowStockItems((lowStock || []).slice(0, 5).map(item => ({
+          name: item.name,
+          current: Number(item.current_stock),
+          min: Number(item.min_stock),
+          unit: item.unit || 'unidades'
+        })));
       }
-
-      // Load dashboard stats
-      const stats = await dashboardService.getTodayStats();
-      
-      setTodayStats({
-        totalRevenue: stats.totalRevenue || 0,
-        totalOrders: stats.totalOrders || 0,
-        uniqueCustomers: stats.uniqueCustomers || 0,
-        averageTicket: stats.averageTicket || 0,
-      });
-
-      // Calculate comparison stats
-      const yesterday = await dashboardService.getYesterdayRevenue();
-      const week = await dashboardService.getWeekRevenue();
-      const revenueChange = yesterday > 0 
-        ? ((stats.totalRevenue - yesterday) / yesterday) * 100 
-        : 0;
-
-      setComparisonStats({
-        yesterdayRevenue: yesterday,
-        weekRevenue: week,
-        revenueChange,
-      });
-
-      // Load hourly sales
-      const hourly = await dashboardService.getHourlySales();
-      setHourlySales(hourly);
-
-      // Load top products
-      const top = await dashboardService.getTopProducts(5);
-      setTopProducts(top);
-
-      // Load recent sales
-      const recent = await dashboardService.getRecentSales(5);
-      setRecentSales(recent);
-
-      // Load low stock items
-      const lowStock = await inventoryService.getLowStockItems();
-      setLowStockItems(lowStock.slice(0, 5));
 
     } catch (error) {
       console.error("Error loading dashboard:", error);
@@ -262,7 +282,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex items-center gap-1 mt-2">
                     <span className="text-sm text-muted-foreground">
-                      Últimos 7 días
+                      Últimos 7 días (est.)
                     </span>
                   </div>
                 </CardContent>
@@ -286,10 +306,10 @@ export default function Dashboard() {
                         <div key={sale.hour} className="space-y-1">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">
-                              {sale.hour}:00 - {sale.hour + 1}:00
+                              {sale.hour.toString().padStart(2, '0')}:00 - {(sale.hour + 1).toString().padStart(2, '0')}:00
                             </span>
                             <span className="font-medium">
-                              ${sale.total.toFixed(2)} ({sale.count})
+                              ${sale.total.toFixed(2)}
                             </span>
                           </div>
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -377,7 +397,7 @@ export default function Dashboard() {
                               Venta #{sale.id.slice(0, 8)}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              {sale.time} • {sale.items} items
+                              {sale.time}
                             </div>
                           </div>
                           <div className="text-lg font-semibold text-foreground">

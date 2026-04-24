@@ -23,30 +23,6 @@ export default function LoginPage() {
     password: "",
   });
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    try {
-      const { user, error } = await authService.signIn(email, password);
-      
-      if (error) {
-        setError(error);
-        setLoading(false);
-        return;
-      }
-
-      if (user) {
-        // Redirect to dashboard
-        window.location.href = "/dashboard";
-      }
-    } catch (err) {
-      setError("Error al iniciar sesión");
-      setLoading(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -93,7 +69,7 @@ export default function LoginPage() {
           description: `Hola, ${existingBusiness.name}`,
         });
 
-        router.push("/home");
+        router.push("/dashboard");
         return;
       }
 
@@ -114,7 +90,7 @@ export default function LoginPage() {
         description: "Tu negocio ha sido configurado exitosamente",
       });
 
-      router.push("/home");
+      router.push("/dashboard");
     } catch (error: any) {
       console.error("Login error:", error);
       setError(error.message || "Error al iniciar sesión");
