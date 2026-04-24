@@ -80,7 +80,11 @@ export const tableService = {
       .from("table_orders")
       .select(`
         *,
-        employees(id, full_name),
+        employees(
+          id,
+          role,
+          profiles(full_name, email)
+        ),
         customers(id, full_name),
         table_order_items(
           *,
@@ -90,10 +94,11 @@ export const tableService = {
       .eq("table_id", tableId)
       .eq("status", "open")
       .order("opened_at", { ascending: false })
-      .maybeSingle();
+      .limit(1)
+      .single();
 
     console.log("getTableOrder:", { data, error });
-    if (error) throw error;
+    if (error && error.code !== "PGRST116") throw error;
     return data;
   },
 
