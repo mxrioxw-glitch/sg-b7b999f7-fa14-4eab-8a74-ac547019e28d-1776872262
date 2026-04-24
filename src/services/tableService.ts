@@ -112,14 +112,17 @@ export const tableService = {
     console.log("openTable:", { data, error });
     if (error) throw error;
 
-    // Actualizar el estado de la mesa
-    await supabase
+    // Actualizar el estado de la mesa a "occupied"
+    const { error: updateError } = await supabase
       .from("tables")
       .update({ 
         status: "occupied",
         current_order_id: data.id 
       })
       .eq("id", order.table_id);
+
+    console.log("openTable - table status update:", { updateError });
+    if (updateError) throw updateError;
 
     return data;
   },
