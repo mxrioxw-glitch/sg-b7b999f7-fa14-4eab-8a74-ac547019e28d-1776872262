@@ -10,8 +10,16 @@ interface TableGridProps {
 
 export function TableGrid({ tables, onTableClick, selectedTableId }: TableGridProps) {
   const getTableStatus = (table: any) => {
-    if (table.table_orders?.[0]?.status === "occupied") return "occupied";
+    // Verificar si hay una orden activa (status = 'open')
+    const hasActiveOrder = table.table_orders?.[0]?.status === "open";
+    
+    // Si la mesa está marcada como ocupada O tiene una orden activa
+    if (table.status === "occupied" || hasActiveOrder) return "occupied";
+    
+    // Si está marcada como sucia
     if (table.status === "dirty") return "dirty";
+    
+    // Por defecto, disponible
     return "available";
   };
 
