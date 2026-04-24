@@ -48,18 +48,29 @@ export function ProductSelectorModal({
     });
   }, [products, searchQuery, selectedCategoryId]);
 
-  const handleProductClick = (product: Product) => {
+  function handleProductClick(product: any) {
     const hasVariants = product.variants && product.variants.length > 0;
     const hasExtras = product.extras && product.extras.length > 0;
 
     if (hasVariants || hasExtras) {
-      setSelectedProduct(product);
+      // Transform product to match ProductModal expected structure
+      const transformedProduct = {
+        ...product,
+        basePrice: product.price || 0,
+        image: product.image_url,
+        name: product.name,
+        category: product.category,
+        variants: product.variants || [],
+        extras: product.extras || [],
+      };
+      setSelectedProduct(transformedProduct);
       setIsProductModalOpen(true);
     } else {
+      // Direct add without modal
       onSelectProduct(product, undefined, [], "", 1);
       onClose();
     }
-  };
+  }
 
   return (
     <>
