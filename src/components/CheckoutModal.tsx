@@ -245,12 +245,9 @@ export function CheckoutModal({
                     <Button
                       key={method.id}
                       type="button"
-                      variant={selectedPaymentMethod === method.id || paymentMethod === method.name ? "default" : "outline"}
+                      variant={paymentMethod === method.name ? "default" : "outline"}
                       className="h-auto py-4 flex flex-col items-center gap-2"
-                      onClick={() => {
-                        setSelectedPaymentMethod(method.id);
-                        setPaymentMethod(method.name);
-                      }}
+                      onClick={() => setPaymentMethod(method.name)}
                     >
                       <span className="text-muted-foreground group-hover:text-current">
                         {getPaymentIcon(method.name)}

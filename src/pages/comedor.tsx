@@ -508,15 +508,14 @@ export default function ComedorPage() {
         />
 
         {/* Checkout Modal */}
-        {selectedTableOrder && (
-          <CheckoutModal
-            isOpen={showCheckoutModal}
-            onClose={() => setShowCheckoutModal(false)}
-            onComplete={handleCheckoutComplete}
-            order={selectedTableOrder}
-            paymentMethods={paymentMethods}
-          />
-        )}
+        <CheckoutModal
+          isOpen={showCheckoutModal}
+          onClose={() => setShowCheckoutModal(false)}
+          onComplete={handleCheckoutComplete}
+          tableOrder={selectedTableOrder}
+          table={selectedTable}
+          paymentMethods={paymentMethods}
+        />
       </FeatureGuard>
     </ProtectedRoute>
   );
