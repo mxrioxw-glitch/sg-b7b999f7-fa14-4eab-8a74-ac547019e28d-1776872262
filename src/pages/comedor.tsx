@@ -141,13 +141,11 @@ export default function ComedorPage() {
         });
       }
     } else if (table.status === "available") {
-      // Resetear los valores del modal cada vez que se abre
       setGuestsCount(2);
       setSelectedWaiterId("");
       setSelectedCustomerId("no-customer");
       setShowOpenTableModal(true);
     } else if (table.status === "dirty") {
-      // Opción para limpiar mesa
       try {
         await tableService.setTableAvailable(table.id);
         toast({
@@ -314,45 +312,37 @@ export default function ComedorPage() {
             <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
               <div className="max-w-7xl mx-auto space-y-6">
                 {/* Header */}
-                <div className="min-h-screen bg-background">
-                  <Header />
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h1 className="text-3xl font-bold">Gestión de Comedor</h1>
+                    <p className="text-muted-foreground mt-1">
+                      Administra mesas, toma pedidos y gestiona el servicio
+                    </p>
+                  </div>
 
-                  <main className="container mx-auto py-6">
-                    {/* Header */}
-                    <div className="flex items-center justify-between mb-6">
-                      <div>
-                        <h1 className="text-3xl font-bold">Gestión de Comedor</h1>
-                        <p className="text-muted-foreground mt-1">
-                          Administra mesas, toma pedidos y gestiona el servicio
-                        </p>
-                      </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={loadInitialData}
+                      disabled={isLoading}
+                    >
+                      <RotateCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+                      Actualizar
+                    </Button>
 
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={loadInitialData}
-                          disabled={isLoading}
-                          className="h-9 sm:h-10 text-xs sm:text-sm"
-                        >
-                          <RotateCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-                          Actualizar
-                        </Button>
-
-                        <Select value="all" onValueChange={() => {}}>
-                          <SelectTrigger className="w-[180px] h-9 sm:h-10 text-xs sm:text-sm">
-                            <SelectValue placeholder="Filtrar por estado" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Todas las mesas</SelectItem>
-                            <SelectItem value="available">Disponibles</SelectItem>
-                            <SelectItem value="occupied">Ocupadas</SelectItem>
-                            <SelectItem value="dirty">Sucias</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </main>
+                    <Select value="all" onValueChange={() => {}}>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Filtrar por estado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas las mesas</SelectItem>
+                        <SelectItem value="available">Disponibles</SelectItem>
+                        <SelectItem value="occupied">Ocupadas</SelectItem>
+                        <SelectItem value="dirty">Sucias</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 {/* Stats */}
