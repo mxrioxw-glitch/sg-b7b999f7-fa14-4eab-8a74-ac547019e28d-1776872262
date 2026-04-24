@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Users, Clock, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 
 interface TableGridProps {
   tables: any[];
