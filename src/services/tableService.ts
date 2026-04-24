@@ -362,3 +362,43 @@ export const tableService = {
     return data;
   },
 };
+
+export async function getTables(businessId: string) {
+  const { data, error } = await supabase
+    .from("tables")
+    .select(`
+      *,
+      table_orders!current_order_id(
+        id,
+        status,
+        guests_count,
+        notes,
+        created_at,
+        assigned_waiter_id,
+        assigned_waiter_name,
+        table_order_items(
+          id,
+          product_name,
+          variant_name,
+          quantity,
+          unit_price,
+          subtotal,
+          tax_amount,
+          total,
+          notes,
+          status
+        )
+      )
+    `)
+    .eq("business_id", businessId)
+    .order("table_number", { ascending: true });
+
+  console.log("getTables - Raw data:", JSON.stringify(data, null, 2));
+
+  if (error) {
+    console.error("Error fetching tables:", error);
+    throw error;
+  }
+
+  return data || [];
+}
