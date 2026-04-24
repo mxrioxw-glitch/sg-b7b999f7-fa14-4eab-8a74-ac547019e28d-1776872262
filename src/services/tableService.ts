@@ -299,25 +299,39 @@ export const tableService = {
       })
       .eq("id", tableId);
 
-    // Crear la venta en el sistema
+    // Crear la venta en el sistema (sin payment_method_id, ya que no existe en esta tabla)
     const { data: sale, error: saleError } = await supabase
       .from("sales")
       .insert({
         business_id: saleData.business_id,
         subtotal: saleData.subtotal,
         tax_amount: saleData.tax_amount,
-        total_amount: saleData.total_amount,
+        total: saleData.total_amount, // Usamos 'total' en lugar de 'total_amount'
         tip_amount: saleData.tip_amount || 0,
-        payment_method_id: saleData.payment_method,
         status: saleData.status,
-        sale_type: "dine_in",
         created_at: now
       })
       .select()
       .single();
 
-    console.log("closeTable:", { sale, error: saleError });
+    console.log("closeTable (sale):", { sale, error: saleError });
     if (saleError) throw saleError;
+
+    // Crear el registro de pago en la tabla sale_payments
+    if (sale) {
+      const { error: paymentError } = await supabase
+        .from("sale_payments")
+        .insert({
+          sale_id: sale.id,
+          payment_method_id: saleData.payment_method,
+          amount: saleData.total_amount,
+          payment_type: "sale",
+          status: "completed"
+        });
+        
+      console.log("closeTable (payment):", { error: paymentError });
+      if (paymentError) throw paymentError;
+    }
 
     return sale;
   },
