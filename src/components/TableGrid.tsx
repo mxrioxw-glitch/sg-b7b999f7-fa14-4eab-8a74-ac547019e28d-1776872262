@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
-import { Users, Clock } from "lucide-react";
+import { Users, Clock, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 
 interface TableGridProps {
   tables: any[];
@@ -25,103 +26,99 @@ export function TableGrid({ tables, onTableClick, selectedTableId }: TableGridPr
 
 function TableCard({ table, onClick, isSelected }: { table: any; onClick: () => void; isSelected?: boolean }) {
   const [elapsedTime, setElapsedTime] = useState("");
+  const isOccupied = table.status === "occupied";
+  const order = table.table_orders?.[0];
 
   useEffect(() => {
-    if (table.status !== "occupied" || !table.current_order?.opened_at) {
+    if (!isOccupied || !order?.opened_at) {
       setElapsedTime("");
       return;
     }
 
     const updateTimer = () => {
-      const openedAt = new Date(table.current_order.opened_at);
+      const start = new Date(order.opened_at);
       const now = new Date();
-      const diffMs = now.getTime() - openedAt.getTime();
+      const diffMs = now.getTime() - start.getTime();
       
       const hours = Math.floor(diffMs / (1000 * 60 * 60));
       const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
       
-      setElapsedTime(`${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`);
+      const h = hours.toString().padStart(2, '0');
+      const m = minutes.toString().padStart(2, '0');
+      const s = seconds.toString().padStart(2, '0');
+      
+      setElapsedTime(`${h}:${m}:${s}`);
     };
 
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
+
     return () => clearInterval(interval);
-  }, [table.status, table.current_order?.opened_at]);
-
-  const getStatusColor = () => {
-    switch (table.status) {
-      case "available":
-        return "border-accent bg-accent/10 hover:bg-accent/20";
-      case "occupied":
-        return "border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90";
-      case "dirty":
-        return "border-orange-500 bg-orange-50 hover:bg-orange-100";
-      default:
-        return "border-border hover:bg-muted/50";
-    }
-  };
-
-  const getStatusLabel = () => {
-    switch (table.status) {
-      case "available":
-        return "Disponible";
-      case "occupied":
-        return "Ocupada";
-      case "dirty":
-        return "Sucia";
-      default:
-        return table.status;
-    }
-  };
+  }, [isOccupied, order?.opened_at]);
 
   return (
     <Card
-      className={`cursor-pointer transition-all ${getStatusColor()} ${
-        isSelected ? "ring-2 ring-primary" : ""
-      }`}
       onClick={onClick}
+      className={`
+        cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-105
+        ${isSelected ? 'ring-2 ring-primary ring-offset-2' : ''}
+        ${isOccupied 
+          ? 'bg-red-500 hover:bg-red-600 text-white border-red-600' 
+          : 'bg-green-500 hover:bg-green-600 text-white border-green-600'
+        }
+      `}
     >
       <div className="p-4 space-y-3">
-        {/* Table Info */}
-        <div>
-          <h3 className="font-bold text-lg">{table.name}</h3>
-          {table.area && (
-            <p className="text-sm opacity-90">{table.area}</p>
-          )}
+        {/* Header: Nombre y Zona */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-lg">{table.name}</h3>
+            {table.area && (
+              <Badge variant="secondary" className="bg-white/20 text-white border-white/30 text-xs">
+                <MapPin className="h-3 w-3 mr-1" />
+                {table.area}
+              </Badge>
+            )}
+          </div>
         </div>
 
-        {/* Status Badge */}
+        {/* Estado */}
         <div className="flex items-center justify-between">
-          <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-            table.status === "available" 
-              ? "bg-accent text-accent-foreground"
-              : table.status === "occupied"
-              ? "bg-white/20 text-white"
-              : "bg-orange-200 text-orange-800"
-          }`}>
-            {getStatusLabel()}
-          </span>
-          <div className="flex items-center gap-1 text-sm opacity-90">
-            <Users className="h-3.5 w-3.5" />
+          <Badge 
+            variant={isOccupied ? "destructive" : "default"}
+            className={`
+              ${isOccupied 
+                ? 'bg-red-700 hover:bg-red-800 text-white' 
+                : 'bg-green-700 hover:bg-green-800 text-white'
+              }
+            `}
+          >
+            {isOccupied ? "Ocupada" : "Disponible"}
+          </Badge>
+          
+          <div className="flex items-center gap-1 text-sm font-medium">
+            <Users className="h-4 w-4" />
             <span>{table.capacity}</span>
           </div>
         </div>
 
-        {/* Timer for occupied tables */}
-        {table.status === "occupied" && table.current_order && (
+        {/* Timer - Solo si está ocupada */}
+        {isOccupied && order && (
           <div className="pt-2 border-t border-white/20">
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5" />
-                <span className="font-mono font-bold">{elapsedTime}</span>
-              </div>
-              {table.current_order.total && (
-                <span className="font-bold">
-                  ${Number(table.current_order.total || 0).toFixed(2)}
-                </span>
-              )}
+            <div className="flex items-center justify-center gap-2 text-sm font-mono">
+              <Clock className="h-4 w-4" />
+              <span className="font-semibold tabular-nums">{elapsedTime || "00:00:00"}</span>
             </div>
+          </div>
+        )}
+
+        {/* Info adicional si está disponible */}
+        {!isOccupied && (
+          <div className="pt-2 border-t border-white/20">
+            <p className="text-center text-sm font-medium opacity-90">
+              Toca para abrir
+            </p>
           </div>
         )}
       </div>
