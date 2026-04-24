@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { tableService } from "@/services/tableService";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 // Helper function to format elapsed time
 function formatElapsedTime(dateString?: string) {
@@ -462,184 +463,219 @@ export function TableControlPanel({
   const pendingItemsCount = items.filter(i => i.status === "pending").length;
 
   return (
-    <div className="h-full flex flex-col bg-card border-l">
-      {/* Header */}
-      <div className="p-4 border-b bg-muted/30 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold">{table.table_number}</h2>
-              {table.area && (
-                <span className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground">
-                  {table.area}
-                </span>
+    <Sheet open={!!table} onOpenChange={onClose}>
+      <SheetContent 
+        side="right" 
+        className="w-full sm:w-[500px] md:w-[600px] p-0 flex flex-col overflow-hidden"
+      >
+        <SheetHeader className="px-4 sm:px-6 py-4 border-b flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <SheetTitle className="text-xl sm:text-2xl">Mesa {table?.table_number}</SheetTitle>
+              {table?.location && (
+                <Badge variant="outline" className="text-xs sm:text-sm">
+                  {table.location}
+                </Badge>
               )}
             </div>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-              <div className="flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5" />
-                <span>Abierta hace {formatElapsedTime(order?.opened_at)}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Users className="h-3.5 w-3.5" />
-                <span>{order?.guests_count || 0} personas</span>
-              </div>
-            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="h-8 w-8 sm:h-10 sm:w-10"
+            >
+              <X className="h-4 w-4 sm:h-5 sm:w-5" />
+            </Button>
           </div>
-        </div>
-        <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0 h-8 w-8 rounded-full hover:bg-destructive hover:text-destructive-foreground transition-colors">
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
 
-      {/* Content */}
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-6">
-          {/* Waiter Assignment */}
           {order && (
-            <div className="space-y-2">
-              <Label>Mesero Asignado</Label>
-              <Select value={selectedWaiter} onValueChange={handleChangeWaiter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar mesero" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.map((emp) => (
-                    <SelectItem key={emp.id} value={emp.id}>
-                      {emp.user?.full_name || emp.user?.email || 'Sin nombre'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground mt-2">
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Abierta hace {getElapsedTime(order.created_at)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>{guestsCount} {guestsCount === 1 ? "persona" : "personas"}</span>
+              </div>
             </div>
           )}
+        </SheetHeader>
 
-          <Separator />
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6">
+          {/* Mesero Asignado */}
+          <div className="mb-4 sm:mb-6">
+            <label className="text-sm font-medium mb-2 block">Mesero Asignado</label>
+            <Select value={selectedWaiter} onValueChange={setSelectedWaiter}>
+              <SelectTrigger className="h-10 sm:h-11">
+                <SelectValue placeholder="Seleccionar mesero" />
+              </SelectTrigger>
+              <SelectContent>
+                {employees.map((emp) => (
+                  <SelectItem key={emp.id} value={emp.id}>
+                    {emp.full_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-          {/* Order Items */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold">Items de la Orden</h3>
-              <Button size="sm" onClick={handleAddProduct}>
-                <Plus className="h-4 w-4 mr-2" />
+          {/* Items de la Orden */}
+          <div className="mb-4 sm:mb-6">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="font-semibold text-base sm:text-lg">Items de la Orden</h3>
+              <Button onClick={handleAddProduct} size="sm" className="h-8 sm:h-9 text-xs sm:text-sm">
+                <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                 Agregar Producto
               </Button>
             </div>
 
             {items.length === 0 ? (
-              <Card className="p-6 text-center">
-                <ShoppingCart className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">
-                  No hay productos en esta orden
-                </p>
-              </Card>
+              <div className="text-center py-6 sm:py-8 text-sm sm:text-base text-muted-foreground bg-muted/30 rounded-lg">
+                No hay productos en la orden
+              </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 {items.map((item) => (
-                  <Card key={item.id}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium truncate">{item.product_name}</p>
-                            {getStatusBadge(item.status)}
-                          </div>
-                          {item.variant_name && (
-                            <p className="text-xs text-muted-foreground">{item.variant_name}</p>
-                          )}
-                          {item.notes && (
-                            <p className="text-xs text-muted-foreground italic mt-1">{item.notes}</p>
-                          )}
-                          <div className="flex items-center gap-3 mt-2">
-                            <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-2 py-1">
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6"
-                                onClick={() => handleUpdateQuantity(item.id, -1)}
-                                disabled={item.status !== "pending"}
-                              >
-                                <Minus className="h-3 w-3" />
-                              </Button>
-                              <span className="text-sm font-medium min-w-[20px] text-center">
-                                {item.quantity}
-                              </span>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6"
-                                onClick={() => handleUpdateQuantity(item.id, 1)}
-                                disabled={item.status !== "pending"}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
-                            </div>
-                            <p className="text-sm font-semibold">
-                              ${(Number(item.total) || 0).toFixed(2)}
-                            </p>
-                          </div>
-                        </div>
-                        {item.status === "pending" && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => handleRemoveItem(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                  <div
+                    key={item.id}
+                    className="border rounded-lg p-3 sm:p-4 bg-card"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-sm sm:text-base truncate">
+                          {item.product_name}
+                        </h4>
+                        {item.variant_name && (
+                          <p className="text-xs sm:text-sm text-muted-foreground">
+                            {item.variant_name}
+                          </p>
+                        )}
+                        {item.notes && (
+                          <p className="text-xs text-muted-foreground italic mt-1 line-clamp-2">
+                            {item.notes}
+                          </p>
                         )}
                       </div>
-                    </CardContent>
-                  </Card>
+                      <Badge
+                        variant={
+                          item.status === "pending"
+                            ? "secondary"
+                            : item.status === "sent_to_kitchen"
+                            ? "default"
+                            : "outline"
+                        }
+                        className="ml-2 text-xs shrink-0"
+                      >
+                        {item.status === "pending"
+                          ? "Pendiente"
+                          : item.status === "sent_to_kitchen"
+                          ? "En Cocina"
+                          : "Servido"}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 sm:gap-3">
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7 sm:h-8 sm:w-8"
+                          onClick={() => handleUpdateQuantity(item.id, -1)}
+                          disabled={item.quantity <= 1}
+                        >
+                          <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
+                        </Button>
+                        <span className="w-8 sm:w-10 text-center font-medium text-sm sm:text-base">
+                          {item.quantity}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7 sm:h-8 sm:w-8"
+                          onClick={() => handleUpdateQuantity(item.id, 1)}
+                        >
+                          <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                        </Button>
+                      </div>
+
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <span className="font-bold text-sm sm:text-base">
+                          ${(item.total || 0).toFixed(2)}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 sm:h-8 sm:w-8 text-destructive hover:text-destructive"
+                          onClick={() => handleRemoveItem(item.id)}
+                        >
+                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
           </div>
+
+          {/* Total */}
+          {items.length > 0 && (
+            <div className="border-t pt-3 sm:pt-4 mb-4 sm:mb-6">
+              <div className="flex justify-between items-center text-base sm:text-lg font-bold">
+                <span>Total:</span>
+                <span className="text-lg sm:text-2xl text-accent">
+                  ${items.reduce((sum, item) => sum + (item.total || 0), 0).toFixed(2)}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Footer Actions */}
+          <div className="space-y-2 sm:space-y-3">
+            {/* Primera fila - Acciones secundarias */}
+            <div className="flex gap-2 sm:gap-3">
+              <Button
+                variant="outline"
+                onClick={handleSendToKitchen}
+                disabled={pendingItems.length === 0}
+                className="flex-1 h-10 sm:h-11 text-xs sm:text-sm"
+              >
+                <Send className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Enviar a Cocina</span>
+                <span className="sm:hidden">Cocina</span>
+                {pendingItems.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
+                    {pendingItems.length}
+                  </Badge>
+                )}
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={handlePrintAccount}
+                disabled={items.length === 0}
+                className="flex-1 h-10 sm:h-11 text-xs sm:text-sm"
+              >
+                <Printer className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Imprimir Cuenta</span>
+                <span className="sm:hidden">Cuenta</span>
+              </Button>
+            </div>
+
+            {/* Segunda fila - Acción principal */}
+            <Button
+              onClick={() => onProceedToCheckout(order)}
+              disabled={items.length === 0}
+              size="lg"
+              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground h-12 sm:h-14 text-base sm:text-lg font-semibold"
+            >
+              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+              Cobrar Mesa
+            </Button>
+          </div>
         </div>
-      </ScrollArea>
-
-      {/* Footer Actions */}
-      <div className="mt-6 space-y-3">
-        {/* Primera fila - Acciones secundarias */}
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            onClick={handleSendToKitchen}
-            disabled={pendingItemsCount === 0}
-            className="flex-1"
-          >
-            <Send className="h-4 w-4 mr-2" />
-            Enviar a Cocina
-            {pendingItemsCount > 0 && (
-              <Badge variant="secondary" className="ml-2">
-                {pendingItemsCount}
-              </Badge>
-            )}
-          </Button>
-
-          <Button
-            variant="outline"
-            onClick={handlePrintAccount}
-            disabled={items.length === 0}
-            className="flex-1"
-          >
-            <Printer className="h-4 w-4 mr-2" />
-            Imprimir Cuenta
-          </Button>
-        </div>
-
-        {/* Segunda fila - Acción principal */}
-        <Button
-          onClick={() => onProceedToCheckout(order)}
-          disabled={items.length === 0}
-          size="lg"
-          className="w-full bg-accent hover:bg-accent/90 text-accent-foreground h-14 text-lg font-semibold"
-        >
-          <DollarSign className="h-5 w-5 mr-2" />
-          Cobrar Mesa
-        </Button>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }

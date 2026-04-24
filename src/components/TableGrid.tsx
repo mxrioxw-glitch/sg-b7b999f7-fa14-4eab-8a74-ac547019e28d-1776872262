@@ -1,125 +1,118 @@
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Clock, MapPin } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Clock, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface TableGridProps {
   tables: any[];
   onTableClick: (table: any) => void;
-  selectedTableId?: string;
 }
 
-export function TableGrid({ tables, onTableClick, selectedTableId }: TableGridProps) {
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-      {tables.map((table) => (
-        <TableCard 
-          key={table.id} 
-          table={table} 
-          onClick={() => onTableClick(table)} 
-          isSelected={selectedTableId === table.id}
-        />
-      ))}
-    </div>
-  );
-}
+export function TableGrid({ tables, onTableClick }: TableGridProps) {
+  const getTableStatus = (table: any) => {
+    if (table.table_orders?.[0]?.status === "occupied") return "occupied";
+    if (table.status === "dirty") return "dirty";
+    return "available";
+  };
 
-function TableCard({ table, onClick, isSelected }: { table: any; onClick: () => void; isSelected?: boolean }) {
-  const [elapsedTime, setElapsedTime] = useState("");
-  const isOccupied = table.status === "occupied";
-  const order = table.table_orders?.[0];
-
-  useEffect(() => {
-    if (!isOccupied || !order?.opened_at) {
-      setElapsedTime("");
-      return;
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "available":
+        return "bg-accent/10 hover:bg-accent/20 border-accent/30 text-accent-foreground";
+      case "occupied":
+        return "bg-destructive/10 hover:bg-destructive/20 border-destructive/30 text-destructive-foreground";
+      case "dirty":
+        return "bg-yellow-500/10 hover:bg-yellow-500/20 border-yellow-500/30 text-yellow-700";
+      default:
+        return "bg-muted hover:bg-muted/80";
     }
+  };
 
-    const updateTimer = () => {
-      const start = new Date(order.opened_at);
-      const now = new Date();
-      const diffMs = now.getTime() - start.getTime();
-      
-      const hours = Math.floor(diffMs / (1000 * 60 * 60));
-      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
-      
-      const h = hours.toString().padStart(2, '0');
-      const m = minutes.toString().padStart(2, '0');
-      const s = seconds.toString().padStart(2, '0');
-      
-      setElapsedTime(`${h}:${m}:${s}`);
-    };
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "available":
+        return "Disponible";
+      case "occupied":
+        return "Ocupada";
+      case "dirty":
+        return "Sucia";
+      default:
+        return "";
+    }
+  };
 
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
+  const getElapsedTime = (createdAt: string) => {
+    const now = new Date();
+    const created = new Date(createdAt);
+    const diffMs = now.getTime() - created.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
 
-    return () => clearInterval(interval);
-  }, [isOccupied, order?.opened_at]);
+    if (diffMins < 60) {
+      return `${diffMins}m`;
+    }
+    const hours = Math.floor(diffMins / 60);
+    const mins = diffMins % 60;
+    return `${hours}h ${mins}m`;
+  };
 
   return (
-    <Card
-      onClick={onClick}
-      className={`
-        cursor-pointer transition-all duration-200 hover:shadow-xl hover:scale-[1.02]
-        ${isSelected ? 'ring-2 ring-primary ring-offset-2' : ''}
-        ${isOccupied 
-          ? 'bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-red-700' 
-          : 'bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border-green-700'
-        }
-      `}
-    >
-      <div className="p-4 space-y-3">
-        {/* Header: Número de Mesa y Zona */}
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-bold text-xl leading-tight">{table.table_number}</h3>
-          {table.area && (
-            <Badge variant="secondary" className="bg-white/25 text-white border-white/40 text-xs px-2 py-0.5 backdrop-blur-sm shrink-0">
-              <MapPin className="h-3 w-3 mr-1" />
-              {table.area}
-            </Badge>
-          )}
-        </div>
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 p-3 sm:p-6">
+      {tables.map((table) => {
+        const status = getTableStatus(table);
+        const order = table.table_orders?.[0];
 
-        {/* Estado y Capacidad */}
-        <div className="flex items-center gap-2">
-          <Badge 
-            className={`
-              text-xs px-2.5 py-1
-              ${isOccupied 
-                ? 'bg-red-800/50 hover:bg-red-800/70 text-white border border-red-900/50 backdrop-blur-sm' 
-                : 'bg-green-800/50 hover:bg-green-800/70 text-white border border-green-900/50 backdrop-blur-sm'
-              }
-            `}
+        return (
+          <button
+            key={table.id}
+            onClick={() => onTableClick(table)}
+            className={cn(
+              "relative border-2 rounded-xl p-4 sm:p-6 transition-all",
+              "min-h-[120px] sm:min-h-[140px]",
+              "active:scale-95 touch-manipulation",
+              "flex flex-col items-center justify-center gap-2 sm:gap-3",
+              getStatusColor(status)
+            )}
           >
-            {isOccupied ? "Ocupada" : "Disponible"}
-          </Badge>
-          
-          <div className="flex items-center gap-1.5 text-sm font-semibold bg-white/20 rounded-full px-2.5 py-1 backdrop-blur-sm">
-            <Users className="h-3.5 w-3.5" />
-            <span>{table.capacity}</span>
-          </div>
-        </div>
-
-        {/* Timer - Solo si está ocupada */}
-        {isOccupied && order && (
-          <div className="pt-2 border-t border-white/30">
-            <div className="flex items-center justify-center gap-2 bg-black/20 rounded-lg p-2 backdrop-blur-sm">
-              <Clock className="h-4 w-4" />
-              <span className="font-bold text-base font-mono tabular-nums tracking-wider">{elapsedTime || "00:00:00"}</span>
+            {/* Table Number */}
+            <div className="text-2xl sm:text-3xl font-bold">
+              Mesa {table.table_number}
             </div>
-          </div>
-        )}
 
-        {/* Info adicional si está disponible */}
-        {!isOccupied && (
-          <div className="pt-2 border-t border-white/30">
-            <div className="bg-white/20 rounded-lg p-2 text-center backdrop-blur-sm">
-              <p className="text-sm font-semibold">Toca para abrir</p>
-            </div>
-          </div>
-        )}
-      </div>
-    </Card>
+            {/* Status Badge */}
+            <Badge
+              variant={status === "available" ? "default" : "secondary"}
+              className="text-xs sm:text-sm"
+            >
+              {getStatusLabel(status)}
+            </Badge>
+
+            {/* Table Info */}
+            {status === "occupied" && order && (
+              <div className="flex flex-col items-center gap-1 text-xs sm:text-sm text-muted-foreground mt-2">
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="font-medium">{getElapsedTime(order.created_at)}</span>
+                </div>
+                {order.guests_count > 0 && (
+                  <div className="flex items-center gap-1">
+                    <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span>{order.guests_count}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Location Badge */}
+            {table.location && (
+              <Badge
+                variant="outline"
+                className="absolute top-2 right-2 text-xs"
+              >
+                {table.location}
+              </Badge>
+            )}
+          </button>
+        );
+      })}
+    </div>
   );
 }

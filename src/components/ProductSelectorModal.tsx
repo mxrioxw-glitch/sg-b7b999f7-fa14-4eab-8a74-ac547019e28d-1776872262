@@ -120,13 +120,13 @@ export function ProductSelectorModal({
     <>
       <Sheet open={isOpen} onOpenChange={(open) => !open && !isSaving && handleClose()}>
         <SheetContent side="bottom" className="h-[95vh] p-0 flex flex-col">
-          <div className="flex h-full">
+          <div className="flex flex-col sm:flex-row h-full">
             {/* Left Sidebar - Added Products */}
-            <div className="w-80 border-r flex flex-col bg-muted/30">
-              <div className="px-4 py-4 border-b bg-background">
-                <h3 className="font-semibold text-lg mb-1">Productos Seleccionados</h3>
+            <div className="w-full sm:w-80 border-b sm:border-b-0 sm:border-r flex flex-col bg-muted/30 max-h-[30vh] sm:max-h-full">
+              <div className="px-3 sm:px-4 py-3 sm:py-4 border-b bg-background">
+                <h3 className="font-semibold text-base sm:text-lg mb-1">Productos Seleccionados</h3>
                 {addedProducts.length > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
                     <span>{totalProducts} {totalProducts === 1 ? 'producto' : 'productos'}</span>
                     <span>•</span>
                     <span className="font-semibold text-foreground">${totalAmount.toFixed(2)}</span>
@@ -137,10 +137,10 @@ export function ProductSelectorModal({
                 </p>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4">
+              <div className="flex-1 overflow-y-auto p-3 sm:p-4">
                 {addedProducts.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-sm text-muted-foreground">
+                  <div className="text-center py-4 sm:py-8">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       Aún no has seleccionado productos
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -152,23 +152,23 @@ export function ProductSelectorModal({
                     {addedProducts.map((item) => (
                       <div
                         key={item.id}
-                        className="bg-background border rounded-lg p-3"
+                        className="bg-background border rounded-lg p-2 sm:p-3"
                       >
                         <div className="flex items-start justify-between mb-1">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-sm">{item.product.name}</h4>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-xs sm:text-sm truncate">{item.product.name}</h4>
                             {item.variant && (
                               <p className="text-xs text-muted-foreground">
                                 {item.variant.name}
                               </p>
                             )}
                             {item.extras && item.extras.length > 0 && (
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-muted-foreground truncate">
                                 +{item.extras.map(e => e.name).join(', ')}
                               </p>
                             )}
                             {item.notes && (
-                              <p className="text-xs text-muted-foreground italic">
+                              <p className="text-xs text-muted-foreground italic truncate">
                                 "{item.notes}"
                               </p>
                             )}
@@ -176,15 +176,15 @@ export function ProductSelectorModal({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            className="h-6 w-6 sm:h-7 sm:w-7 text-destructive hover:text-destructive shrink-0"
                             onClick={() => handleRemoveProduct(item.id)}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
                         </div>
-                        <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center justify-between text-xs sm:text-sm">
                           <span className="text-muted-foreground">
-                            Cantidad: {item.quantity}
+                            Cant: {item.quantity}
                           </span>
                           <span className="font-semibold">
                             ${(item.displayPrice * item.quantity).toFixed(2)}
@@ -198,24 +198,24 @@ export function ProductSelectorModal({
             </div>
 
             {/* Right Side - Product Selection */}
-            <div className="flex-1 flex flex-col">
-              <SheetHeader className="px-6 py-4 border-b flex-shrink-0">
+            <div className="flex-1 flex flex-col min-h-0">
+              <SheetHeader className="px-3 sm:px-6 py-3 sm:py-4 border-b flex-shrink-0">
                 <div className="flex items-center justify-between">
-                  <SheetTitle className="text-2xl">Seleccionar Platillo</SheetTitle>
+                  <SheetTitle className="text-lg sm:text-2xl">Seleccionar Platillo</SheetTitle>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={handleClose}
-                    className="h-8 w-8"
+                    className="h-7 w-7 sm:h-8 sm:w-8"
                     disabled={isSaving}
                   >
-                    <X className="h-5 w-5" />
+                    <X className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 </div>
 
                 {addedProducts.length > 0 && (
                   <div className="flex items-center gap-2 mt-2">
-                    <Badge variant="default" className="bg-accent text-accent-foreground">
+                    <Badge variant="default" className="bg-accent text-accent-foreground text-xs sm:text-sm">
                       <Check className="h-3 w-3 mr-1" />
                       {totalProducts} {totalProducts === 1 ? "producto seleccionado" : "productos seleccionados"}
                     </Badge>
@@ -223,22 +223,23 @@ export function ProductSelectorModal({
                 )}
 
                 {/* Search */}
-                <div className="relative mt-4">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="relative mt-3 sm:mt-4">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                   <Input
                     placeholder="Buscar platillos, bebidas, postres..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
+                    className="pl-9 sm:pl-10 h-9 sm:h-10 text-sm sm:text-base"
                   />
                 </div>
 
                 {/* Categories */}
-                <div className="flex gap-2 overflow-x-auto pb-2 mt-4">
+                <div className="flex gap-2 overflow-x-auto pb-2 mt-3 sm:mt-4 -mx-1 px-1">
                   <Button
                     variant={selectedCategory === null ? "default" : "outline"}
                     size="sm"
                     onClick={() => setSelectedCategory(null)}
+                    className="text-xs sm:text-sm h-8 sm:h-9 shrink-0"
                   >
                     Todas
                   </Button>
@@ -248,7 +249,7 @@ export function ProductSelectorModal({
                       variant={selectedCategory === cat.id ? "default" : "outline"}
                       size="sm"
                       onClick={() => setSelectedCategory(cat.id)}
-                      className="whitespace-nowrap"
+                      className="whitespace-nowrap text-xs sm:text-sm h-8 sm:h-9 shrink-0"
                     >
                       {cat.name}
                     </Button>
@@ -257,48 +258,58 @@ export function ProductSelectorModal({
               </SheetHeader>
 
               {/* Products Grid */}
-              <div className="flex-1 overflow-y-auto px-6 py-4">
+              <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-3 sm:py-4">
                 {filteredProducts.length === 0 ? (
-                  <div className="text-center py-12">
-                    <p className="text-muted-foreground">No se encontraron productos</p>
+                  <div className="text-center py-8 sm:py-12">
+                    <p className="text-sm sm:text-base text-muted-foreground">No se encontraron productos</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4">
                     {filteredProducts.map((product) => {
-                      // Obtener el precio correcto - probar múltiples campos
-                      let basePrice = 0;
+                      // Lógica inteligente de precio:
+                      let displayPrice = 0;
                       
-                      if (product.variants && product.variants.length > 0) {
-                        // Si tiene variantes, usar el precio de la primera variante
-                        basePrice = product.variants[0].price || product.variants[0].base_price || 0;
+                      if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+                        const variantPrices = product.variants
+                          .map((v: any) => {
+                            const basePrice = Number(product.base_price || 0);
+                            const modifier = Number(v.price_modifier || 0);
+                            return basePrice + modifier;
+                          })
+                          .filter((p: number) => p > 0);
+                        
+                        if (variantPrices.length > 0) {
+                          displayPrice = Math.min(...variantPrices);
+                        } else {
+                          displayPrice = Number(product.base_price || 0);
+                        }
                       } else {
-                        // Si no tiene variantes, usar el precio base del producto
-                        basePrice = product.base_price || product.price || 0;
+                        displayPrice = Number(product.base_price || 0);
                       }
                       
                       return (
                         <button
                           key={product.id}
                           onClick={() => handleProductClick(product)}
-                          className="group relative bg-card border rounded-lg overflow-hidden hover:border-accent transition-all hover:shadow-lg"
+                          className="group relative bg-card border rounded-lg overflow-hidden hover:border-accent transition-all hover:shadow-lg active:scale-95 touch-manipulation"
                         >
                           {product.image_url ? (
                             <img
                               src={product.image_url}
                               alt={product.name}
-                              className="w-full h-32 object-cover"
+                              className="w-full h-24 sm:h-32 object-cover"
                             />
                           ) : (
-                            <div className="w-full h-32 bg-muted flex items-center justify-center">
-                              <span className="text-4xl">🍽️</span>
+                            <div className="w-full h-24 sm:h-32 bg-muted flex items-center justify-center">
+                              <span className="text-2xl sm:text-4xl">🍽️</span>
                             </div>
                           )}
-                          <div className="p-3">
-                            <h3 className="font-medium text-sm line-clamp-2 mb-1">
+                          <div className="p-2 sm:p-3">
+                            <h3 className="font-medium text-xs sm:text-sm line-clamp-2 mb-1">
                               {product.name}
                             </h3>
-                            <p className="text-lg font-bold text-accent">
-                              ${Number(basePrice).toFixed(2)}
+                            <p className="text-base sm:text-lg font-bold text-accent">
+                              ${displayPrice.toFixed(2)}
                             </p>
                           </div>
                         </button>
@@ -308,11 +319,11 @@ export function ProductSelectorModal({
                 )}
               </div>
 
-              <SheetFooter className="px-6 py-4 border-t flex-shrink-0">
+              <SheetFooter className="px-3 sm:px-6 py-3 sm:py-4 border-t flex-shrink-0">
                 <Button
                   onClick={handleContinue}
                   size="lg"
-                  className="w-full"
+                  className="w-full h-11 sm:h-12 text-sm sm:text-base"
                   disabled={addedProducts.length === 0 || isSaving}
                 >
                   {isSaving 

@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Users, DollarSign, Clock, RefreshCw, Settings } from "lucide-react";
+import { Plus, Search, Users, DollarSign, Clock, RefreshCw, Settings, RotateCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { requireActiveSubscription } from "@/middleware/subscription";
 import { tableService } from "@/services/tableService";
@@ -314,29 +314,45 @@ export default function ComedorPage() {
             <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
               <div className="max-w-7xl mx-auto space-y-6">
                 {/* Header */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h1 className="font-heading text-3xl md:text-4xl font-bold">
-                      Gestión de Comedor
-                    </h1>
-                    <p className="text-base text-muted-foreground mt-1">
-                      Control de mesas y órdenes en tiempo real
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={loadInitialData}
-                      disabled={isLoading}
-                    >
-                      <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-                    </Button>
-                    <Button onClick={() => setShowCreateTableModal(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Nueva Mesa
-                    </Button>
-                  </div>
+                <div className="min-h-screen bg-background">
+                  <Header />
+
+                  <main className="container mx-auto py-4 sm:py-6 px-3 sm:px-4">
+                    {/* Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+                      <div>
+                        <h1 className="text-2xl sm:text-3xl font-bold">Gestión de Comedor</h1>
+                        <p className="text-sm sm:text-base text-muted-foreground mt-1">
+                          Administra mesas, toma pedidos y gestiona el servicio
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={loadInitialData}
+                          disabled={isLoading}
+                          className="h-9 sm:h-10 text-xs sm:text-sm"
+                        >
+                          <RotateCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 ${isLoading ? "animate-spin" : ""}`} />
+                          Actualizar
+                        </Button>
+
+                        <Select value="all" onValueChange={() => {}}>
+                          <SelectTrigger className="w-[140px] sm:w-[180px] h-9 sm:h-10 text-xs sm:text-sm">
+                            <SelectValue placeholder="Filtrar por estado" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todas las mesas</SelectItem>
+                            <SelectItem value="available">Disponibles</SelectItem>
+                            <SelectItem value="occupied">Ocupadas</SelectItem>
+                            <SelectItem value="dirty">Sucias</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </main>
                 </div>
 
                 {/* Stats */}
