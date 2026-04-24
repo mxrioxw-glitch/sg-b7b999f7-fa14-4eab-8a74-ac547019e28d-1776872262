@@ -263,35 +263,27 @@ export function TableControlPanel({
   const pendingItemsCount = items.filter(i => i.status === "pending").length;
 
   return (
-    <div className="h-full flex flex-col bg-card">
+    <div className="h-full flex flex-col bg-card border-l">
       {/* Header */}
-      <div className="p-4 border-b space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="p-4 border-b bg-muted/30 flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <div>
-            <h2 className="text-2xl font-bold font-heading">Mesa {table.table_number}</h2>
-            {table.area && (
-              <p className="text-sm text-muted-foreground">{table.area}</p>
-            )}
+            <h2 className="text-xl font-bold">{table.name}</h2>
+            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+              <div className="flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" />
+                <span>Abierta hace {formatElapsedTime(order?.opened_at)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Users className="h-3.5 w-3.5" />
+                <span>{order?.guests_count || 0} personas</span>
+              </div>
+            </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-5 w-5" />
-          </Button>
         </div>
-
-        {order && (
-          <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">
-                Abierta hace {Math.floor((new Date().getTime() - new Date(order.opened_at).getTime()) / 60000)}m
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">{order.guests_count} personas</span>
-            </div>
-          </div>
-        )}
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X className="h-5 w-5" />
+        </Button>
       </div>
 
       {/* Content */}

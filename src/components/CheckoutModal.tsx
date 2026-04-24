@@ -223,57 +223,23 @@ export function CheckoutModal({
 
             <Separator />
 
-            {/* Payment Method */}
+            {/* Payment Method Selection */}
             <div className="space-y-3">
-              <Label className="text-base font-semibold">Método de Pago</Label>
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-                <div className="grid grid-cols-3 gap-3">
-                  <div
-                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      paymentMethod === "cash"
-                        ? "border-accent bg-accent/5"
-                        : "border-border hover:border-accent/50"
-                    }`}
-                    onClick={() => setPaymentMethod("cash")}
+              <h3 className="font-semibold">Método de Pago</h3>
+              <div className="grid grid-cols-3 gap-3">
+                {paymentMethods.map((method) => (
+                  <Button
+                    key={method.id}
+                    type="button"
+                    variant={selectedPaymentMethod === method.id ? "default" : "outline"}
+                    className="h-auto py-4 flex flex-col items-center gap-2"
+                    onClick={() => setSelectedPaymentMethod(method.id)}
                   >
-                    <RadioGroupItem value="cash" id="cash" className="sr-only" />
-                    <div className="text-center">
-                      <DollarSign className="h-8 w-8 mx-auto mb-2" />
-                      <Label htmlFor="cash" className="cursor-pointer">Efectivo</Label>
-                    </div>
-                  </div>
-
-                  <div
-                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      paymentMethod === "card"
-                        ? "border-accent bg-accent/5"
-                        : "border-border hover:border-accent/50"
-                    }`}
-                    onClick={() => setPaymentMethod("card")}
-                  >
-                    <RadioGroupItem value="card" id="card" className="sr-only" />
-                    <div className="text-center">
-                      <CreditCard className="h-8 w-8 mx-auto mb-2" />
-                      <Label htmlFor="card" className="cursor-pointer">Tarjeta</Label>
-                    </div>
-                  </div>
-
-                  <div
-                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      paymentMethod === "transfer"
-                        ? "border-accent bg-accent/5"
-                        : "border-border hover:border-accent/50"
-                    }`}
-                    onClick={() => setPaymentMethod("transfer")}
-                  >
-                    <RadioGroupItem value="transfer" id="transfer" className="sr-only" />
-                    <div className="text-center">
-                      <Wallet className="h-8 w-8 mx-auto mb-2" />
-                      <Label htmlFor="transfer" className="cursor-pointer">Transfer</Label>
-                    </div>
-                  </div>
-                </div>
-              </RadioGroup>
+                    <span className="text-2xl">{getPaymentIcon(method.name)}</span>
+                    <span className="text-sm">{method.name}</span>
+                  </Button>
+                ))}
+              </div>
             </div>
 
             {/* Cash Input */}

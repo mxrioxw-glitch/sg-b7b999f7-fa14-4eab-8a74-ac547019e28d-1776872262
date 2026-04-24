@@ -27,44 +27,42 @@ function TableCard({ table, onClick, isSelected }: { table: any; onClick: () => 
   const [elapsedTime, setElapsedTime] = useState("");
 
   useEffect(() => {
-    if (table.status !== "occupied" || !table.active_order?.opened_at) {
+    if (table.status !== "occupied" || !table.current_order?.opened_at) {
+      setElapsedTime("");
       return;
     }
 
     const updateTimer = () => {
+      const openedAt = new Date(table.current_order.opened_at);
       const now = new Date();
-      const openedAt = new Date(table.active_order.opened_at);
       const diffMs = now.getTime() - openedAt.getTime();
       
       const hours = Math.floor(diffMs / (1000 * 60 * 60));
       const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
       
-      setElapsedTime(
-        `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
-      );
+      setElapsedTime(`${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`);
     };
 
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
-
     return () => clearInterval(interval);
-  }, [table.status, table.active_order?.opened_at]);
+  }, [table.status, table.current_order?.opened_at]);
 
   const getStatusColor = () => {
     switch (table.status) {
       case "available":
-        return "bg-card hover:bg-accent/10 border-border";
+        return "border-accent bg-accent/10 hover:bg-accent/20";
       case "occupied":
-        return "bg-red-500 hover:bg-red-600 border-red-600 text-white";
+        return "border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90";
       case "dirty":
-        return "bg-yellow-500 hover:bg-yellow-600 border-yellow-600 text-white";
+        return "border-orange-500 bg-orange-50 hover:bg-orange-100";
       default:
-        return "bg-card hover:bg-accent/10 border-border";
+        return "border-border hover:bg-muted/50";
     }
   };
 
-  const getStatusText = () => {
+  const getStatusLabel = () => {
     switch (table.status) {
       case "available":
         return "Disponible";
@@ -73,49 +71,56 @@ function TableCard({ table, onClick, isSelected }: { table: any; onClick: () => 
       case "dirty":
         return "Sucia";
       default:
-        return "Disponible";
+        return table.status;
     }
   };
 
-  const order = table.active_order;
-
   return (
     <Card
-      className={`cursor-pointer transition-all hover:shadow-lg border-2 ${getStatusColor()}`}
+      className={`cursor-pointer transition-all ${getStatusColor()} ${
+        isSelected ? "ring-2 ring-primary" : ""
+      }`}
       onClick={onClick}
     >
       <div className="p-4 space-y-3">
+        {/* Table Info */}
+        <div>
+          <h3 className="font-bold text-lg">{table.name}</h3>
+          {table.area && (
+            <p className="text-sm opacity-90">{table.area}</p>
+          )}
+        </div>
+
+        {/* Status Badge */}
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold">{table.name}</h3>
-          <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+          <span className={`text-xs px-2 py-1 rounded-full font-medium ${
             table.status === "available" 
-              ? "bg-green-100 text-green-800" 
+              ? "bg-accent text-accent-foreground"
               : table.status === "occupied"
               ? "bg-white/20 text-white"
-              : "bg-white/20 text-white"
+              : "bg-orange-200 text-orange-800"
           }`}>
-            {getStatusText()}
+            {getStatusLabel()}
+          </span>
+          <div className="flex items-center gap-1 text-sm opacity-90">
+            <Users className="h-3.5 w-3.5" />
+            <span>{table.capacity}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-sm">
-          <Users className="h-4 w-4" />
-          <span>Capacidad: {table.capacity}</span>
-        </div>
-
-        {table.status === "occupied" && order && (
-          <div className="space-y-2 pt-2 border-t border-white/20">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              <span className="font-mono font-bold text-lg">{elapsedTime}</span>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm opacity-90">
-                {order.assigned_waiter?.user?.full_name || "Sin mesero"}
-              </p>
-              <p className="text-lg font-bold">
-                ${Number(order.total || 0).toFixed(2)}
-              </p>
+        {/* Timer for occupied tables */}
+        {table.status === "occupied" && table.current_order && (
+          <div className="pt-2 border-t border-white/20">
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" />
+                <span className="font-mono font-bold">{elapsedTime}</span>
+              </div>
+              {table.current_order.total && (
+                <span className="font-bold">
+                  ${Number(table.current_order.total || 0).toFixed(2)}
+                </span>
+              )}
             </div>
           </div>
         )}
