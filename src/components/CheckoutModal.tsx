@@ -1,28 +1,18 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  DollarSign, 
-  CreditCard, 
-  Wallet, 
-  Users,
-  Check,
-  X,
-  Calculator,
-  Banknote
-} from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DollarSign, CreditCard, Wallet, Banknote, Receipt, TrendingUp, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { tableService } from "@/services/tableService";
-import { saleService } from "@/services/saleService";
-import { businessService } from "@/services/businessService";
-import { authService } from "@/services/authService";
+import { cn } from "@/lib/utils";
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -33,45 +23,100 @@ interface CheckoutModalProps {
   paymentMethods?: any[];
 }
 
-export function CheckoutModal({ isOpen, onClose, onComplete, tableOrder, table, paymentMethods = [] }: CheckoutModalProps) {
+export function CheckoutModal({ 
+  isOpen, 
+  onClose, 
+  onComplete, 
+  tableOrder, 
+  table, 
+  paymentMethods = [] 
+}: CheckoutModalProps) {
   const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [splitMode, setSplitMode] = useState<"full" | "equal" | "items">("full");
-  const [splitCount, setSplitCount] = useState(2);
-  const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [cashReceived, setCashReceived] = useState("");
+  const [splitType, setSplitType] = useState("full");
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [customTip, setCustomTip] = useState("");
+  const [selectedTipPercentage, setSelectedTipPercentage] = useState<number | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const items = tableOrder?.table_order_items || [];
-  const subtotal = Number(tableOrder?.subtotal || 0);
-  const taxAmount = Number(tableOrder?.tax_amount || 0);
-  const total = Number(tableOrder?.total || 0);
+  const order = tableOrder;
 
-  const splitAmount = splitMode === "equal" 
-    ? total / splitCount
-    : splitMode === "items"
-    ? items
+  useEffect(() => {
+    if (isOpen && paymentMethods.length > 0) {
+      setPaymentMethod(paymentMethods[0]?.name || "Efectivo");
+    }
+  }, [isOpen, paymentMethods]);
+
+  useEffect(() => {
+    if (selectedTipPercentage !== null) {
+      setCustomTip("");
+    }
+  }, [selectedTipPercentage]);
+
+  useEffect(() => {
+    if (customTip) {
+      setSelectedTipPercentage(null);
+    }
+  }, [customTip]);
+
+  if (!order) return null;
+
+  const items = order.table_order_items || [];
+  const orderSubtotal = Number(order.subtotal || 0);
+  const orderTax = Number(order.tax || 0);
+  const orderTotal = Number(order.total || 0);
+
+  // Calcular propina
+  const calculateTip = () => {
+    if (customTip) {
+      return Number(customTip) || 0;
+    }
+    if (selectedTipPercentage !== null) {
+      return orderSubtotal * (selectedTipPercentage / 100);
+    }
+    return 0;
+  };
+
+  const tipAmount = calculateTip();
+  const finalTotal = orderTotal + tipAmount;
+
+  // Calcular total para división
+  const calculateSplitTotal = () => {
+    if (splitType === "full") {
+      return finalTotal;
+    }
+    if (splitType === "equal") {
+      const people = 2; // Podría ser configurable
+      return finalTotal / people;
+    }
+    if (splitType === "items") {
+      const selectedTotal = items
         .filter((item: any) => selectedItems.includes(item.id))
-        .reduce((sum: number, item: any) => sum + Number(item.total), 0)
-    : total;
+        .reduce((sum: number, item: any) => sum + Number(item.total || 0), 0);
+      return selectedTotal;
+    }
+    return 0;
+  };
 
-  const change = paymentMethod === "cash" && cashReceived
-    ? Math.max(0, Number(cashReceived) - splitAmount)
-    : 0;
+  const handleTipSelect = (percentage: number) => {
+    setSelectedTipPercentage(percentage);
+    setCustomTip("");
+  };
 
-  function toggleItemSelection(itemId: string) {
-    setSelectedItems(prev =>
-      prev.includes(itemId)
-        ? prev.filter(id => id !== itemId)
-        : [...prev, itemId]
-    );
-  }
-
-  async function handleCheckout() {
-    if (paymentMethod === "cash" && Number(cashReceived) < splitAmount) {
+  const handleCheckout = async () => {
+    if (!paymentMethod) {
       toast({
-        title: "❌ Efectivo insuficiente",
-        description: `Se requieren $${splitAmount.toFixed(2)}`,
+        title: "❌ Método de pago requerido",
+        description: "Selecciona un método de pago",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (splitType === "items" && selectedItems.length === 0) {
+      toast({
+        title: "❌ Selecciona items",
+        description: "Debes seleccionar al menos un item",
         variant: "destructive",
       });
       return;
@@ -80,238 +125,321 @@ export function CheckoutModal({ isOpen, onClose, onComplete, tableOrder, table, 
     setIsProcessing(true);
 
     try {
-      const session = await authService.getCurrentSession();
-      if (!session?.user?.id) throw new Error("No session");
+      const amountToCharge = calculateSplitTotal();
 
-      const business = await businessService.getCurrentBusiness();
-      if (!business) throw new Error("Business not found");
+      if (splitType === "full") {
+        // Cobrar completo y cerrar mesa
+        await tableService.closeTable(table.id, {
+          total_amount: finalTotal,
+          payment_method: paymentMethod,
+          tip_amount: tipAmount,
+        });
 
-      // Preparar datos de la venta
-      const saleData = {
-        business_id: business.id,
-        employee_id: tableOrder.assigned_waiter_id,
-        customer_id: tableOrder.customer_id || null,
-        payment_method: paymentMethod,
-        subtotal: splitMode === "full" ? subtotal : splitAmount / 1.16,
-        tax_amount: splitMode === "full" ? taxAmount : splitAmount - (splitAmount / 1.16),
-        discount_amount: 0,
-        total: splitAmount,
-        status: "completed",
-        notes: `Mesa ${table.table_number} - ${splitMode === "equal" ? `${splitCount} partes` : splitMode === "items" ? "Items seleccionados" : "Total"}`,
-      };
+        toast({
+          title: "✅ Cobro exitoso",
+          description: `Mesa ${table.table_number} cerrada - Total: $${finalTotal.toFixed(2)}`,
+          className: "bg-accent text-accent-foreground",
+        });
 
-      // Cerrar mesa y crear venta
-      await tableService.closeTable(table.id, tableOrder.id, saleData);
-
-      toast({
-        title: "✅ Cobro exitoso",
-        description: `Mesa ${table.table_number} cobrada y liberada`,
-        className: "bg-accent text-accent-foreground",
-      });
-
-      onComplete();
+        onComplete();
+      } else {
+        // Cobro parcial
+        toast({
+          title: "✅ Cobro parcial",
+          description: `Cobrado: $${amountToCharge.toFixed(2)}`,
+          className: "bg-accent text-accent-foreground",
+        });
+        onClose();
+      }
     } catch (error: any) {
       console.error("Error processing checkout:", error);
       toast({
-        title: "❌ Error al cobrar",
+        title: "❌ Error",
         description: error.message || "No se pudo procesar el cobro",
         variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
     }
-  }
+  };
 
   const getPaymentIcon = (name: string) => {
     const n = name.toLowerCase();
-    if (n.includes("efectivo")) return <DollarSign className="h-6 w-6" />;
-    if (n.includes("tarjeta") || n.includes("débito") || n.includes("crédito")) return <CreditCard className="h-6 w-6" />;
-    if (n.includes("transferencia")) return <Banknote className="h-6 w-6" />;
-    return <Wallet className="h-6 w-6" />;
+    if (n.includes("efectivo")) return <DollarSign className="h-5 w-5" />;
+    if (n.includes("tarjeta") || n.includes("débito") || n.includes("crédito")) return <CreditCard className="h-5 w-5" />;
+    if (n.includes("transferencia")) return <Banknote className="h-5 w-5" />;
+    return <Wallet className="h-5 w-5" />;
   };
+
+  const tipOptions = [
+    { label: "10%", value: 10 },
+    { label: "15%", value: 15 },
+    { label: "20%", value: 20 },
+  ];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0">
+      <DialogContent className="max-w-2xl max-h-[90vh] p-0 gap-0">
         <DialogHeader className="p-6 pb-4">
-          <DialogTitle className="text-2xl">
-            Cobrar Mesa {table?.table_number}
+          <DialogTitle className="text-2xl font-bold">
+            Cobrar {table?.table_number}
           </DialogTitle>
         </DialogHeader>
 
         <ScrollArea className="flex-1 px-6">
           <div className="space-y-6 pb-6">
-            {/* Split Options */}
+            {/* Resumen de la cuenta */}
+            <Card className="bg-muted/30 border-2">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                  <Receipt className="h-4 w-4" />
+                  <span>Resumen de la cuenta</span>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Subtotal</span>
+                    <span className="font-medium">${orderSubtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>IVA (16%)</span>
+                    <span className="font-medium">${orderTax.toFixed(2)}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between font-semibold">
+                    <span>Total sin propina</span>
+                    <span>${orderTotal.toFixed(2)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Propinas */}
             <div className="space-y-3">
-              <Label className="text-base font-semibold">Tipo de Cobro</Label>
-              <RadioGroup value={splitMode} onValueChange={(v: any) => setSplitMode(v)}>
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer">
-                  <RadioGroupItem value="full" id="full" />
-                  <Label htmlFor="full" className="flex-1 cursor-pointer">
-                    Cuenta Completa
-                  </Label>
-                  <span className="font-bold">${total.toFixed(2)}</span>
-                </div>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-accent" />
+                <h3 className="font-semibold">Propina (opcional)</h3>
+              </div>
 
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer">
-                  <RadioGroupItem value="equal" id="equal" />
-                  <Label htmlFor="equal" className="flex-1 cursor-pointer">
-                    Dividir en Partes Iguales
-                  </Label>
-                  {splitMode === "equal" && (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        min={2}
-                        value={splitCount}
-                        onChange={(e) => setSplitCount(Number(e.target.value))}
-                        className="w-20 h-8"
-                      />
-                      <span className="text-sm text-muted-foreground">
-                        = ${splitAmount.toFixed(2)} c/u
+              <div className="grid grid-cols-4 gap-3">
+                {tipOptions.map((option) => (
+                  <Button
+                    key={option.value}
+                    type="button"
+                    variant={selectedTipPercentage === option.value ? "default" : "outline"}
+                    className={cn(
+                      "h-auto py-4 flex flex-col items-center gap-2 transition-all",
+                      selectedTipPercentage === option.value && "ring-2 ring-accent ring-offset-2"
+                    )}
+                    onClick={() => handleTipSelect(option.value)}
+                  >
+                    {selectedTipPercentage === option.value && (
+                      <Check className="h-4 w-4 absolute top-1 right-1" />
+                    )}
+                    <span className="text-lg font-bold">{option.label}</span>
+                    <span className="text-xs text-muted-foreground">
+                      ${(orderSubtotal * (option.value / 100)).toFixed(2)}
+                    </span>
+                  </Button>
+                ))}
+
+                <div className="relative">
+                  <Input
+                    type="number"
+                    placeholder="Otra"
+                    value={customTip}
+                    onChange={(e) => setCustomTip(e.target.value)}
+                    className="h-full text-center font-semibold"
+                  />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    $
+                  </span>
+                </div>
+              </div>
+
+              {tipAmount > 0 && (
+                <Card className="bg-accent/10 border-accent/20">
+                  <CardContent className="p-3 flex justify-between items-center">
+                    <span className="text-sm font-medium">Propina agregada</span>
+                    <span className="text-lg font-bold text-accent">
+                      +${tipAmount.toFixed(2)}
+                    </span>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Tipo de Cobro */}
+            <div className="space-y-3">
+              <h3 className="font-semibold">Tipo de Cobro</h3>
+              <RadioGroup value={splitType} onValueChange={setSplitType}>
+                <div className="space-y-2">
+                  <Card 
+                    className={cn(
+                      "cursor-pointer transition-all hover:border-accent",
+                      splitType === "full" && "border-accent border-2 bg-accent/5"
+                    )}
+                    onClick={() => setSplitType("full")}
+                  >
+                    <CardContent className="p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <RadioGroupItem value="full" id="full" />
+                        <Label htmlFor="full" className="font-medium cursor-pointer">
+                          Cuenta Completa
+                        </Label>
+                      </div>
+                      <span className="text-lg font-bold text-accent">
+                        ${finalTotal.toFixed(2)}
                       </span>
-                    </div>
-                  )}
-                </div>
+                    </CardContent>
+                  </Card>
 
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer">
-                  <RadioGroupItem value="items" id="items" />
-                  <Label htmlFor="items" className="flex-1 cursor-pointer">
-                    Seleccionar Items
-                  </Label>
+                  <Card 
+                    className={cn(
+                      "cursor-pointer transition-all hover:border-accent",
+                      splitType === "equal" && "border-accent border-2 bg-accent/5"
+                    )}
+                    onClick={() => setSplitType("equal")}
+                  >
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <RadioGroupItem value="equal" id="equal" />
+                      <Label htmlFor="equal" className="font-medium cursor-pointer flex-1">
+                        Dividir en Partes Iguales
+                      </Label>
+                    </CardContent>
+                  </Card>
+
+                  <Card 
+                    className={cn(
+                      "cursor-pointer transition-all hover:border-accent",
+                      splitType === "items" && "border-accent border-2 bg-accent/5"
+                    )}
+                    onClick={() => setSplitType("items")}
+                  >
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <RadioGroupItem value="items" id="items" />
+                      <Label htmlFor="items" className="font-medium cursor-pointer flex-1">
+                        Seleccionar Items
+                      </Label>
+                    </CardContent>
+                  </Card>
                 </div>
               </RadioGroup>
-            </div>
 
-            {/* Item Selection */}
-            {splitMode === "items" && (
-              <div className="space-y-3">
-                <Label className="text-base font-semibold">Seleccionar Items a Cobrar</Label>
-                <div className="space-y-2">
-                  {items.map((item: any) => (
-                    <Card
-                      key={item.id}
-                      className={`cursor-pointer transition-all ${
-                        selectedItems.includes(item.id)
-                          ? "ring-2 ring-accent bg-accent/5"
-                          : "hover:bg-muted/50"
-                      }`}
-                      onClick={() => toggleItemSelection(item.id)}
-                    >
-                      <CardContent className="p-3 flex items-center gap-3">
-                        <div className={`h-5 w-5 rounded border-2 flex items-center justify-center ${
-                          selectedItems.includes(item.id)
-                            ? "bg-accent border-accent"
-                            : "border-muted-foreground"
-                        }`}>
-                          {selectedItems.includes(item.id) && (
-                            <Check className="h-3 w-3 text-accent-foreground" />
-                          )}
-                        </div>
+              {splitType === "items" && (
+                <Card className="border-accent/30">
+                  <CardContent className="p-4 space-y-2">
+                    {items.map((item: any) => (
+                      <div key={item.id} className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded">
+                        <Checkbox
+                          checked={selectedItems.includes(item.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedItems([...selectedItems, item.id]);
+                            } else {
+                              setSelectedItems(selectedItems.filter(id => id !== item.id));
+                            }
+                          }}
+                        />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{item.product_name}</p>
-                          {item.variant_name && (
-                            <p className="text-xs text-muted-foreground">{item.variant_name}</p>
-                          )}
+                          <p className="text-xs text-muted-foreground">
+                            {item.quantity}x ${Number(item.unit_price).toFixed(2)}
+                          </p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm text-muted-foreground">x{item.quantity}</p>
-                          <p className="font-semibold">${Number(item.total).toFixed(2)}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
+                        <span className="font-semibold">
+                          ${Number(item.total).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
 
-            <Separator />
-
-            {/* Payment Method Selection */}
+            {/* Método de Pago */}
             <div className="space-y-3">
               <h3 className="font-semibold">Método de Pago</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 {paymentMethods && paymentMethods.length > 0 ? (
                   paymentMethods.map((method) => (
-                    <Button
+                    <Card
                       key={method.id}
-                      type="button"
-                      variant={paymentMethod === method.name ? "default" : "outline"}
-                      className="h-auto py-4 flex flex-col items-center gap-2"
+                      className={cn(
+                        "cursor-pointer transition-all hover:border-accent hover:shadow-md",
+                        paymentMethod === method.name && "border-accent border-2 bg-accent/5"
+                      )}
                       onClick={() => setPaymentMethod(method.name)}
                     >
-                      <span className="text-muted-foreground group-hover:text-current">
-                        {getPaymentIcon(method.name)}
-                      </span>
-                      <span className="text-xs text-center leading-tight whitespace-normal h-8 flex items-center justify-center">
-                        {method.name}
-                      </span>
-                    </Button>
+                      <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
+                        <div className={cn(
+                          "p-3 rounded-full transition-colors",
+                          paymentMethod === method.name ? "bg-accent text-accent-foreground" : "bg-muted"
+                        )}>
+                          {getPaymentIcon(method.name)}
+                        </div>
+                        <span className="font-medium text-sm leading-tight">
+                          {method.name}
+                        </span>
+                      </CardContent>
+                    </Card>
                   ))
                 ) : (
-                  // Fallback hardcoded methods if none provided
-                  ["Efectivo", "Tarjeta de Crédito", "Tarjeta de Débito", "Transferencia"].map((method) => (
-                    <Button
+                  ["Efectivo", "Tarjeta", "Transferencia"].map((method) => (
+                    <Card
                       key={method}
-                      type="button"
-                      variant={paymentMethod === method ? "default" : "outline"}
-                      className="h-auto py-4 flex flex-col items-center gap-2"
+                      className={cn(
+                        "cursor-pointer transition-all hover:border-accent",
+                        paymentMethod === method && "border-accent border-2 bg-accent/5"
+                      )}
                       onClick={() => setPaymentMethod(method)}
                     >
-                      <span className="text-muted-foreground group-hover:text-current">
-                        {getPaymentIcon(method)}
-                      </span>
-                      <span className="text-xs text-center leading-tight whitespace-normal h-8 flex items-center justify-center">
-                        {method}
-                      </span>
-                    </Button>
+                      <CardContent className="p-4 flex flex-col items-center gap-2">
+                        <div className={cn(
+                          "p-3 rounded-full",
+                          paymentMethod === method ? "bg-accent text-accent-foreground" : "bg-muted"
+                        )}>
+                          {getPaymentIcon(method)}
+                        </div>
+                        <span className="font-medium text-sm">{method}</span>
+                      </CardContent>
+                    </Card>
                   ))
                 )}
               </div>
             </div>
-
-            {/* Cash Input */}
-            {paymentMethod === "cash" && (
-              <div className="space-y-2">
-                <Label>Efectivo Recibido</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={cashReceived}
-                  onChange={(e) => setCashReceived(e.target.value)}
-                  className="text-lg"
-                />
-                {change > 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    Cambio: <span className="font-bold text-accent">${change.toFixed(2)}</span>
-                  </p>
-                )}
-              </div>
-            )}
           </div>
         </ScrollArea>
 
-        {/* Footer */}
-        <div className="p-6 pt-4 border-t space-y-4">
-          <div className="flex items-center justify-between text-xl font-bold">
-            <span>Total a Cobrar:</span>
-            <span className="text-2xl text-accent">${splitAmount.toFixed(2)}</span>
+        {/* Footer con total y botones */}
+        <div className="border-t p-6 space-y-4 bg-muted/20">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-sm text-muted-foreground">Total a Cobrar</p>
+              <p className="text-3xl font-bold text-accent">
+                ${calculateSplitTotal().toFixed(2)}
+              </p>
+            </div>
+            {tipAmount > 0 && (
+              <Badge variant="secondary" className="text-base px-3 py-1">
+                Incluye ${tipAmount.toFixed(2)} de propina
+              </Badge>
+            )}
           </div>
 
           <div className="flex gap-3">
             <Button
               variant="outline"
-              className="flex-1"
               onClick={onClose}
               disabled={isProcessing}
+              className="flex-1"
             >
               Cancelar
             </Button>
             <Button
-              className="flex-1 bg-accent hover:bg-accent/90"
               onClick={handleCheckout}
-              disabled={isProcessing}
+              disabled={isProcessing || !paymentMethod}
+              className="flex-1 text-lg py-6"
             >
               {isProcessing ? "Procesando..." : "Confirmar Cobro"}
             </Button>
