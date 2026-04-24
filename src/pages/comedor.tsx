@@ -255,9 +255,15 @@ export default function ComedorPage() {
   function handleProductSelect(product: any, variant?: any, extras?: any[], notes?: string, quantity?: number) {
     if (productSelectorCallback) {
       productSelectorCallback(product, variant, extras, notes, quantity);
-      setProductSelectorCallback(null);
+      // NO cerramos setProductSelectorCallback ni setShowProductModal aquí
+      // El ProductSelectorModal se encarga de manejar su propio estado
+      // Solo reseteamos cuando el modal se cierra completamente
     }
+  }
+
+  function handleProductSelectorClose() {
     setShowProductModal(false);
+    setProductSelectorCallback(null);
   }
 
   function handleProceedToCheckout(order: any) {
@@ -535,10 +541,7 @@ export default function ComedorPage() {
         {/* Product Selector Modal */}
         <ProductSelectorModal
           isOpen={showProductModal}
-          onClose={() => {
-            setShowProductModal(false);
-            setProductSelectorCallback(null);
-          }}
+          onClose={handleProductSelectorClose}
           onSelectProduct={handleProductSelect}
           products={products}
           categories={categories}
