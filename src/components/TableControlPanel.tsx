@@ -600,39 +600,43 @@ export function TableControlPanel({
       </ScrollArea>
 
       {/* Footer Actions */}
-      <div className="mt-6 flex gap-2">
-        <Button
-          variant="outline"
-          onClick={handleSendToKitchen}
-          disabled={pendingItemsCount === 0}
-          className="flex-1"
-        >
-          <Send className="h-4 w-4 mr-2" />
-          Enviar a Cocina
-          {pendingItemsCount > 0 && (
-            <Badge variant="secondary" className="ml-2">
-              {pendingItemsCount}
-            </Badge>
-          )}
-        </Button>
+      <div className="mt-6 space-y-3">
+        {/* Primera fila - Acciones secundarias */}
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={handleSendToKitchen}
+            disabled={pendingItemsCount === 0}
+            className="flex-1"
+          >
+            <Send className="h-4 w-4 mr-2" />
+            Enviar a Cocina
+            {pendingItemsCount > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {pendingItemsCount}
+              </Badge>
+            )}
+          </Button>
 
-        <Button
-          variant="outline"
-          onClick={handlePrintAccount}
-          disabled={items.length === 0}
-          className="flex-1"
-        >
-          <Printer className="h-4 w-4 mr-2" />
-          Imprimir Cuenta
-        </Button>
+          <Button
+            variant="outline"
+            onClick={handlePrintAccount}
+            disabled={items.length === 0}
+            className="flex-1"
+          >
+            <Printer className="h-4 w-4 mr-2" />
+            Imprimir Cuenta
+          </Button>
+        </div>
 
+        {/* Segunda fila - Acción principal */}
         <Button
           onClick={() => onProceedToCheckout(order)}
           disabled={items.length === 0}
           size="lg"
-          className="flex-1"
+          className="w-full bg-accent hover:bg-accent/90 text-accent-foreground h-14 text-lg font-semibold"
         >
-          <DollarSign className="h-4 w-4 mr-2" />
+          <DollarSign className="h-5 w-5 mr-2" />
           Cobrar Mesa
         </Button>
       </div>
