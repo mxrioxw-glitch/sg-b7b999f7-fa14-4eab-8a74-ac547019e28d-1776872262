@@ -32,78 +32,52 @@ export function CheckoutModal({
   paymentMethods = [] 
 }: CheckoutModalProps) {
   const { toast } = useToast();
-  const [splitType, setSplitType] = useState("full");
+  const [splitType, setSplitType] = useState<"full" | "equal" | "items">("full");
+  const [splitNumber, setSplitNumber] = useState(2);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<string>("");
   const [customTip, setCustomTip] = useState("");
   const [selectedTipPercentage, setSelectedTipPercentage] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const order = tableOrder;
+  
+  // Calculamos los totales correctamente
+  const orderSubtotal = order?.subtotal || 0;
+  const orderTax = order?.tax_amount || 0;
+  const orderTotal = orderSubtotal + orderTax; // SUMA correcta de subtotal + IVA
 
-  useEffect(() => {
-    if (isOpen && paymentMethods.length > 0) {
-      setPaymentMethod(paymentMethods[0]?.name || "Efectivo");
-    }
-  }, [isOpen, paymentMethods]);
+  // Calculamos propina y total final
+  const currentTipAmount = selectedTipPercentage 
+    ? (orderSubtotal * selectedTipPercentage) / 100 
+    : (parseFloat(customTip) || 0);
+  
+  const finalTotal = orderTotal + currentTipAmount;
 
-  useEffect(() => {
-    if (selectedTipPercentage !== null) {
-      setCustomTip("");
-    }
-  }, [selectedTipPercentage]);
-
-  useEffect(() => {
-    if (customTip) {
-      setSelectedTipPercentage(null);
-    }
-  }, [customTip]);
-
-  if (!order) return null;
-
-  const items = order.table_order_items || [];
-  const orderSubtotal = Number(order.subtotal || 0);
-  const orderTax = Number(order.tax || 0);
-  const orderTotal = Number(order.total || 0);
-
-  // Calcular propina
-  const calculateTip = () => {
-    if (customTip) {
-      return Number(customTip) || 0;
-    }
-    if (selectedTipPercentage !== null) {
-      return orderSubtotal * (selectedTipPercentage / 100);
-    }
-    return 0;
-  };
-
-  const tipAmount = calculateTip();
-  const finalTotal = orderTotal + tipAmount;
-
-  // Calcular total para división
+  // Calculamos el monto a cobrar según el tipo de división
   const calculateSplitTotal = () => {
-    if (splitType === "full") {
-      return finalTotal;
-    }
-    if (splitType === "equal") {
-      const people = 2; // Podría ser configurable
-      return finalTotal / people;
-    }
-    if (splitType === "items") {
-      const selectedTotal = items
-        .filter((item: any) => selectedItems.includes(item.id))
-        .reduce((sum: number, item: any) => sum + Number(item.total || 0), 0);
-      return selectedTotal;
-    }
-    return 0;
+    if (splitType === "full") return finalTotal;
+    if (splitType === "equal") return finalTotal / splitNumber;
+    
+    // Si es por items
+    const itemsTotal = selectedItems.reduce((total, itemId) => {
+      const item = order?.table_order_items?.find((i: any) => i.id === itemId);
+      return total + (item?.item_total || 0);
+    }, 0);
+    
+    // Aplicamos propina proporcional a los items
+    const proportionalTip = selectedItems.length > 0 && orderSubtotal > 0
+      ? (itemsTotal / orderSubtotal) * currentTipAmount
+      : 0;
+
+    return itemsTotal + proportionalTip;
   };
 
-  const handleTipSelect = (percentage: number) => {
-    setSelectedTipPercentage(percentage);
-    setCustomTip("");
+  const getTipAmountForPercentage = (percentage: number) => {
+    return (orderSubtotal * percentage) / 100;
   };
 
-  const handleCheckout = async () => {
+  const handleProcessPayment = async () => {
     if (!paymentMethod) {
       toast({
         title: "❌ Método de pago requerido",
@@ -183,254 +157,256 @@ export function CheckoutModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
           <DialogTitle className="text-2xl font-bold">
             Cobrar {table?.table_number}
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-6">
-          <div className="space-y-6 py-4">
-            {/* Resumen de la cuenta */}
-            <Card className="bg-muted/50">
-              <CardContent className="p-4 space-y-2">
-                <div className="flex items-center gap-2 mb-3">
-                  <Receipt className="h-5 w-5 text-muted-foreground" />
-                  <h3 className="font-semibold">Resumen de la cuenta</h3>
-                </div>
-                <div className="space-y-1.5 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span className="font-medium">${orderSubtotal.toFixed(2)}</span>
+        <div className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full max-h-[calc(90vh-220px)]">
+            <div className="space-y-6 py-4 px-6">
+              {/* Resumen de la cuenta */}
+              <Card className="bg-muted/50">
+                <CardContent className="p-4 space-y-2">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Receipt className="h-5 w-5 text-muted-foreground" />
+                    <h3 className="font-semibold">Resumen de la cuenta</h3>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">IVA ({businessSettings?.tax_percentage || 16}%)</span>
-                    <span className="font-medium">${orderTax.toFixed(2)}</span>
+                  <div className="space-y-1.5 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Subtotal</span>
+                      <span className="font-medium">${orderSubtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">IVA (16%)</span>
+                      <span className="font-medium">${orderTax.toFixed(2)}</span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="flex justify-between text-base">
+                      <span className="font-semibold">Total sin propina</span>
+                      <span className="font-bold">${orderTotal.toFixed(2)}</span>
+                    </div>
                   </div>
-                  <Separator className="my-2" />
-                  <div className="flex justify-between text-base">
-                    <span className="font-semibold">Total sin propina</span>
-                    <span className="font-bold">${orderTotal.toFixed(2)}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* Propina */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-accent" />
-                <h3 className="font-semibold">Propina (opcional)</h3>
-              </div>
-              
-              <div className="grid grid-cols-4 gap-2">
-                {[
-                  { label: "10%", value: 10 },
-                  { label: "15%", value: 15 },
-                  { label: "20%", value: 20 },
-                ].map((option) => (
+              {/* Propina */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-accent" />
+                  <h3 className="font-semibold">Propina (opcional)</h3>
+                </div>
+                
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { label: "10%", value: 10 },
+                    { label: "15%", value: 15 },
+                    { label: "20%", value: 20 },
+                  ].map((option) => (
+                    <Button
+                      key={option.value}
+                      type="button"
+                      variant={selectedTipPercentage === option.value ? "default" : "outline"}
+                      className={`h-auto py-3 flex flex-col gap-1 ${
+                        selectedTipPercentage === option.value ? "bg-accent hover:bg-accent/90" : ""
+                      }`}
+                      onClick={() => {
+                        setSelectedTipPercentage(option.value);
+                        setCustomTip("");
+                      }}
+                    >
+                      <span className="text-lg font-bold">{option.label}</span>
+                      <span className="text-xs opacity-80">
+                        ${getTipAmountForPercentage(option.value).toFixed(2)}
+                      </span>
+                    </Button>
+                  ))}
                   <Button
-                    key={option.value}
                     type="button"
-                    variant={tipPercentage === option.value ? "default" : "outline"}
+                    variant={customTip !== "" ? "default" : "outline"}
                     className={`h-auto py-3 flex flex-col gap-1 ${
-                      tipPercentage === option.value ? "bg-accent hover:bg-accent/90" : ""
+                      customTip !== "" ? "bg-accent hover:bg-accent/90" : ""
                     }`}
                     onClick={() => {
-                      setTipPercentage(option.value);
-                      setCustomTipAmount("");
+                      setSelectedTipPercentage(null);
+                      const input = document.getElementById("custom-tip-input") as HTMLInputElement;
+                      input?.focus();
                     }}
                   >
-                    <span className="text-lg font-bold">{option.label}</span>
-                    <span className="text-xs opacity-80">
-                      ${calculateTipAmount(option.value).toFixed(2)}
-                    </span>
+                    <DollarSign className="h-5 w-5" />
+                    <span className="text-xs">Otra</span>
                   </Button>
-                ))}
-                <Button
-                  type="button"
-                  variant={customTipAmount !== "" ? "default" : "outline"}
-                  className={`h-auto py-3 flex flex-col gap-1 ${
-                    customTipAmount !== "" ? "bg-accent hover:bg-accent/90" : ""
-                  }`}
-                  onClick={() => {
-                    setTipPercentage(null);
-                    const input = document.getElementById("custom-tip-input") as HTMLInputElement;
-                    input?.focus();
-                  }}
-                >
-                  <DollarSign className="h-5 w-5" />
-                  <span className="text-xs">Otra</span>
-                </Button>
-              </div>
-
-              {customTipAmount !== "" && (
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="custom-tip-input"
-                    type="number"
-                    placeholder="Monto personalizado"
-                    value={customTipAmount}
-                    onChange={(e) => {
-                      setCustomTipAmount(e.target.value);
-                      setTipPercentage(null);
-                    }}
-                    className="flex-1"
-                    min="0"
-                    step="0.01"
-                  />
                 </div>
-              )}
 
-              {tipAmount > 0 && (
-                <Card className="bg-accent/10 border-accent/20">
-                  <CardContent className="p-3">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">Propina agregada</span>
-                      <span className="font-bold text-accent text-lg">+${tipAmount.toFixed(2)}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+                {customTip !== "" && (
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="custom-tip-input"
+                      type="number"
+                      placeholder="Monto personalizado"
+                      value={customTip}
+                      onChange={(e) => {
+                        setCustomTip(e.target.value);
+                        setSelectedTipPercentage(null);
+                      }}
+                      className="flex-1"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                )}
 
-            {/* Tipo de Cobro */}
-            <div className="space-y-3">
-              <h3 className="font-semibold">Tipo de Cobro</h3>
-              <RadioGroup value={splitType} onValueChange={(value: any) => setSplitType(value)}>
-                <Card
-                  className={`cursor-pointer transition-all ${
-                    splitType === "full" ? "ring-2 ring-accent border-accent" : ""
-                  }`}
-                  onClick={() => setSplitType("full")}
-                >
-                  <CardContent className="p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <RadioGroupItem value="full" id="full" />
-                      <Label htmlFor="full" className="cursor-pointer font-medium">
-                        Cuenta Completa
-                      </Label>
-                    </div>
-                    <span className="font-bold text-accent">
-                      ${finalTotal.toFixed(2)}
-                    </span>
-                  </CardContent>
-                </Card>
-
-                <Card
-                  className={`cursor-pointer transition-all ${
-                    splitType === "equal" ? "ring-2 ring-accent border-accent" : ""
-                  }`}
-                  onClick={() => setSplitType("equal")}
-                >
-                  <CardContent className="p-3">
-                    <div className="flex items-center gap-3 mb-2">
-                      <RadioGroupItem value="equal" id="equal" />
-                      <Label htmlFor="equal" className="cursor-pointer font-medium">
-                        Dividir en Partes Iguales
-                      </Label>
-                    </div>
-                    {splitType === "equal" && (
-                      <div className="ml-7 flex items-center gap-2">
-                        <Input
-                          type="number"
-                          min="2"
-                          value={splitCount}
-                          onChange={(e) => setSplitCount(parseInt(e.target.value) || 2)}
-                          className="w-20"
-                        />
-                        <span className="text-sm text-muted-foreground">
-                          personas = ${(finalTotal / splitCount).toFixed(2)} c/u
-                        </span>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card
-                  className={`cursor-pointer transition-all ${
-                    splitType === "items" ? "ring-2 ring-accent border-accent" : ""
-                  }`}
-                  onClick={() => setSplitType("items")}
-                >
-                  <CardContent className="p-3">
-                    <div className="flex items-center gap-3 mb-2">
-                      <RadioGroupItem value="items" id="items" />
-                      <Label htmlFor="items" className="cursor-pointer font-medium">
-                        Seleccionar Items
-                      </Label>
-                    </div>
-                    {splitType === "items" && (
-                      <div className="ml-7 space-y-2 max-h-32 overflow-y-auto">
-                        {order?.table_order_items?.map((item: any) => (
-                          <div key={item.id} className="flex items-center gap-2">
-                            <Checkbox
-                              id={`item-${item.id}`}
-                              checked={selectedItems.includes(item.id)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setSelectedItems([...selectedItems, item.id]);
-                                } else {
-                                  setSelectedItems(selectedItems.filter((id) => id !== item.id));
-                                }
-                              }}
-                            />
-                            <Label
-                              htmlFor={`item-${item.id}`}
-                              className="text-sm cursor-pointer flex-1"
-                            >
-                              {item.quantity}x {item.products?.name} - ${item.item_total?.toFixed(2)}
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </RadioGroup>
-            </div>
-
-            {/* Método de Pago */}
-            <div className="space-y-3">
-              <h3 className="font-semibold">Método de Pago</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {paymentMethods.map((method) => (
-                  <Card
-                    key={method.id}
-                    className={`cursor-pointer transition-all ${
-                      paymentMethod === method.id
-                        ? "ring-2 ring-accent border-accent bg-accent/5"
-                        : "hover:border-accent/50"
-                    }`}
-                    onClick={() => setPaymentMethod(method.id)}
-                  >
-                    <CardContent className="p-3 text-center">
-                      <div className="flex flex-col items-center gap-2">
-                        {method.name === "Efectivo" && <Banknote className="h-6 w-6" />}
-                        {method.name === "Tarjeta" && <CreditCard className="h-6 w-6" />}
-                        {method.name === "Transferencia" && <Smartphone className="h-6 w-6" />}
-                        {!["Efectivo", "Tarjeta", "Transferencia"].includes(method.name) && (
-                          <DollarSign className="h-6 w-6" />
-                        )}
-                        <span className="text-xs font-medium">{method.name}</span>
+                {currentTipAmount > 0 && (
+                  <Card className="bg-accent/10 border-accent/20">
+                    <CardContent className="p-3">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">Propina agregada</span>
+                        <span className="font-bold text-accent text-lg">+${currentTipAmount.toFixed(2)}</span>
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                )}
+              </div>
+
+              {/* Tipo de Cobro */}
+              <div className="space-y-3">
+                <h3 className="font-semibold">Tipo de Cobro</h3>
+                <RadioGroup value={splitType} onValueChange={(value: any) => setSplitType(value)}>
+                  <Card
+                    className={`cursor-pointer transition-all ${
+                      splitType === "full" ? "ring-2 ring-accent border-accent" : ""
+                    }`}
+                    onClick={() => setSplitType("full")}
+                  >
+                    <CardContent className="p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <RadioGroupItem value="full" id="full" />
+                        <Label htmlFor="full" className="cursor-pointer font-medium">
+                          Cuenta Completa
+                        </Label>
+                      </div>
+                      <span className="font-bold text-accent">
+                        ${finalTotal.toFixed(2)}
+                      </span>
+                    </CardContent>
+                  </Card>
+
+                  <Card
+                    className={`cursor-pointer transition-all ${
+                      splitType === "equal" ? "ring-2 ring-accent border-accent" : ""
+                    }`}
+                    onClick={() => setSplitType("equal")}
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-3 mb-2">
+                        <RadioGroupItem value="equal" id="equal" />
+                        <Label htmlFor="equal" className="cursor-pointer font-medium">
+                          Dividir en Partes Iguales
+                        </Label>
+                      </div>
+                      {splitType === "equal" && (
+                        <div className="ml-7 flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="2"
+                            value={splitNumber}
+                            onChange={(e) => setSplitNumber(parseInt(e.target.value) || 2)}
+                            className="w-20"
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            personas = ${(finalTotal / splitNumber).toFixed(2)} c/u
+                          </span>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card
+                    className={`cursor-pointer transition-all ${
+                      splitType === "items" ? "ring-2 ring-accent border-accent" : ""
+                    }`}
+                    onClick={() => setSplitType("items")}
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-3 mb-2">
+                        <RadioGroupItem value="items" id="items" />
+                        <Label htmlFor="items" className="cursor-pointer font-medium">
+                          Seleccionar Items
+                        </Label>
+                      </div>
+                      {splitType === "items" && (
+                        <div className="ml-7 space-y-2 max-h-32 overflow-y-auto">
+                          {order?.table_order_items?.map((item: any) => (
+                            <div key={item.id} className="flex items-center gap-2">
+                              <Checkbox
+                                id={`item-${item.id}`}
+                                checked={selectedItems.includes(item.id)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedItems([...selectedItems, item.id]);
+                                  } else {
+                                    setSelectedItems(selectedItems.filter((id) => id !== item.id));
+                                  }
+                                }}
+                              />
+                              <Label
+                                htmlFor={`item-${item.id}`}
+                                className="text-sm cursor-pointer flex-1"
+                              >
+                                {item.quantity}x {item.products?.name} - ${item.item_total?.toFixed(2)}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </RadioGroup>
+              </div>
+
+              {/* Método de Pago */}
+              <div className="space-y-3">
+                <h3 className="font-semibold">Método de Pago</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {paymentMethods.map((method) => (
+                    <Card
+                      key={method.id}
+                      className={`cursor-pointer transition-all ${
+                        paymentMethod === method.id
+                          ? "ring-2 ring-accent border-accent bg-accent/5"
+                          : "hover:border-accent/50"
+                      }`}
+                      onClick={() => setPaymentMethod(method.id)}
+                    >
+                      <CardContent className="p-3 text-center">
+                        <div className="flex flex-col items-center gap-2">
+                          {method.name === "Efectivo" && <Banknote className="h-6 w-6" />}
+                          {method.name === "Tarjeta" && <CreditCard className="h-6 w-6" />}
+                          {method.name === "Transferencia" && <Smartphone className="h-6 w-6" />}
+                          {!["Efectivo", "Tarjeta", "Transferencia"].includes(method.name) && (
+                            <DollarSign className="h-6 w-6" />
+                          )}
+                          <span className="text-xs font-medium">{method.name}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        </ScrollArea>
+          </ScrollArea>
+        </div>
 
         {/* Footer con total y botones */}
-        <div className="border-t px-6 py-4 bg-muted/30 space-y-3">
+        <div className="border-t px-6 py-4 bg-muted/30 space-y-3 flex-shrink-0">
           <div className="flex justify-between items-center">
             <div>
               <p className="text-sm text-muted-foreground">Total a Cobrar</p>
-              {tipAmount > 0 && (
+              {currentTipAmount > 0 && (
                 <p className="text-xs text-muted-foreground">
-                  (Incluye propina de ${tipAmount.toFixed(2)})
+                  (Incluye propina de ${currentTipAmount.toFixed(2)})
                 </p>
               )}
             </div>
@@ -449,7 +425,7 @@ export function CheckoutModal({
               Cancelar
             </Button>
             <Button
-              onClick={handleConfirmPayment}
+              onClick={handleProcessPayment}
               disabled={isProcessing || !paymentMethod}
               className="flex-1 bg-accent hover:bg-accent/90"
             >
