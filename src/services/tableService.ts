@@ -85,7 +85,7 @@ export const tableService = {
           role,
           profiles(full_name, email)
         ),
-        customers(id, full_name),
+        customers(id, name),
         table_order_items(
           *,
           table_order_item_extras(*)
