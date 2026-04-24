@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -1030,6 +1030,263 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      table_order_item_extras: {
+        Row: {
+          created_at: string
+          extra_id: string | null
+          extra_name: string
+          id: string
+          price: number
+          table_order_item_id: string
+        }
+        Insert: {
+          created_at?: string
+          extra_id?: string | null
+          extra_name: string
+          id?: string
+          price: number
+          table_order_item_id: string
+        }
+        Update: {
+          created_at?: string
+          extra_id?: string | null
+          extra_name?: string
+          id?: string
+          price?: number
+          table_order_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_order_item_extras_extra_id_fkey"
+            columns: ["extra_id"]
+            isOneToOne: false
+            referencedRelation: "product_extras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_order_item_extras_table_order_item_id_fkey"
+            columns: ["table_order_item_id"]
+            isOneToOne: false
+            referencedRelation: "table_order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      table_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          product_id: string | null
+          product_name: string
+          quantity: number
+          sent_to_kitchen_at: string | null
+          served_at: string | null
+          status: string
+          subtotal: number
+          table_order_id: string
+          tax_amount: number
+          total: number
+          unit_price: number
+          updated_at: string
+          variant_id: string | null
+          variant_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          product_name: string
+          quantity?: number
+          sent_to_kitchen_at?: string | null
+          served_at?: string | null
+          status?: string
+          subtotal: number
+          table_order_id: string
+          tax_amount?: number
+          total: number
+          unit_price: number
+          updated_at?: string
+          variant_id?: string | null
+          variant_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          sent_to_kitchen_at?: string | null
+          served_at?: string | null
+          status?: string
+          subtotal?: number
+          table_order_id?: string
+          tax_amount?: number
+          total?: number
+          unit_price?: number
+          updated_at?: string
+          variant_id?: string | null
+          variant_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_order_items_table_order_id_fkey"
+            columns: ["table_order_id"]
+            isOneToOne: false
+            referencedRelation: "table_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_order_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      table_orders: {
+        Row: {
+          assigned_waiter_id: string | null
+          business_id: string
+          closed_at: string | null
+          created_at: string
+          customer_id: string | null
+          guests_count: number | null
+          id: string
+          notes: string | null
+          opened_at: string
+          status: string
+          subtotal: number
+          table_id: string
+          tax_amount: number
+          tip_amount: number | null
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          assigned_waiter_id?: string | null
+          business_id: string
+          closed_at?: string | null
+          created_at?: string
+          customer_id?: string | null
+          guests_count?: number | null
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          status?: string
+          subtotal?: number
+          table_id: string
+          tax_amount?: number
+          tip_amount?: number | null
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          assigned_waiter_id?: string | null
+          business_id?: string
+          closed_at?: string | null
+          created_at?: string
+          customer_id?: string | null
+          guests_count?: number | null
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          status?: string
+          subtotal?: number
+          table_id?: string
+          tax_amount?: number
+          tip_amount?: number | null
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_orders_assigned_waiter_id_fkey"
+            columns: ["assigned_waiter_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_orders_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_orders_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tables: {
+        Row: {
+          area: string | null
+          business_id: string
+          capacity: number
+          created_at: string
+          current_order_id: string | null
+          id: string
+          is_active: boolean | null
+          status: string
+          table_number: string
+          updated_at: string
+        }
+        Insert: {
+          area?: string | null
+          business_id: string
+          capacity?: number
+          created_at?: string
+          current_order_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          status?: string
+          table_number: string
+          updated_at?: string
+        }
+        Update: {
+          area?: string | null
+          business_id?: string
+          capacity?: number
+          created_at?: string
+          current_order_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          status?: string
+          table_number?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tables_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
         ]
