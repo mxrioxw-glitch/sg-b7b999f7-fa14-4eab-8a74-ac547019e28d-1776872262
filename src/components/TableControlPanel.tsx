@@ -285,7 +285,7 @@ export function TableControlPanel({
         <div className="flex items-center gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold">{table.name}</h2>
+              <h2 className="text-xl font-bold">{table.table_number}</h2>
               {table.area && (
                 <span className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground">
                   {table.area}
