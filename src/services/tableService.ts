@@ -22,8 +22,7 @@ export const tableService = {
           assigned_waiter_id,
           opened_at,
           total,
-          guests_count,
-          employees!table_orders_assigned_waiter_id_fkey(id, full_name)
+          guests_count
         )
       `)
       .eq("business_id", businessId)
