@@ -24,6 +24,7 @@ import { employeeService } from "@/services/employeeService";
 import { productService } from "@/services/productService";
 import { businessService } from "@/services/businessService";
 import { authService } from "@/services/authService";
+import { categoryService } from "@/services/categoryService";
 
 export const getServerSideProps = requireActiveSubscription;
 
@@ -36,6 +37,7 @@ export default function ComedorPage() {
   const [tables, setTables] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [businessId, setBusinessId] = useState<string>("");
   
   // UI State
@@ -53,7 +55,7 @@ export default function ComedorPage() {
   const [newTableArea, setNewTableArea] = useState("");
   const [guestsCount, setGuestsCount] = useState(2);
   const [selectedWaiterId, setSelectedWaiterId] = useState("");
-  const [productSelectorCallback, setProductSelectorCallback] = useState<((product: any) => void) | null>(null);
+  const [productSelectorCallback, setProductSelectorCallback] = useState<((product: any, variant?: any, extras?: any[], notes?: string, quantity?: number) => void) | null>(null);
 
   useEffect(() => {
     loadInitialData();
@@ -85,10 +87,11 @@ export default function ComedorPage() {
 
       setBusinessId(business.id);
 
-      const [tablesData, employeesData, productsData] = await Promise.all([
+      const [tablesData, employeesData, productsData, categoriesData] = await Promise.all([
         tableService.getTables(business.id),
         employeeService.getEmployees(business.id),
         productService.getProducts(business.id),
+        categoryService.getCategories(business.id),
       ]);
 
       setTables(tablesData);
@@ -99,6 +102,7 @@ export default function ComedorPage() {
         e.role === "owner"
       ));
       setProducts(productsData);
+      setCategories(categoriesData);
     } catch (error: any) {
       console.error("Error loading data:", error);
       toast({
@@ -229,14 +233,14 @@ export default function ComedorPage() {
     }
   }
 
-  function handleOpenProductSelector(callback: (product: any) => void) {
+  function handleOpenProductSelector(callback: (product: any, variant?: any, extras?: any[], notes?: string, quantity?: number) => void) {
     setProductSelectorCallback(() => callback);
     setShowProductModal(true);
   }
 
-  function handleProductSelect(product: any) {
+  function handleProductSelect(product: any, variant?: any, extras?: any[], notes?: string, quantity?: number) {
     if (productSelectorCallback) {
-      productSelectorCallback(product);
+      productSelectorCallback(product, variant, extras, notes, quantity);
       setProductSelectorCallback(null);
     }
     setShowProductModal(false);
@@ -498,8 +502,9 @@ export default function ComedorPage() {
             setShowProductModal(false);
             setProductSelectorCallback(null);
           }}
-          onSelect={handleProductSelect}
+          onSelectProduct={handleProductSelect}
           products={products}
+          categories={categories}
         />
 
         {/* Checkout Modal */}
