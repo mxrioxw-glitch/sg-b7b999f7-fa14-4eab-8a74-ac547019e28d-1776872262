@@ -23,6 +23,22 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { tableService } from "@/services/tableService";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format } from "date-fns";
+
+// Helper function to format elapsed time
+function formatElapsedTime(dateString?: string) {
+  if (!dateString) return "0m";
+  
+  const start = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - start.getTime();
+  
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
 
 interface TableControlPanelProps {
   table: any;
@@ -268,7 +284,14 @@ export function TableControlPanel({
       <div className="p-4 border-b bg-muted/30 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div>
-            <h2 className="text-xl font-bold">{table.name}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold">{table.name}</h2>
+              {table.area && (
+                <span className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground">
+                  {table.area}
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
               <div className="flex items-center gap-1">
                 <Clock className="h-3.5 w-3.5" />
@@ -281,8 +304,8 @@ export function TableControlPanel({
             </div>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="h-5 w-5" />
+        <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0 h-8 w-8 rounded-full hover:bg-destructive hover:text-destructive-foreground transition-colors">
+          <X className="h-4 w-4" />
         </Button>
       </div>
 

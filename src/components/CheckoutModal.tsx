@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,8 @@ import {
   Users,
   Check,
   X,
-  Calculator
+  Calculator,
+  Banknote
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { tableService } from "@/services/tableService";
@@ -29,6 +30,8 @@ interface CheckoutModalProps {
   tableOrder: any;
   table: any;
   onComplete: () => void;
+  order: any;
+  paymentMethods?: any[];
 }
 
 export function CheckoutModal({
@@ -37,6 +40,8 @@ export function CheckoutModal({
   tableOrder,
   table,
   onComplete,
+  order,
+  paymentMethods = [],
 }: CheckoutModalProps) {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -125,6 +130,14 @@ export function CheckoutModal({
       setIsProcessing(false);
     }
   }
+
+  const getPaymentIcon = (name: string) => {
+    const n = name.toLowerCase();
+    if (n.includes("efectivo")) return <DollarSign className="h-6 w-6" />;
+    if (n.includes("tarjeta") || n.includes("débito") || n.includes("crédito")) return <CreditCard className="h-6 w-6" />;
+    if (n.includes("transferencia")) return <Banknote className="h-6 w-6" />;
+    return <Wallet className="h-6 w-6" />;
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -226,19 +239,46 @@ export function CheckoutModal({
             {/* Payment Method Selection */}
             <div className="space-y-3">
               <h3 className="font-semibold">Método de Pago</h3>
-              <div className="grid grid-cols-3 gap-3">
-                {paymentMethods.map((method) => (
-                  <Button
-                    key={method.id}
-                    type="button"
-                    variant={selectedPaymentMethod === method.id ? "default" : "outline"}
-                    className="h-auto py-4 flex flex-col items-center gap-2"
-                    onClick={() => setSelectedPaymentMethod(method.id)}
-                  >
-                    <span className="text-2xl">{getPaymentIcon(method.name)}</span>
-                    <span className="text-sm">{method.name}</span>
-                  </Button>
-                ))}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {paymentMethods && paymentMethods.length > 0 ? (
+                  paymentMethods.map((method) => (
+                    <Button
+                      key={method.id}
+                      type="button"
+                      variant={selectedPaymentMethod === method.id || paymentMethod === method.name ? "default" : "outline"}
+                      className="h-auto py-4 flex flex-col items-center gap-2"
+                      onClick={() => {
+                        setSelectedPaymentMethod(method.id);
+                        setPaymentMethod(method.name);
+                      }}
+                    >
+                      <span className="text-muted-foreground group-hover:text-current">
+                        {getPaymentIcon(method.name)}
+                      </span>
+                      <span className="text-xs text-center leading-tight whitespace-normal h-8 flex items-center justify-center">
+                        {method.name}
+                      </span>
+                    </Button>
+                  ))
+                ) : (
+                  // Fallback hardcoded methods if none provided
+                  ["Efectivo", "Tarjeta de Crédito", "Tarjeta de Débito", "Transferencia"].map((method) => (
+                    <Button
+                      key={method}
+                      type="button"
+                      variant={paymentMethod === method ? "default" : "outline"}
+                      className="h-auto py-4 flex flex-col items-center gap-2"
+                      onClick={() => setPaymentMethod(method)}
+                    >
+                      <span className="text-muted-foreground group-hover:text-current">
+                        {getPaymentIcon(method)}
+                      </span>
+                      <span className="text-xs text-center leading-tight whitespace-normal h-8 flex items-center justify-center">
+                        {method}
+                      </span>
+                    </Button>
+                  ))
+                )}
               </div>
             </div>
 

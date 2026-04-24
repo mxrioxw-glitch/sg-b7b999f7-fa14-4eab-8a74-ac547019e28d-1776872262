@@ -25,6 +25,7 @@ import { productService } from "@/services/productService";
 import { businessService } from "@/services/businessService";
 import { authService } from "@/services/authService";
 import { categoryService } from "@/services/categoryService";
+import { paymentMethodService } from "@/services/paymentMethodService";
 
 export const getServerSideProps = requireActiveSubscription;
 
@@ -38,10 +39,11 @@ export default function ComedorPage() {
   const [employees, setEmployees] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
   const [businessId, setBusinessId] = useState<string>("");
   
   // UI State
-  const [selectedTable, setSelectedTable] = useState<any>(null);
+  const [selectedTable, setSelectedTable] = useState<any | null>(null);
   const [selectedTableOrder, setSelectedTableOrder] = useState<any>(null);
   const [showControlPanel, setShowControlPanel] = useState(false);
   const [showOpenTableModal, setShowOpenTableModal] = useState(false);
@@ -87,11 +89,12 @@ export default function ComedorPage() {
 
       setBusinessId(business.id);
 
-      const [tablesData, employeesData, productsData, categoriesData] = await Promise.all([
+      const [tablesData, employeesData, productsData, categoriesData, paymentMethodsData] = await Promise.all([
         tableService.getTables(business.id),
         employeeService.getEmployees(business.id),
         productService.getProducts(business.id),
         categoryService.getCategories(business.id),
+        paymentMethodService.getPaymentMethods(business.id),
       ]);
 
       setTables(tablesData);
@@ -103,6 +106,7 @@ export default function ComedorPage() {
       ));
       setProducts(productsData);
       setCategories(categoriesData);
+      setPaymentMethods(paymentMethodsData);
     } catch (error: any) {
       console.error("Error loading data:", error);
       toast({
@@ -508,9 +512,9 @@ export default function ComedorPage() {
           <CheckoutModal
             isOpen={showCheckoutModal}
             onClose={() => setShowCheckoutModal(false)}
-            tableOrder={selectedTableOrder}
-            table={selectedTable}
             onComplete={handleCheckoutComplete}
+            order={selectedTableOrder}
+            paymentMethods={paymentMethods}
           />
         )}
       </FeatureGuard>
