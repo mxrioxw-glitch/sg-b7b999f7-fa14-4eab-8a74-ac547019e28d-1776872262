@@ -135,10 +135,10 @@ export function ProductSelectorModal({
                       <span className="text-muted-foreground text-xs">Sin imagen</span>
                     </div>
                   )}
-                  <div className="p-2.5 flex flex-col flex-1 justify-between gap-1">
-                    <h3 className="font-medium text-xs leading-tight line-clamp-2">{product.name}</h3>
-                    <p className="text-primary font-bold text-sm">
-                      ${product.price.toFixed(2)}
+                  <div className="p-3 space-y-2">
+                    <h3 className="font-medium text-sm line-clamp-1">{product.name}</h3>
+                    <p className="text-lg font-bold text-primary">
+                      ${(product.price || 0).toFixed(2)}
                     </p>
                   </div>
                 </div>
