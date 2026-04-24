@@ -482,14 +482,14 @@ export function TableControlPanel({
     <Sheet open={!!table} onOpenChange={onClose}>
       <SheetContent 
         side="right" 
-        className="w-full sm:w-[500px] md:w-[600px] p-0 flex flex-col overflow-hidden"
+        className="w-[600px] p-0 flex flex-col overflow-hidden"
       >
-        <SheetHeader className="px-4 sm:px-6 py-4 border-b flex-shrink-0">
+        <SheetHeader className="px-6 py-4 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <SheetTitle className="text-xl sm:text-2xl">Mesa {table?.table_number}</SheetTitle>
+              <SheetTitle className="text-2xl">Mesa {table?.table_number}</SheetTitle>
               {table?.location && (
-                <Badge variant="outline" className="text-xs sm:text-sm">
+                <Badge variant="outline">
                   {table.location}
                 </Badge>
               )}
@@ -498,32 +498,31 @@ export function TableControlPanel({
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="h-8 w-8 sm:h-10 sm:w-10"
             >
-              <X className="h-4 w-4 sm:h-5 sm:w-5" />
+              <X className="h-5 w-5" />
             </Button>
           </div>
 
           {order && (
-            <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground mt-2">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
               <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                <Clock className="h-4 w-4" />
                 <span>Abierta hace {getElapsedTime(order.created_at)}</span>
               </div>
               <div className="flex items-center gap-1">
-                <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                <Users className="h-4 w-4" />
                 <span>{guestsCount} {guestsCount === 1 ? "persona" : "personas"}</span>
               </div>
             </div>
           )}
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6">
+        <div className="flex-1 overflow-y-auto px-6 py-6">
           {/* Mesero Asignado */}
-          <div className="mb-4 sm:mb-6">
+          <div className="mb-6">
             <label className="text-sm font-medium mb-2 block">Mesero Asignado</label>
             <Select value={selectedWaiter} onValueChange={setSelectedWaiter}>
-              <SelectTrigger className="h-10 sm:h-11">
+              <SelectTrigger>
                 <SelectValue placeholder="Seleccionar mesero" />
               </SelectTrigger>
               <SelectContent>
@@ -537,38 +536,38 @@ export function TableControlPanel({
           </div>
 
           {/* Items de la Orden */}
-          <div className="mb-4 sm:mb-6">
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <h3 className="font-semibold text-base sm:text-lg">Items de la Orden</h3>
-              <Button onClick={handleAddProduct} size="sm" className="h-8 sm:h-9 text-xs sm:text-sm">
-                <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-lg">Items de la Orden</h3>
+              <Button onClick={handleAddProduct} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
                 Agregar Producto
               </Button>
             </div>
 
             {items.length === 0 ? (
-              <div className="text-center py-6 sm:py-8 text-sm sm:text-base text-muted-foreground bg-muted/30 rounded-lg">
+              <div className="text-center py-8 text-muted-foreground bg-muted/30 rounded-lg">
                 No hay productos en la orden
               </div>
             ) : (
-              <div className="space-y-2 sm:space-y-3">
+              <div className="space-y-3">
                 {items.map((item) => (
                   <div
                     key={item.id}
-                    className="border rounded-lg p-3 sm:p-4 bg-card"
+                    className="border rounded-lg p-4 bg-card"
                   >
                     <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm sm:text-base truncate">
+                      <div className="flex-1">
+                        <h4 className="font-medium">
                           {item.product_name}
                         </h4>
                         {item.variant_name && (
-                          <p className="text-xs sm:text-sm text-muted-foreground">
+                          <p className="text-sm text-muted-foreground">
                             {item.variant_name}
                           </p>
                         )}
                         {item.notes && (
-                          <p className="text-xs text-muted-foreground italic mt-1 line-clamp-2">
+                          <p className="text-sm text-muted-foreground italic mt-1">
                             {item.notes}
                           </p>
                         )}
@@ -581,7 +580,7 @@ export function TableControlPanel({
                             ? "default"
                             : "outline"
                         }
-                        className="ml-2 text-xs shrink-0"
+                        className="ml-2"
                       >
                         {item.status === "pending"
                           ? "Pendiente"
@@ -591,41 +590,41 @@ export function TableControlPanel({
                       </Badge>
                     </div>
 
-                    <div className="flex items-center justify-between gap-2 sm:gap-3">
-                      <div className="flex items-center gap-1 sm:gap-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-7 w-7 sm:h-8 sm:w-8"
+                          className="h-8 w-8"
                           onClick={() => handleUpdateQuantity(item.id, -1)}
                           disabled={item.quantity <= 1}
                         >
-                          <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <Minus className="h-4 w-4" />
                         </Button>
-                        <span className="w-8 sm:w-10 text-center font-medium text-sm sm:text-base">
+                        <span className="w-10 text-center font-medium">
                           {item.quantity}
                         </span>
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-7 w-7 sm:h-8 sm:w-8"
+                          className="h-8 w-8"
                           onClick={() => handleUpdateQuantity(item.id, 1)}
                         >
-                          <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <Plus className="h-4 w-4" />
                         </Button>
                       </div>
 
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <span className="font-bold text-sm sm:text-base">
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold">
                           ${(item.total || 0).toFixed(2)}
                         </span>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 sm:h-8 sm:w-8 text-destructive hover:text-destructive"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
                           onClick={() => handleRemoveItem(item.id)}
                         >
-                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -637,10 +636,10 @@ export function TableControlPanel({
 
           {/* Total */}
           {items.length > 0 && (
-            <div className="border-t pt-3 sm:pt-4 mb-4 sm:mb-6">
-              <div className="flex justify-between items-center text-base sm:text-lg font-bold">
+            <div className="border-t pt-4 mb-6">
+              <div className="flex justify-between items-center text-lg font-bold">
                 <span>Total:</span>
-                <span className="text-lg sm:text-2xl text-accent">
+                <span className="text-2xl text-accent">
                   ${items.reduce((sum, item) => sum + (item.total || 0), 0).toFixed(2)}
                 </span>
               </div>
@@ -648,20 +647,19 @@ export function TableControlPanel({
           )}
 
           {/* Footer Actions */}
-          <div className="space-y-2 sm:space-y-3">
+          <div className="space-y-3">
             {/* Primera fila - Acciones secundarias */}
-            <div className="flex gap-2 sm:gap-3">
+            <div className="flex gap-3">
               <Button
                 variant="outline"
                 onClick={handleSendToKitchen}
                 disabled={pendingItems.length === 0}
-                className="flex-1 h-10 sm:h-11 text-xs sm:text-sm"
+                className="flex-1"
               >
-                <Send className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Enviar a Cocina</span>
-                <span className="sm:hidden">Cocina</span>
+                <Send className="h-4 w-4 mr-2" />
+                Enviar a Cocina
                 {pendingItems.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
+                  <Badge variant="secondary" className="ml-2">
                     {pendingItems.length}
                   </Badge>
                 )}
@@ -671,11 +669,10 @@ export function TableControlPanel({
                 variant="outline"
                 onClick={handlePrintAccount}
                 disabled={items.length === 0}
-                className="flex-1 h-10 sm:h-11 text-xs sm:text-sm"
+                className="flex-1"
               >
-                <Printer className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Imprimir Cuenta</span>
-                <span className="sm:hidden">Cuenta</span>
+                <Printer className="h-4 w-4 mr-2" />
+                Imprimir Cuenta
               </Button>
             </div>
 
@@ -684,9 +681,9 @@ export function TableControlPanel({
               onClick={() => onProceedToCheckout(order)}
               disabled={items.length === 0}
               size="lg"
-              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground h-12 sm:h-14 text-base sm:text-lg font-semibold"
+              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground h-14 text-lg font-semibold"
             >
-              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+              <DollarSign className="h-5 w-5 mr-2" />
               Cobrar Mesa
             </Button>
           </div>
