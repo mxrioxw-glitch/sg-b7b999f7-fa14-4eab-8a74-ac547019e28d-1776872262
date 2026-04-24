@@ -1,91 +1,98 @@
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Search, X, Check } from "lucide-react";
 import { ProductModal } from "@/components/ProductModal";
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  base_price?: number;
-  image_url?: string;
-  category_id?: string;
-  variants?: any[];
-  extras?: any[];
-}
-
-interface Category {
-  id: string;
-  name: string;
-}
 
 interface ProductSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  products: Product[];
-  categories: Category[];
-  onSelectProduct: (product: Product, variant?: any, extras?: any[], notes?: string, quantity?: number) => void;
+  onSelectProduct: (product: any, variant?: any, extras?: any[], notes?: string, quantity?: number) => void;
+  products: any[];
+  categories: any[];
 }
 
 export function ProductSelectorModal({
   isOpen,
   onClose,
-  products,
-  categories = [],
   onSelectProduct,
+  products,
+  categories,
 }: ProductSelectorModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [productsAdded, setProductsAdded] = useState(0);
 
   const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = !selectedCategoryId || product.category_id === selectedCategoryId;
-      return matchesSearch && matchesCategory;
-    });
-  }, [products, searchQuery, selectedCategoryId]);
+    let filtered = products;
+
+    if (selectedCategory) {
+      filtered = filtered.filter((p) => p.category_id === selectedCategory);
+    }
+
+    if (searchQuery.trim()) {
+      filtered = filtered.filter((p) =>
+        p.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    return filtered;
+  }, [products, selectedCategory, searchQuery]);
 
   function handleProductClick(product: any) {
-    const hasVariants = product.variants && product.variants.length > 0;
-    const hasExtras = product.extras && product.extras.length > 0;
-    
-    const actualPrice = product.base_price ?? product.price ?? 0;
+    setSelectedProduct(product);
+    setShowProductModal(true);
+  }
 
-    if (hasVariants || hasExtras) {
-      // Transform product to match ProductModal expected structure
-      const transformedProduct = {
-        ...product,
-        basePrice: actualPrice,
-        image: product.image_url,
-        name: product.name,
-        category: product.category,
-        variants: product.variants || [],
-        extras: product.extras || [],
-      };
-      setSelectedProduct(transformedProduct);
-      setIsProductModalOpen(true);
-    } else {
-      // Direct add without modal
-      onSelectProduct({ ...product, basePrice: actualPrice }, undefined, [], "", 1);
-      onClose();
-    }
+  function handleProductSelect(product: any, variant?: any, extras?: any[], notes?: string, quantity?: number) {
+    onSelectProduct(product, variant, extras, notes, quantity);
+    setProductsAdded(prev => prev + 1);
+    setShowProductModal(false);
+    setSelectedProduct(null);
+    // NO cerramos el modal principal - dejamos que el usuario siga agregando
+  }
+
+  function handleClose() {
+    setSearchQuery("");
+    setSelectedCategory(null);
+    setProductsAdded(0);
+    onClose();
   }
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-5xl h-[85vh] flex flex-col p-0 gap-0">
-          <DialogHeader className="p-4 border-b">
-            <DialogTitle>Seleccionar Platillo</DialogTitle>
-          </DialogHeader>
+      <Sheet open={isOpen} onOpenChange={handleClose}>
+        <SheetContent side="bottom" className="h-[95vh] p-0 flex flex-col">
+          <SheetHeader className="px-6 py-4 border-b flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <SheetTitle className="text-2xl">Seleccionar Platillo</SheetTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleClose}
+                className="h-8 w-8"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
 
-          <div className="p-4 border-b flex flex-col gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            {productsAdded > 0 && (
+              <div className="flex items-center gap-2 mt-2">
+                <Badge variant="default" className="bg-accent text-accent-foreground">
+                  <Check className="h-3 w-3 mr-1" />
+                  {productsAdded} {productsAdded === 1 ? "producto agregado" : "productos agregados"}
+                </Badge>
+              </div>
+            )}
+
+            {/* Search */}
+            <div className="relative mt-4">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar platillos, bebidas, postres..."
                 value={searchQuery}
@@ -94,93 +101,90 @@ export function ProductSelectorModal({
               />
             </div>
 
-            {categories.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                <Badge
-                  variant={selectedCategoryId === null ? "default" : "outline"}
-                  className="cursor-pointer whitespace-nowrap"
-                  onClick={() => setSelectedCategoryId(null)}
+            {/* Categories */}
+            <div className="flex gap-2 overflow-x-auto pb-2 mt-4">
+              <Button
+                variant={selectedCategory === null ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedCategory(null)}
+              >
+                Todas
+              </Button>
+              {categories.map((cat) => (
+                <Button
+                  key={cat.id}
+                  variant={selectedCategory === cat.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className="whitespace-nowrap"
                 >
-                  Todas
-                </Badge>
-                {categories.map((category) => (
-                  <Badge
-                    key={category.id}
-                    variant={selectedCategoryId === category.id ? "default" : "outline"}
-                    className="cursor-pointer whitespace-nowrap"
-                    onClick={() => setSelectedCategoryId(category.id)}
+                  {cat.name}
+                </Button>
+              ))}
+            </div>
+          </SheetHeader>
+
+          {/* Products Grid */}
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            {filteredProducts.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No se encontraron productos</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {filteredProducts.map((product) => (
+                  <button
+                    key={product.id}
+                    onClick={() => handleProductClick(product)}
+                    className="group relative bg-card border rounded-lg overflow-hidden hover:border-accent transition-all hover:shadow-lg"
                   >
-                    {category.name}
-                  </Badge>
+                    {product.image_url ? (
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="w-full h-32 object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-32 bg-muted flex items-center justify-center">
+                        <span className="text-4xl">🍽️</span>
+                      </div>
+                    )}
+                    <div className="p-3">
+                      <h3 className="font-medium text-sm line-clamp-2 mb-1">
+                        {product.name}
+                      </h3>
+                      <p className="text-lg font-bold text-accent">
+                        ${Number(product.price).toFixed(2)}
+                      </p>
+                    </div>
+                  </button>
                 ))}
               </div>
             )}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 bg-muted/20">
-            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-              {filteredProducts.map((product) => (
-                <div
-                  key={product.id}
-                  onClick={() => handleProductClick(product)}
-                  className="border rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-all hover:border-primary/50 bg-card flex flex-col h-full"
-                >
-                  {product.image_url ? (
-                    <div className="aspect-[4/3] bg-muted relative">
-                      <img
-                        src={product.image_url}
-                        alt={product.name}
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="aspect-[4/3] bg-muted/50 flex items-center justify-center">
-                      <span className="text-muted-foreground text-xs">Sin imagen</span>
-                    </div>
-                  )}
-                  <div className="p-3 space-y-2">
-                    <h3 className="font-medium text-sm line-clamp-1">{product.name}</h3>
-                    <p className="text-lg font-bold text-primary">
-                      ${((product.base_price ?? product.price ?? 0)).toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <SheetFooter className="px-6 py-4 border-t flex-shrink-0">
+            <Button
+              onClick={handleClose}
+              size="lg"
+              className="w-full"
+            >
+              Continuar
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
-            {filteredProducts.length === 0 && (
-              <div className="text-center py-16 text-muted-foreground flex flex-col items-center justify-center">
-                <Search className="h-8 w-8 mb-3 opacity-20" />
-                <p>No se encontraron productos</p>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {selectedProduct && (
-        <ProductModal
-          product={{
-            id: selectedProduct.id,
-            name: selectedProduct.name,
-            basePrice: selectedProduct.price,
-            image: selectedProduct.image_url,
-            variants: selectedProduct.variants,
-            extras: selectedProduct.extras
-          }}
-          open={isProductModalOpen}
-          onOpenChange={(open) => {
-            setIsProductModalOpen(open);
-            if (!open) setSelectedProduct(null);
-          }}
-          onAddToCart={(item) => {
-            onSelectProduct(selectedProduct, item.variant, item.extras, item.notes, item.quantity);
-            setIsProductModalOpen(false);
-            setSelectedProduct(null);
-            onClose();
-          }}
-        />
-      )}
+      {/* Product Configuration Modal */}
+      <ProductModal
+        isOpen={showProductModal}
+        onClose={() => {
+          setShowProductModal(false);
+          setSelectedProduct(null);
+        }}
+        onAddToCart={handleProductSelect}
+        product={selectedProduct}
+      />
     </>
   );
 }
