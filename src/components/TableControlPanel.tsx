@@ -46,7 +46,7 @@ interface TableControlPanelProps {
   employees: any[];
   onClose: () => void;
   onRefresh: () => void;
-  onOpenProductSelector: (onSelect: (product: any) => void) => void;
+  onOpenProductSelector: (onSelect: (products: any[]) => Promise<void>) => void;
   onProceedToCheckout: (order: any) => void;
 }
 
@@ -70,18 +70,12 @@ export function TableControlPanel({
   }, [order]);
 
   const handleAddProduct = () => {
-    onOpenProductSelector((product: any) => {
-      addProductToOrder(product);
+    onOpenProductSelector(async (products: any[]) => {
+      await addProductsToOrderBatch(products);
     });
   };
 
-  const addProductToOrder = async (
-    product: any, 
-    variant?: any, 
-    extras?: any[], 
-    notes?: string, 
-    quantity: number = 1
-  ) => {
+  const addProductsToOrderBatch = async (products: any[]) => {
     if (!order) {
       toast({
         title: "❌ Error",
@@ -94,35 +88,42 @@ export function TableControlPanel({
     try {
       const taxRate = 0.16; // 16% IVA
       
-      const variantPrice = variant ? (variant.priceModifier ?? variant.price ?? 0) : 0;
-      const extrasPrice = extras?.reduce((sum, e) => sum + (e.price || 0), 0) || 0;
-      const basePrice = product.basePrice || product.base_price || product.price || 0;
-      
-      const unitPrice = basePrice + variantPrice + extrasPrice;
-      const subtotal = unitPrice * quantity;
-      const taxAmount = subtotal * taxRate;
-      const total = subtotal + taxAmount;
+      const newItems = products.map(item => {
+        const { product, variant, extras, notes, quantity } = item;
+        
+        const variantPrice = variant ? (variant.priceModifier ?? variant.price ?? 0) : 0;
+        const extrasPrice = extras?.reduce((sum: number, e: any) => sum + (e.price || 0), 0) || 0;
+        const basePrice = product.basePrice || product.base_price || product.price || 0;
+        
+        const unitPrice = basePrice + variantPrice + extrasPrice;
+        const subtotal = unitPrice * quantity;
+        const taxAmount = subtotal * taxRate;
+        const total = subtotal + taxAmount;
 
-      const newItem = {
-        table_order_id: order.id,
-        product_id: product.id,
-        variant_id: variant?.id || null,
-        product_name: product.name,
-        variant_name: variant?.name || null,
-        quantity,
-        unit_price: unitPrice,
-        subtotal,
-        tax_amount: taxAmount,
-        total,
-        notes: notes || null,
-        status: "pending",
-      };
+        return {
+          table_order_id: order.id,
+          product_id: product.id,
+          variant_id: variant?.id || null,
+          product_name: product.name,
+          variant_name: variant?.name || null,
+          quantity,
+          unit_price: unitPrice,
+          subtotal,
+          tax_amount: taxAmount,
+          total,
+          notes: notes || null,
+          status: "pending",
+        };
+      });
 
-      await tableService.addItemToOrder(newItem);
+      // Insertamos todos los items en batch
+      for (const item of newItems) {
+         await tableService.addItemToOrder(item);
+      }
 
       toast({
-        title: "✅ Agregado a la orden",
-        description: `${quantity}x ${product.name}`,
+        title: "✅ Productos guardados",
+        description: `${products.length} productos agregados a la orden`,
         className: "bg-accent text-accent-foreground",
       });
 
@@ -132,12 +133,13 @@ export function TableControlPanel({
       
       onRefresh();
     } catch (error: any) {
-      console.error("Error adding product:", error);
+      console.error("Error adding products:", error);
       toast({
         title: "❌ Error",
-        description: error.message || "No se pudo agregar el producto",
+        description: error.message || "No se pudieron agregar los productos",
         variant: "destructive",
       });
+      throw error; // Rethrow to be caught by the modal
     }
   };
 
