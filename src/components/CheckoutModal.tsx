@@ -490,7 +490,7 @@ export function CheckoutModal({ isOpen, onClose, onComplete, tableOrder, table, 
                 step="0.01"
               />
 
-              {selectedMethodName === "Tarjeta" && (
+              {paymentMethods.find(m => m.id === selectedPaymentMethod)?.name === "Tarjeta" && (
                 <div className="space-y-2">
                   <Label className="text-sm">Referencia (últimos 4 dígitos)</Label>
                   <Input
@@ -504,7 +504,7 @@ export function CheckoutModal({ isOpen, onClose, onComplete, tableOrder, table, 
               )}
 
               <Button
-                onClick={handleAddPayment}
+                onClick={addPayment}
                 disabled={!selectedPaymentMethod || !paymentAmount}
                 className="w-full h-10 bg-accent hover:bg-accent/90"
                 size="sm"
@@ -519,16 +519,16 @@ export function CheckoutModal({ isOpen, onClose, onComplete, tableOrder, table, 
               <div className="space-y-2 flex-1 min-h-0 overflow-y-auto">
                 <h3 className="text-sm font-semibold">Pagos Agregados</h3>
                 <div className="space-y-2">
-                  {payments.map((payment, index) => (
-                    <Card key={index}>
+                  {payments.map((payment) => (
+                    <Card key={payment.id}>
                       <CardContent className="p-2.5 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          {payment.method === "Efectivo" && <Banknote className="h-4 w-4" />}
-                          {payment.method === "Tarjeta" && <CreditCard className="h-4 w-4" />}
-                          {payment.method === "Pago en Dólares" && <DollarSign className="h-4 w-4" />}
-                          {payment.method === "Pago con Puntos" && <Gift className="h-4 w-4" />}
+                          {payment.method_name === "Efectivo" && <Banknote className="h-4 w-4" />}
+                          {payment.method_name === "Tarjeta" && <CreditCard className="h-4 w-4" />}
+                          {payment.method_name === "Pago en Dólares" && <DollarSign className="h-4 w-4" />}
+                          {payment.method_name === "Pago con Puntos" && <Gift className="h-4 w-4" />}
                           <div className="text-sm">
-                            <p className="font-medium">{payment.method}</p>
+                            <p className="font-medium">{payment.method_name}</p>
                             {payment.reference && (
                               <p className="text-xs text-muted-foreground">Ref: {payment.reference}</p>
                             )}
@@ -539,7 +539,7 @@ export function CheckoutModal({ isOpen, onClose, onComplete, tableOrder, table, 
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleRemovePayment(index)}
+                            onClick={() => removePayment(payment.id)}
                             className="h-7 w-7 p-0"
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
