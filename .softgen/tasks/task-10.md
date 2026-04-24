@@ -1,6 +1,6 @@
 ---
 title: Módulo Avanzado de Comedor y Gestión de Mesas
-status: todo
+status: done
 priority: high
 type: feature
 tags:

@@ -6,7 +6,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { FeatureGuard } from "@/components/FeatureGuard";
 import { TableGrid } from "@/components/TableGrid";
 import { TableControlPanel } from "@/components/TableControlPanel";
-import { ProductModal } from "@/components/ProductModal";
+import { ProductSelectorModal } from "@/components/ProductSelectorModal";
 import { CheckoutModal } from "@/components/CheckoutModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -487,13 +487,13 @@ export default function ComedorPage() {
         </Dialog>
 
         {/* Product Selector Modal */}
-        <ProductModal
-          open={showProductModal}
+        <ProductSelectorModal
+          isOpen={showProductModal}
           onClose={() => {
             setShowProductModal(false);
             setProductSelectorCallback(null);
           }}
-          onProductSelect={handleProductSelect}
+          onSelect={handleProductSelect}
           products={products}
         />
 
