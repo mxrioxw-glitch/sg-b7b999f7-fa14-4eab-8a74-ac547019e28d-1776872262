@@ -26,6 +26,7 @@ import { businessService } from "@/services/businessService";
 import { authService } from "@/services/authService";
 import { categoryService } from "@/services/categoryService";
 import { paymentMethodService } from "@/services/paymentMethodService";
+import { customerService } from "@/services/customerService";
 
 export const getServerSideProps = requireActiveSubscription;
 
@@ -40,6 +41,7 @@ export default function ComedorPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [businessId, setBusinessId] = useState<string>("");
   
   // UI State
@@ -57,6 +59,7 @@ export default function ComedorPage() {
   const [newTableArea, setNewTableArea] = useState("");
   const [guestsCount, setGuestsCount] = useState(2);
   const [selectedWaiterId, setSelectedWaiterId] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [productSelectorCallback, setProductSelectorCallback] = useState<((product: any, variant?: any, extras?: any[], notes?: string, quantity?: number) => void) | null>(null);
 
   useEffect(() => {
@@ -89,12 +92,13 @@ export default function ComedorPage() {
 
       setBusinessId(business.id);
 
-      const [tablesData, employeesData, productsData, categoriesData, paymentMethodsData] = await Promise.all([
+      const [tablesData, employeesData, productsData, categoriesData, paymentMethodsData, customersData] = await Promise.all([
         tableService.getTables(business.id),
         employeeService.getEmployees(business.id),
         productService.getProducts(business.id),
         categoryService.getCategories(business.id),
         paymentMethodService.getPaymentMethods(business.id),
+        customerService.getCustomers(business.id),
       ]);
 
       setTables(tablesData);
@@ -107,6 +111,7 @@ export default function ComedorPage() {
       setProducts(productsData);
       setCategories(categoriesData);
       setPaymentMethods(paymentMethodsData);
+      setCustomers(customersData);
     } catch (error: any) {
       console.error("Error loading data:", error);
       toast({
@@ -172,6 +177,7 @@ export default function ComedorPage() {
         table_id: selectedTable.id,
         business_id: businessId,
         assigned_waiter_id: selectedWaiterId,
+        customer_id: selectedCustomerId || null,
         guests_count: guestsCount,
         status: "open",
       });
@@ -441,11 +447,30 @@ export default function ComedorPage() {
                   <SelectContent>
                     {employees.map((emp) => (
                       <SelectItem key={emp.id} value={emp.id}>
-                        {emp.full_name}
+                        {emp.user?.full_name || emp.user?.email || 'Sin nombre'}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Cliente (opcional - para acumular puntos)</Label>
+                <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sin cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sin cliente</SelectItem>
+                    {customers.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        {customer.name} {customer.email ? `(${customer.email})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Si no seleccionas un cliente, no podrá pagar con puntos
+                </p>
               </div>
             </div>
             <DialogFooter>

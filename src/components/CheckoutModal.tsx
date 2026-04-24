@@ -455,20 +455,30 @@ export function CheckoutModal({ isOpen, onClose, onComplete, tableOrder, table, 
                     return <DollarSign className="h-6 w-6" />;
                   };
 
+                  // Deshabilitar "Pago con Puntos" si no hay cliente asignado
+                  const isDisabled = method.name === "Pago con Puntos" && !order?.customer_id;
+
                   return (
                     <Card
                       key={method.id}
                       className={`cursor-pointer transition-all ${
-                        selectedPaymentMethod === method.id
+                        isDisabled 
+                          ? "opacity-50 cursor-not-allowed" 
+                          : selectedPaymentMethod === method.id
                           ? "ring-2 ring-accent border-accent bg-accent/5"
                           : "hover:border-accent/50"
                       }`}
-                      onClick={() => setSelectedPaymentMethod(method.id)}
+                      onClick={() => !isDisabled && setSelectedPaymentMethod(method.id)}
                     >
                       <CardContent className="p-3 text-center">
                         <div className="flex flex-col items-center gap-1.5">
                           {getIcon()}
                           <span className="text-xs font-medium">{method.name}</span>
+                          {isDisabled && (
+                            <span className="text-[10px] text-destructive">
+                              Sin cliente
+                            </span>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
