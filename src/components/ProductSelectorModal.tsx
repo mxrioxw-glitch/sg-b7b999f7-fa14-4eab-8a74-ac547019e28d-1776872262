@@ -178,9 +178,9 @@ export function ProductSelectorModal({
       {/* Product Configuration Modal */}
       <ProductModal
         open={showProductModal}
-        onClose={() => {
-          setShowProductModal(false);
-          setSelectedProduct(null);
+        onOpenChange={(open) => {
+          setShowProductModal(open);
+          if (!open) setSelectedProduct(null);
         }}
         onAddToCart={handleProductSelect}
         product={selectedProduct}
