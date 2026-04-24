@@ -512,8 +512,7 @@ export default function ComedorPage() {
           isOpen={showCheckoutModal}
           onClose={() => setShowCheckoutModal(false)}
           onComplete={handleCheckoutComplete}
-          tableOrder={selectedTable?.table_orders?.[0]}
-          table={selectedTable}
+          order={checkoutOrder}
           paymentMethods={paymentMethods}
         />
       </FeatureGuard>
