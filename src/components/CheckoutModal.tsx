@@ -35,6 +35,7 @@ export function CheckoutModal({ isOpen, onClose, onComplete, tableOrder, table, 
   const [splitNumber, setSplitNumber] = useState(2);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<string>("");
+  const [cashAmount, setCashAmount] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
@@ -77,6 +78,16 @@ export function CheckoutModal({ isOpen, onClose, onComplete, tableOrder, table, 
     if (!paymentMethod) {
       toast({
         title: "⚠️ Selecciona un método de pago",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar efectivo
+    const selectedMethod = paymentMethods.find(m => m.id === paymentMethod);
+    if (selectedMethod?.name === "Efectivo" && !cashAmount) {
+      toast({
+        title: "⚠️ Ingresa con cuánto paga el cliente",
         variant: "destructive",
       });
       return;
@@ -130,6 +141,11 @@ export function CheckoutModal({ isOpen, onClose, onComplete, tableOrder, table, 
     }
   };
 
+  const selectedMethodName = paymentMethods.find(m => m.id === paymentMethod)?.name;
+  const cashPayment = parseFloat(cashAmount) || 0;
+  const totalToCharge = calculateSplitTotal();
+  const change = selectedMethodName === "Efectivo" && cashPayment > 0 ? cashPayment - totalToCharge : 0;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[95vh] p-0 gap-0">
@@ -139,7 +155,7 @@ export function CheckoutModal({ isOpen, onClose, onComplete, tableOrder, table, 
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8 overflow-y-auto max-h-[calc(95vh-200px)]">
           {/* Columna Izquierda */}
           <div className="space-y-6">
             {/* Resumen de la cuenta */}
@@ -375,6 +391,41 @@ export function CheckoutModal({ isOpen, onClose, onComplete, tableOrder, table, 
               </div>
             </div>
 
+            {/* Campo de efectivo */}
+            {selectedMethodName === "Efectivo" && (
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-5 space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cash-amount" className="text-base font-semibold">
+                      ¿Con cuánto paga el cliente?
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-5 w-5 text-muted-foreground" />
+                      <Input
+                        id="cash-amount"
+                        type="number"
+                        placeholder="0.00"
+                        value={cashAmount}
+                        onChange={(e) => setCashAmount(e.target.value)}
+                        className="flex-1 text-2xl font-bold"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                  </div>
+                  
+                  {change > 0 && (
+                    <div className="pt-3 border-t">
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Cambio a devolver</span>
+                        <span className="text-3xl font-bold text-green-600">${change.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Total y Botones */}
             <Card className="bg-accent/5 border-accent/30 mt-auto">
               <CardContent className="p-6 space-y-4">
@@ -382,7 +433,7 @@ export function CheckoutModal({ isOpen, onClose, onComplete, tableOrder, table, 
                   <div className="flex justify-between items-center">
                     <span className="text-lg text-muted-foreground">Total a Cobrar</span>
                     <span className="text-4xl font-bold text-accent">
-                      ${calculateSplitTotal().toFixed(2)}
+                      ${totalToCharge.toFixed(2)}
                     </span>
                   </div>
                   {currentTipAmount > 0 && (
