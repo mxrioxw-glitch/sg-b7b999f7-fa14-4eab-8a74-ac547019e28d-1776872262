@@ -230,384 +230,380 @@ export function CheckoutModal({ isOpen, onClose, onComplete, tableOrder, table, 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[100vw] w-full h-[100vh] max-h-[100vh] p-0 gap-0 rounded-none">
-        <DialogHeader className="px-8 pt-6 pb-4 border-b flex-shrink-0">
-          <DialogTitle className="text-3xl font-bold">
+      <DialogContent className="max-w-[100vw] w-full h-screen max-h-screen p-0 gap-0 rounded-none m-0">
+        <DialogHeader className="px-6 py-3 border-b flex-shrink-0">
+          <DialogTitle className="text-2xl font-bold">
             Cobrar {table?.table_number}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8 h-full">
-            {/* Columna Izquierda - Scroll */}
-            <ScrollArea className="h-full pr-4">
-              <div className="space-y-6">
-                {/* Resumen de la cuenta */}
-                <Card className="bg-muted/50">
-                  <CardContent className="p-5 space-y-3">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Receipt className="h-6 w-6 text-muted-foreground" />
-                      <h3 className="text-lg font-semibold">Resumen de la cuenta</h3>
-                    </div>
-                    <div className="space-y-2 text-base">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Subtotal</span>
-                        <span className="font-medium">${orderSubtotal.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">IVA (16%)</span>
-                        <span className="font-medium">${orderTax.toFixed(2)}</span>
-                      </div>
-                      <Separator className="my-2" />
-                      <div className="flex justify-between text-lg">
-                        <span className="font-semibold">Total sin propina</span>
-                        <span className="font-bold">${orderTotal.toFixed(2)}</span>
-                      </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 h-[calc(100vh-140px)] overflow-hidden">
+          {/* Columna Izquierda - Sin scroll, todo compacto */}
+          <div className="space-y-4 flex flex-col h-full">
+            {/* Resumen de la cuenta */}
+            <Card className="bg-muted/50 flex-shrink-0">
+              <CardContent className="p-3 space-y-1.5">
+                <div className="flex items-center gap-2 mb-2">
+                  <Receipt className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-sm font-semibold">Resumen de la cuenta</h3>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="font-medium">${orderSubtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">IVA (16%)</span>
+                    <span className="font-medium">${orderTax.toFixed(2)}</span>
+                  </div>
+                  <Separator className="my-1" />
+                  <div className="flex justify-between">
+                    <span className="font-semibold">Total sin propina</span>
+                    <span className="font-bold">${orderTotal.toFixed(2)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Propina */}
+            <div className="space-y-2 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-accent" />
+                <h3 className="text-sm font-semibold">Propina (opcional)</h3>
+              </div>
+              
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { label: "10%", value: 10 },
+                  { label: "15%", value: 15 },
+                  { label: "20%", value: 20 },
+                ].map((option) => (
+                  <Button
+                    key={option.value}
+                    type="button"
+                    variant={selectedTipPercentage === option.value ? "default" : "outline"}
+                    size="sm"
+                    className={`h-auto py-2 flex flex-col gap-0.5 ${
+                      selectedTipPercentage === option.value ? "bg-accent hover:bg-accent/90" : ""
+                    }`}
+                    onClick={() => {
+                      setSelectedTipPercentage(option.value);
+                      setCustomTip("");
+                    }}
+                  >
+                    <span className="text-base font-bold">{option.label}</span>
+                    <span className="text-xs opacity-80">
+                      ${getTipAmountForPercentage(option.value).toFixed(2)}
+                    </span>
+                  </Button>
+                ))}
+                <Button
+                  type="button"
+                  variant={customTip !== "" ? "default" : "outline"}
+                  size="sm"
+                  className={`h-auto py-2 flex flex-col gap-0.5 ${
+                    customTip !== "" ? "bg-accent hover:bg-accent/90" : ""
+                  }`}
+                  onClick={() => {
+                    setSelectedTipPercentage(null);
+                    const input = document.getElementById("custom-tip-input") as HTMLInputElement;
+                    input?.focus();
+                  }}
+                >
+                  <DollarSign className="h-4 w-4" />
+                  <span className="text-xs">Otra</span>
+                </Button>
+              </div>
+
+              {customTip !== "" && (
+                <Input
+                  id="custom-tip-input"
+                  type="number"
+                  placeholder="Monto personalizado"
+                  value={customTip}
+                  onChange={(e) => {
+                    setCustomTip(e.target.value);
+                    setSelectedTipPercentage(null);
+                  }}
+                  className="text-sm h-9"
+                  min="0"
+                  step="0.01"
+                />
+              )}
+
+              {currentTipAmount > 0 && (
+                <Card className="bg-accent/10 border-accent/20">
+                  <CardContent className="p-2">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">Propina agregada</span>
+                      <span className="font-bold text-accent">+${currentTipAmount.toFixed(2)}</span>
                     </div>
                   </CardContent>
                 </Card>
+              )}
+            </div>
 
-                {/* Propina */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-6 w-6 text-accent" />
-                    <h3 className="text-lg font-semibold">Propina (opcional)</h3>
-                  </div>
-                  
-                  <div className="grid grid-cols-4 gap-3">
-                    {[
-                      { label: "10%", value: 10 },
-                      { label: "15%", value: 15 },
-                      { label: "20%", value: 20 },
-                    ].map((option) => (
-                      <Button
-                        key={option.value}
-                        type="button"
-                        variant={selectedTipPercentage === option.value ? "default" : "outline"}
-                        className={`h-auto py-4 flex flex-col gap-1.5 ${
-                          selectedTipPercentage === option.value ? "bg-accent hover:bg-accent/90" : ""
-                        }`}
-                        onClick={() => {
-                          setSelectedTipPercentage(option.value);
-                          setCustomTip("");
-                        }}
-                      >
-                        <span className="text-xl font-bold">{option.label}</span>
-                        <span className="text-sm opacity-80">
-                          ${getTipAmountForPercentage(option.value).toFixed(2)}
-                        </span>
-                      </Button>
-                    ))}
-                    <Button
-                      type="button"
-                      variant={customTip !== "" ? "default" : "outline"}
-                      className={`h-auto py-4 flex flex-col gap-1.5 ${
-                        customTip !== "" ? "bg-accent hover:bg-accent/90" : ""
-                      }`}
-                      onClick={() => {
-                        setSelectedTipPercentage(null);
-                        const input = document.getElementById("custom-tip-input") as HTMLInputElement;
-                        input?.focus();
-                      }}
-                    >
-                      <DollarSign className="h-6 w-6" />
-                      <span className="text-sm">Otra</span>
-                    </Button>
-                  </div>
-
-                  {customTip !== "" && (
+            {/* Tipo de Cobro */}
+            <div className="space-y-2 flex-1 min-h-0">
+              <h3 className="text-sm font-semibold">Tipo de Cobro</h3>
+              <RadioGroup value={splitType} onValueChange={(value: any) => setSplitType(value)} className="space-y-2">
+                <Card
+                  className={`cursor-pointer transition-all ${
+                    splitType === "full" ? "ring-2 ring-accent border-accent" : ""
+                  }`}
+                  onClick={() => setSplitType("full")}
+                >
+                  <CardContent className="p-2.5 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <DollarSign className="h-5 w-5 text-muted-foreground" />
-                      <Input
-                        id="custom-tip-input"
-                        type="number"
-                        placeholder="Monto personalizado"
-                        value={customTip}
-                        onChange={(e) => {
-                          setCustomTip(e.target.value);
-                          setSelectedTipPercentage(null);
-                        }}
-                        className="flex-1 text-lg"
-                        min="0"
-                        step="0.01"
-                      />
+                      <RadioGroupItem value="full" id="full" />
+                      <Label htmlFor="full" className="cursor-pointer text-sm font-medium">
+                        Cuenta Completa
+                      </Label>
                     </div>
-                  )}
+                    <span className="font-bold text-accent">
+                      ${finalTotal.toFixed(2)}
+                    </span>
+                  </CardContent>
+                </Card>
 
-                  {currentTipAmount > 0 && (
-                    <Card className="bg-accent/10 border-accent/20">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-muted-foreground">Propina agregada</span>
-                          <span className="font-bold text-accent text-2xl">+${currentTipAmount.toFixed(2)}</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-
-                {/* Tipo de Cobro */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Tipo de Cobro</h3>
-                  <RadioGroup value={splitType} onValueChange={(value: any) => setSplitType(value)}>
-                    <Card
-                      className={`cursor-pointer transition-all ${
-                        splitType === "full" ? "ring-2 ring-accent border-accent" : ""
-                      }`}
-                      onClick={() => setSplitType("full")}
-                    >
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <RadioGroupItem value="full" id="full" />
-                          <Label htmlFor="full" className="cursor-pointer font-medium text-base">
-                            Cuenta Completa
-                          </Label>
-                        </div>
-                        <span className="font-bold text-accent text-xl">
-                          ${finalTotal.toFixed(2)}
-                        </span>
-                      </CardContent>
-                    </Card>
-
-                    <Card
-                      className={`cursor-pointer transition-all ${
-                        splitType === "equal" ? "ring-2 ring-accent border-accent" : ""
-                      }`}
-                      onClick={() => setSplitType("equal")}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-3 mb-3">
-                          <RadioGroupItem value="equal" id="equal" />
-                          <Label htmlFor="equal" className="cursor-pointer font-medium text-base">
-                            Dividir en Partes Iguales
-                          </Label>
-                        </div>
-                        {splitType === "equal" && (
-                          <div className="ml-8 flex items-center gap-3">
-                            <Input
-                              type="number"
-                              min="2"
-                              value={splitNumber}
-                              onChange={(e) => setSplitNumber(parseInt(e.target.value) || 2)}
-                              className="w-24 text-lg"
-                            />
-                            <span className="text-base text-muted-foreground">
-                              personas = <span className="font-bold text-accent">${(finalTotal / splitNumber).toFixed(2)}</span> c/u
-                            </span>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-
-                    <Card
-                      className={`cursor-pointer transition-all ${
-                        splitType === "items" ? "ring-2 ring-accent border-accent" : ""
-                      }`}
-                      onClick={() => setSplitType("items")}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-3 mb-3">
-                          <RadioGroupItem value="items" id="items" />
-                          <Label htmlFor="items" className="cursor-pointer font-medium text-base">
-                            Seleccionar Items
-                          </Label>
-                        </div>
-                        {splitType === "items" && (
-                          <div className="ml-8 space-y-2 max-h-40 overflow-y-auto">
-                            {order?.table_order_items?.map((item: any) => (
-                              <div key={item.id} className="flex items-center gap-3 py-1">
-                                <Checkbox
-                                  id={`item-${item.id}`}
-                                  checked={selectedItems.includes(item.id)}
-                                  onCheckedChange={(checked) => {
-                                    if (checked) {
-                                      setSelectedItems([...selectedItems, item.id]);
-                                    } else {
-                                      setSelectedItems(selectedItems.filter((id) => id !== item.id));
-                                    }
-                                  }}
-                                />
-                                <Label
-                                  htmlFor={`item-${item.id}`}
-                                  className="text-base cursor-pointer flex-1"
-                                >
-                                  {item.quantity}x {item.products?.name} - <span className="font-medium">${item.item_total?.toFixed(2)}</span>
-                                </Label>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </RadioGroup>
-                </div>
-              </div>
-            </ScrollArea>
-
-            {/* Columna Derecha - Pagos */}
-            <div className="flex flex-col h-full">
-              <ScrollArea className="flex-1">
-                <div className="space-y-6 pr-4">
-                  {/* Pagos Agregados */}
-                  {payments.length > 0 && (
-                    <div className="space-y-3">
-                      <h3 className="text-lg font-semibold">Pagos Agregados</h3>
-                      {payments.map((payment) => (
-                        <Card key={payment.id} className="bg-accent/5 border-accent/20">
-                          <CardContent className="p-4 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              {getMethodIcon(payment.method_name)}
-                              <div>
-                                <p className="font-medium">{payment.method_name}</p>
-                                {payment.reference && (
-                                  <p className="text-sm text-muted-foreground">Ref: {payment.reference}</p>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className="text-xl font-bold">${payment.amount.toFixed(2)}</span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removePayment(payment.id)}
-                                className="text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="h-5 w-5" />
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+                <Card
+                  className={`cursor-pointer transition-all ${
+                    splitType === "equal" ? "ring-2 ring-accent border-accent" : ""
+                  }`}
+                  onClick={() => setSplitType("equal")}
+                >
+                  <CardContent className="p-2.5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <RadioGroupItem value="equal" id="equal" />
+                      <Label htmlFor="equal" className="cursor-pointer text-sm font-medium">
+                        Dividir en Partes Iguales
+                      </Label>
                     </div>
-                  )}
-
-                  {/* Agregar Pago */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Agregar Pago</h3>
-                    
-                    {/* Métodos de Pago */}
-                    <div className="grid grid-cols-2 gap-3">
-                      {paymentMethods.map((method) => (
-                        <Card
-                          key={method.id}
-                          className={`cursor-pointer transition-all ${
-                            selectedPaymentMethod === method.id
-                              ? "ring-2 ring-accent border-accent bg-accent/5"
-                              : "hover:border-accent/50"
-                          }`}
-                          onClick={() => setSelectedPaymentMethod(method.id)}
-                        >
-                          <CardContent className="p-6 text-center">
-                            <div className="flex flex-col items-center gap-3">
-                              {getMethodIcon(method.name)}
-                              <span className="text-base font-medium">{method.name}</span>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-
-                    {/* Monto */}
-                    <div className="space-y-2">
-                      <Label className="text-base">Monto</Label>
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="h-5 w-5 text-muted-foreground" />
+                    {splitType === "equal" && (
+                      <div className="ml-6 flex items-center gap-2 text-sm">
                         <Input
                           type="number"
-                          placeholder="0.00"
-                          value={paymentAmount}
-                          onChange={(e) => setPaymentAmount(e.target.value)}
-                          className="flex-1 text-2xl font-bold"
-                          min="0"
-                          step="0.01"
+                          min="2"
+                          value={splitNumber}
+                          onChange={(e) => setSplitNumber(parseInt(e.target.value) || 2)}
+                          className="w-16 h-8 text-sm"
                         />
+                        <span className="text-muted-foreground">
+                          personas = <span className="font-bold text-accent">${(finalTotal / splitNumber).toFixed(2)}</span> c/u
+                        </span>
                       </div>
-                    </div>
-
-                    {/* Referencia para Tarjeta */}
-                    {needsReference(selectedPaymentMethod) && (
-                      <div className="space-y-2">
-                        <Label className="text-base">Referencia / Últimos 4 dígitos (opcional)</Label>
-                        <Input
-                          type="text"
-                          placeholder="1234"
-                          value={paymentReference}
-                          onChange={(e) => setPaymentReference(e.target.value)}
-                          className="text-lg"
-                          maxLength={20}
-                        />
-                      </div>
-                    )}
-
-                    {/* Botón Agregar */}
-                    <Button
-                      onClick={addPayment}
-                      disabled={!selectedPaymentMethod || !paymentAmount || remaining <= 0}
-                      className="w-full h-14 text-lg"
-                      variant="outline"
-                    >
-                      <Plus className="h-5 w-5 mr-2" />
-                      Agregar Pago
-                    </Button>
-                  </div>
-                </div>
-              </ScrollArea>
-
-              {/* Footer - Total y Botones */}
-              <div className="border-t pt-6 mt-6 space-y-4">
-                <Card className="bg-muted/30">
-                  <CardContent className="p-5 space-y-3">
-                    <div className="flex justify-between items-center text-base">
-                      <span className="text-muted-foreground">Total a Cobrar</span>
-                      <span className="text-2xl font-bold">${totalToCharge.toFixed(2)}</span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between items-center text-base">
-                      <span className="text-muted-foreground">Total Pagado</span>
-                      <span className="text-2xl font-bold text-accent">${totalPaid.toFixed(2)}</span>
-                    </div>
-                    {remaining > 0 && (
-                      <>
-                        <Separator />
-                        <div className="flex justify-between items-center text-base">
-                          <span className="text-muted-foreground">Restante</span>
-                          <span className="text-3xl font-bold text-orange-600">${remaining.toFixed(2)}</span>
-                        </div>
-                      </>
                     )}
                   </CardContent>
                 </Card>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={onClose}
-                    disabled={isProcessing}
-                    className="h-16 text-lg"
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    onClick={handleProcessPayment}
-                    disabled={isProcessing || payments.length === 0 || remaining > 0.01}
-                    className="h-16 text-lg bg-accent hover:bg-accent/90"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <Clock className="h-5 w-5 mr-2 animate-spin" />
-                        Procesando...
-                      </>
-                    ) : (
-                      <>
-                        <DollarSign className="h-5 w-5 mr-2" />
-                        Confirmar Cobro
-                      </>
+                <Card
+                  className={`cursor-pointer transition-all ${
+                    splitType === "items" ? "ring-2 ring-accent border-accent" : ""
+                  }`}
+                  onClick={() => setSplitType("items")}
+                >
+                  <CardContent className="p-2.5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <RadioGroupItem value="items" id="items" />
+                      <Label htmlFor="items" className="cursor-pointer text-sm font-medium">
+                        Seleccionar Items
+                      </Label>
+                    </div>
+                    {splitType === "items" && (
+                      <div className="ml-6 space-y-1.5 max-h-24 overflow-y-auto">
+                        {order?.table_order_items?.map((item: any) => (
+                          <div key={item.id} className="flex items-center gap-2">
+                            <Checkbox
+                              id={`item-${item.id}`}
+                              checked={selectedItems.includes(item.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedItems([...selectedItems, item.id]);
+                                } else {
+                                  setSelectedItems(selectedItems.filter((id) => id !== item.id));
+                                }
+                              }}
+                            />
+                            <Label
+                              htmlFor={`item-${item.id}`}
+                              className="text-xs cursor-pointer flex-1"
+                            >
+                              {item.quantity}x {item.products?.name} - <span className="font-medium">${item.item_total?.toFixed(2)}</span>
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
                     )}
-                  </Button>
-                </div>
-              </div>
+                  </CardContent>
+                </Card>
+              </RadioGroup>
             </div>
           </div>
+
+          {/* Columna Derecha */}
+          <div className="space-y-4 flex flex-col h-full">
+            {/* Métodos de Pago */}
+            <div className="space-y-3 flex-shrink-0">
+              <h3 className="text-sm font-semibold">Agregar Pago</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {paymentMethods.map((method) => {
+                  const getIcon = () => {
+                    if (method.name === "Efectivo") return <Banknote className="h-6 w-6" />;
+                    if (method.name === "Tarjeta") return <CreditCard className="h-6 w-6" />;
+                    if (method.name === "Pago en Dólares") return <DollarSign className="h-6 w-6" />;
+                    if (method.name === "Pago con Puntos") return <Gift className="h-6 w-6" />;
+                    return <DollarSign className="h-6 w-6" />;
+                  };
+
+                  return (
+                    <Card
+                      key={method.id}
+                      className={`cursor-pointer transition-all ${
+                        selectedPaymentMethod === method.id
+                          ? "ring-2 ring-accent border-accent bg-accent/5"
+                          : "hover:border-accent/50"
+                      }`}
+                      onClick={() => setSelectedPaymentMethod(method.id)}
+                    >
+                      <CardContent className="p-3 text-center">
+                        <div className="flex flex-col items-center gap-1.5">
+                          {getIcon()}
+                          <span className="text-xs font-medium">{method.name}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Monto y Referencia */}
+            <div className="space-y-2 flex-shrink-0">
+              <Label className="text-sm">Monto</Label>
+              <Input
+                type="number"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+                placeholder="0.00"
+                className="text-base h-10"
+                min="0"
+                step="0.01"
+              />
+
+              {selectedMethodName === "Tarjeta" && (
+                <div className="space-y-2">
+                  <Label className="text-sm">Referencia (últimos 4 dígitos)</Label>
+                  <Input
+                    value={paymentReference}
+                    onChange={(e) => setPaymentReference(e.target.value)}
+                    placeholder="1234"
+                    maxLength={4}
+                    className="text-base h-10"
+                  />
+                </div>
+              )}
+
+              <Button
+                onClick={handleAddPayment}
+                disabled={!selectedPaymentMethod || !paymentAmount}
+                className="w-full h-10 bg-accent hover:bg-accent/90"
+                size="sm"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Agregar Pago
+              </Button>
+            </div>
+
+            {/* Lista de pagos */}
+            {payments.length > 0 && (
+              <div className="space-y-2 flex-1 min-h-0 overflow-y-auto">
+                <h3 className="text-sm font-semibold">Pagos Agregados</h3>
+                <div className="space-y-2">
+                  {payments.map((payment, index) => (
+                    <Card key={index}>
+                      <CardContent className="p-2.5 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {payment.method === "Efectivo" && <Banknote className="h-4 w-4" />}
+                          {payment.method === "Tarjeta" && <CreditCard className="h-4 w-4" />}
+                          {payment.method === "Pago en Dólares" && <DollarSign className="h-4 w-4" />}
+                          {payment.method === "Pago con Puntos" && <Gift className="h-4 w-4" />}
+                          <div className="text-sm">
+                            <p className="font-medium">{payment.method}</p>
+                            {payment.reference && (
+                              <p className="text-xs text-muted-foreground">Ref: {payment.reference}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold">${payment.amount.toFixed(2)}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemovePayment(index)}
+                            className="h-7 w-7 p-0"
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Totales */}
+            <Card className="bg-muted/30 flex-shrink-0">
+              <CardContent className="p-3 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Total a Cobrar</span>
+                  <span className="font-bold">${totalToCharge.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Total Pagado</span>
+                  <span className="font-bold text-accent">${totalPaid.toFixed(2)}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between">
+                  <span className={`font-semibold ${remaining > 0.01 ? "text-orange-600" : "text-green-600"}`}>
+                    Restante
+                  </span>
+                  <span className={`text-xl font-bold ${remaining > 0.01 ? "text-orange-600" : "text-green-600"}`}>
+                    ${remaining.toFixed(2)}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="border-t px-6 py-3 flex gap-3 flex-shrink-0">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isProcessing}
+            className="flex-1 h-12"
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleProcessPayment}
+            disabled={isProcessing || payments.length === 0 || remaining > 0.01}
+            className="flex-1 h-12 bg-accent hover:bg-accent/90 text-base font-semibold"
+          >
+            {isProcessing ? (
+              <>
+                <Clock className="h-5 w-5 mr-2 animate-spin" />
+                Procesando...
+              </>
+            ) : (
+              <>
+                <DollarSign className="h-5 w-5 mr-2" />
+                Confirmar Cobro
+              </>
+            )}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
