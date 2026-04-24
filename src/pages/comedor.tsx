@@ -92,7 +92,7 @@ export default function ComedorPage() {
       ]);
 
       setTables(tablesData);
-      setEmployees(employeesData.filter(e => e.role === "waiter" || e.role === "manager"));
+      setEmployees(employeesData.filter(e => e.role === "waiter" || e.role === "manager" || e.role === "admin"));
       setProducts(productsData);
     } catch (error: any) {
       console.error("Error loading data:", error);
