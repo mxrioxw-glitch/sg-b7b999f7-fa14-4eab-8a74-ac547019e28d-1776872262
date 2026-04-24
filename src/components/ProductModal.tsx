@@ -4,7 +4,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -93,49 +92,61 @@ export function ProductModal({ open, onOpenChange, product, onAddToCart }: Produ
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="text-xl">{product.name}</DialogTitle>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="p-6 pb-4">
+          <DialogTitle className="text-2xl">{product.name}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto px-6">
+          {/* Variantes */}
           {product.variants && product.variants.length > 0 && (
-            <div>
-              <Label className="mb-3 block">Tamaño</Label>
+            <div className="mb-6">
+              <h3 className="font-semibold mb-3">Tamaño</h3>
               <div className="grid grid-cols-3 gap-2">
-                {product.variants.map((variant) => (
-                  <Button
-                    key={variant.id}
-                    variant={selectedVariant === variant.id ? "default" : "outline"}
-                    className="h-auto flex-col gap-1 py-3"
-                    onClick={() => setSelectedVariant(variant.id)}
-                  >
-                    <span className="text-sm font-semibold">{variant.name}</span>
-                    <span className="text-xs">
-                      {variant.priceModifier > 0 && "+"}${variant.priceModifier.toFixed(2)}
-                    </span>
-                  </Button>
-                ))}
+                {product.variants.map((variant) => {
+                  const variantPrice = (product.basePrice || 0) + (variant.priceModifier || 0);
+                  return (
+                    <button
+                      key={variant.id}
+                      onClick={() => setSelectedVariant(variant.id)}
+                      className={`p-3 rounded-lg border-2 transition-all ${
+                        selectedVariant === variant.id
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      <div className="font-medium text-sm">{variant.name}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {variant.priceModifier && variant.priceModifier !== 0
+                          ? `${variant.priceModifier > 0 ? "+" : ""}$${variant.priceModifier.toFixed(2)}`
+                          : `$${variantPrice.toFixed(2)}`}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
 
+          {/* Extras - con scroll interno si hay muchos */}
           {product.extras && product.extras.length > 0 && (
-            <div>
-              <Label className="mb-3 block">Extras</Label>
-              <div className="space-y-2">
+            <div className="mb-6">
+              <h3 className="font-semibold mb-3">Extras</h3>
+              <div className="space-y-2 max-h-[280px] overflow-y-auto pr-2 -mr-2">
                 {product.extras.map((extra) => (
                   <button
                     key={extra.id}
                     onClick={() => toggleExtra(extra.id)}
-                    className={cn(
-                      "flex w-full items-center justify-between rounded-lg border border-border p-3 text-left transition-all hover:bg-accent/50",
-                      selectedExtras.includes(extra.id) && "border-accent bg-accent/20"
-                    )}
+                    className={`w-full flex items-center justify-between p-3 rounded-lg border-2 transition-all ${
+                      selectedExtras.includes(extra.id)
+                        ? "border-accent bg-accent/10"
+                        : "border-border hover:border-accent/50"
+                    }`}
                   >
-                    <span className="text-sm font-medium">{extra.name}</span>
-                    <Badge variant={selectedExtras.includes(extra.id) ? "default" : "secondary"}>
-                      +${extra.price.toFixed(2)}
+                    <span className="font-medium text-sm">{extra.name}</span>
+                    <Badge variant="secondary" className="text-xs">
+                      +${(extra.price || 0).toFixed(2)}
                     </Badge>
                   </button>
                 ))}
@@ -143,10 +154,11 @@ export function ProductModal({ open, onOpenChange, product, onAddToCart }: Produ
             </div>
           )}
 
-          <div>
-            <Label htmlFor="notes" className="mb-2 block">
+          {/* Notas especiales */}
+          <div className="mb-6">
+            <label className="font-semibold block mb-3">
               Notas especiales (opcional)
-            </Label>
+            </label>
             <Textarea
               id="notes"
               placeholder="Ej: Sin azúcar, extra caliente..."
@@ -156,7 +168,8 @@ export function ProductModal({ open, onOpenChange, product, onAddToCart }: Produ
             />
           </div>
 
-          <div>
+          {/* Cantidad */}
+          <div className="mb-6">
             <Label className="mb-2 block">Cantidad</Label>
             <div className="flex items-center gap-3">
               <Button
@@ -178,17 +191,16 @@ export function ProductModal({ open, onOpenChange, product, onAddToCart }: Produ
           </div>
         </div>
 
-        <DialogFooter className="flex-col gap-2 sm:flex-row">
-          <div className="flex flex-1 items-center justify-between sm:justify-start">
-            <span className="text-sm text-muted-foreground">Total:</span>
-            <span className="ml-2 text-2xl font-bold text-primary">
-              ${totalPrice.toFixed(2)}
-            </span>
-          </div>
-          <Button onClick={handleAddToCart} size="lg" className="w-full sm:w-auto">
-            Agregar al Carrito
+        {/* Footer sticky */}
+        <div className="border-t bg-background p-6 pt-4">
+          <Button
+            onClick={handleAddToCart}
+            className="w-full h-12 text-lg"
+            size="lg"
+          >
+            Agregar al carrito - ${totalPrice.toFixed(2)}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
