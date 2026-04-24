@@ -282,7 +282,7 @@ export function TableControlPanel({
                 <SelectContent>
                   {employees.map((emp) => (
                     <SelectItem key={emp.id} value={emp.id}>
-                      {emp.full_name}
+                      {emp.user?.full_name || emp.user?.email || 'Sin nombre'}
                     </SelectItem>
                   ))}
                 </SelectContent>
