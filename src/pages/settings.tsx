@@ -1296,6 +1296,38 @@ export default function SettingsPage() {
                   </CardContent>
                 </Card>
               )}
+
+              {activeTab === "plan" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-foreground mb-2">
+                      Plan de Suscripción
+                    </h2>
+                    <p className="text-muted-foreground">
+                      Gestiona tu plan y facturación
+                    </p>
+                  </div>
+
+                  {/* Coming Soon Card */}
+                  <Card className="border-2 border-dashed border-muted-foreground/20">
+                    <CardContent className="p-12 text-center">
+                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent/10 mb-4">
+                        <Clock className="h-8 w-8 text-accent" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-foreground mb-2">
+                        Próximamente
+                      </h3>
+                      <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                        El sistema de planes y suscripciones estará disponible muy pronto. Por ahora, disfruta de todas las funciones sin restricciones.
+                      </p>
+                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 text-accent text-sm font-medium">
+                        <CheckCircle2 className="h-4 w-4" />
+                        Todas las funciones desbloqueadas
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </div>
           </main>
         </div>
