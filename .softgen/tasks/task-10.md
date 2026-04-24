@@ -23,14 +23,14 @@ position: 10
 - Preparación para KDS: Los items deben tener un estado (pendiente, cocinando, servido).
 
 ## Checklist
-- [ ] Estructura de datos y seguridad: Soporte para mesas físicas, comandas en curso, items por comanda y asignación de meseros (con políticas de acceso).
-- [ ] UI de Mapa de Mesas: Cuadrícula visual mostrando todas las mesas con colores por estado (Libre, Ocupada, Sucia/Cobrando) y tiempo transcurrido.
-- [ ] Panel de control de la mesa: Interfaz lateral o modal interactivo para ver el detalle de la mesa seleccionada.
-- [ ] Gestión del personal: Funcionalidad para asignar el mesero inicial al abrir la mesa y opción para hacer cambio de mesero posteriormente.
-- [ ] Toma de pedidos rápida: Buscador e interfaz táctil para agregar platillos, configurar variantes/extras y añadir notas especiales (ej. "Sin cebolla").
-- [ ] Control de items: Acciones para editar cantidades, eliminar platillos ingresados por error y el botón maestro de "Enviar a Cocina".
-- [ ] Sistema de cobro flexible: Opciones para cobro total o "Cuenta Dividida" (por montos iguales o seleccionando platillos específicos).
-- [ ] Actualización de navegación: Remover el distintivo de "Próximamente" en el menú principal para habilitar el acceso.
+- [x] Estructura de datos y seguridad: Soporte para mesas físicas, comandas en curso, items por comanda y asignación de meseros (con políticas de acceso).
+- [x] UI de Mapa de Mesas: Cuadrícula visual mostrando todas las mesas con colores por estado (Libre, Ocupada, Sucia/Cobrando) y tiempo transcurrido.
+- [x] Panel de control de la mesa: Interfaz lateral o modal interactivo para ver el detalle de la mesa seleccionada.
+- [x] Gestión del personal: Funcionalidad para asignar el mesero inicial al abrir la mesa y opción para hacer cambio de mesero posteriormente.
+- [x] Toma de pedidos rápida: Buscador e interfaz táctil para agregar platillos, configurar variantes/extras y añadir notas especiales (ej. "Sin cebolla").
+- [x] Control de items: Acciones para editar cantidades, eliminar platillos ingresados por error y el botón maestro de "Enviar a Cocina".
+- [x] Sistema de cobro flexible: Opciones para cobro total o "Cuenta Dividida" (por montos iguales o seleccionando platillos específicos).
+- [x] Actualización de navegación: Remover el distintivo de "Próximamente" en el menú principal para habilitar el acceso.
 
 ## Acceptance
 - ✅ El usuario puede visualizar un mapa de mesas e interactuar con ellas.

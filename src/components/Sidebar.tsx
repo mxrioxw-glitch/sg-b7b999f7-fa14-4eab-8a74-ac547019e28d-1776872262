@@ -134,7 +134,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       label: "Comedor",
       path: "/comedor",
       color: "text-primary",
-      badge: "Próximamente",
     },
     {
       icon: ChefHat,
