@@ -350,13 +350,9 @@ export default function ComedorPage() {
                   </Card>
 
                   <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        Ingresos Actuales
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">${stats.revenue.toFixed(2)}</div>
+                    <CardContent className="pt-6">
+                      <div className="text-sm text-muted-foreground mb-2">Ingresos del Día</div>
+                      <div className="text-2xl font-bold">${(stats.revenue || 0).toFixed(2)}</div>
                     </CardContent>
                   </Card>
                 </div>

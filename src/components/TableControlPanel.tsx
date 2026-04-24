@@ -351,7 +351,7 @@ export function TableControlPanel({
                               </Button>
                             </div>
                             <p className="text-sm font-semibold">
-                              ${Number(item.total).toFixed(2)}
+                              ${(Number(item.total) || 0).toFixed(2)}
                             </p>
                           </div>
                         </div>
@@ -380,7 +380,7 @@ export function TableControlPanel({
         <div className="p-4 border-t space-y-3 bg-muted/20">
           <div className="flex items-center justify-between text-lg font-bold">
             <span>Total:</span>
-            <span className="text-2xl">${Number(order.total || 0).toFixed(2)}</span>
+            <span className="text-2xl">${(Number(order.total) || 0).toFixed(2)}</span>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

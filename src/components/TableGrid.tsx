@@ -111,8 +111,13 @@ export function TableGrid({ tables, onTableClick, selectedTableId }: TableGridPr
                   )}
 
                   {/* Total */}
-                  <div className="text-sm font-bold text-foreground pt-1">
-                    ${Number(order.total || 0).toFixed(2)}
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      {order.assigned_waiter?.user?.full_name || "Sin mesero"}
+                    </p>
+                    <p className="text-sm font-bold">
+                      ${Number(order.total || 0).toFixed(2)}
+                    </p>
                   </div>
                 </div>
               )}
