@@ -26,7 +26,7 @@ import { businessService } from "@/services/businessService";
 import { authService } from "@/services/authService";
 import { categoryService } from "@/services/categoryService";
 import { paymentMethodService } from "@/services/paymentMethodService";
-import { customerService } from "@/services/customerService";
+import { getCustomers } from "@/services/customerService";
 
 export const getServerSideProps = requireActiveSubscription;
 
@@ -59,7 +59,7 @@ export default function ComedorPage() {
   const [newTableArea, setNewTableArea] = useState("");
   const [guestsCount, setGuestsCount] = useState(2);
   const [selectedWaiterId, setSelectedWaiterId] = useState("");
-  const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState("no-customer");
   const [productSelectorCallback, setProductSelectorCallback] = useState<((product: any, variant?: any, extras?: any[], notes?: string, quantity?: number) => void) | null>(null);
 
   useEffect(() => {
@@ -98,7 +98,7 @@ export default function ComedorPage() {
         productService.getProducts(business.id),
         categoryService.getCategories(business.id),
         paymentMethodService.getPaymentMethods(business.id),
-        customerService.getCustomers(business.id),
+        getCustomers(business.id),
       ]);
 
       setTables(tablesData);
@@ -177,7 +177,7 @@ export default function ComedorPage() {
         table_id: selectedTable.id,
         business_id: businessId,
         assigned_waiter_id: selectedWaiterId,
-        customer_id: selectedCustomerId || null,
+        customer_id: selectedCustomerId === "no-customer" ? null : selectedCustomerId || null,
         guests_count: guestsCount,
         status: "open",
       });
@@ -460,7 +460,7 @@ export default function ComedorPage() {
                     <SelectValue placeholder="Sin cliente" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sin cliente</SelectItem>
+                    <SelectItem value="no-customer">Sin cliente</SelectItem>
                     {customers.map((customer) => (
                       <SelectItem key={customer.id} value={customer.id}>
                         {customer.name} {customer.email ? `(${customer.email})` : ''}
