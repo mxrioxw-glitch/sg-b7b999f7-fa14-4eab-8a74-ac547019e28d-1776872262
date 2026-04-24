@@ -27,22 +27,13 @@ import { authService } from "@/services/authService";
 interface CheckoutModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onComplete: () => void;
   tableOrder: any;
   table: any;
-  onComplete: () => void;
-  order: any;
   paymentMethods?: any[];
 }
 
-export function CheckoutModal({
-  isOpen,
-  onClose,
-  tableOrder,
-  table,
-  onComplete,
-  order,
-  paymentMethods = [],
-}: CheckoutModalProps) {
+export function CheckoutModal({ isOpen, onClose, onComplete, tableOrder, table, paymentMethods = [] }: CheckoutModalProps) {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [splitMode, setSplitMode] = useState<"full" | "equal" | "items">("full");
