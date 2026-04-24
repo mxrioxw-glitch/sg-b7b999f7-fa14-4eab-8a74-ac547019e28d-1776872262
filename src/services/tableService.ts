@@ -249,9 +249,9 @@ export const tableService = {
     await supabase
       .from("table_orders")
       .update({ 
-        subtotal: subtotal.toFixed(2),
-        tax_amount: taxAmount.toFixed(2),
-        total: total.toFixed(2)
+        subtotal: Number(subtotal.toFixed(2)),
+        tax_amount: Number(taxAmount.toFixed(2)),
+        total: Number(total.toFixed(2))
       })
       .eq("id", orderId);
   },

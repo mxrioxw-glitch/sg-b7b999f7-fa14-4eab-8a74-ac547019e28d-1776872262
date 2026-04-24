@@ -87,15 +87,12 @@ export function CheckoutModal({
       const session = await authService.getCurrentSession();
       if (!session?.user?.id) throw new Error("No session");
 
-      const profile = await authService.getProfile(session.user.id);
-      if (!profile?.business_id) throw new Error("No business");
-
-      const business = await businessService.getBusiness(profile.business_id);
+      const business = await businessService.getCurrentBusiness();
       if (!business) throw new Error("Business not found");
 
       // Preparar datos de la venta
       const saleData = {
-        business_id: profile.business_id,
+        business_id: business.id,
         employee_id: tableOrder.assigned_waiter_id,
         customer_id: tableOrder.customer_id || null,
         payment_method: paymentMethod,

@@ -73,8 +73,8 @@ export default function ComedorPage() {
         return;
       }
 
-      const profile = await authService.getProfile(session.user.id);
-      if (!profile?.business_id) {
+      const business = await businessService.getCurrentBusiness();
+      if (!business) {
         toast({
           title: "❌ Error",
           description: "No se pudo obtener el negocio del usuario",
@@ -83,12 +83,12 @@ export default function ComedorPage() {
         return;
       }
 
-      setBusinessId(profile.business_id);
+      setBusinessId(business.id);
 
       const [tablesData, employeesData, productsData] = await Promise.all([
-        tableService.getTables(profile.business_id),
-        employeeService.getEmployees(profile.business_id),
-        productService.getProducts(profile.business_id),
+        tableService.getTables(business.id),
+        employeeService.getEmployees(business.id),
+        productService.getProducts(business.id),
       ]);
 
       setTables(tablesData);
@@ -488,7 +488,7 @@ export default function ComedorPage() {
 
         {/* Product Selector Modal */}
         <ProductModal
-          isOpen={showProductModal}
+          open={showProductModal}
           onClose={() => {
             setShowProductModal(false);
             setProductSelectorCallback(null);
