@@ -101,6 +101,8 @@ export default function ComedorPage() {
         getCustomers(business.id),
       ]);
 
+      console.log("Tables loaded:", tablesData); // Debug log
+      
       setTables(tablesData);
       setEmployees(employeesData.filter(e => 
         e.role === "waiter" || 
