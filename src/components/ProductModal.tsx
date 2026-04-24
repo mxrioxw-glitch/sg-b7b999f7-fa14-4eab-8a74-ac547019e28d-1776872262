@@ -9,13 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import { Plus, Minus } from "lucide-react";
 
 interface Variant {
   id: string;
   name: string;
-  priceModifier: number;
+  priceModifier?: number;
+  price?: number;
 }
 
 interface Extra {
@@ -55,11 +55,15 @@ export function ProductModal({ open, onOpenChange, product, onAddToCart }: Produ
   if (!product) return null;
 
   const variant = product.variants?.find((v) => v.id === selectedVariant);
-  const basePrice = product.basePrice + (variant?.priceModifier || 0);
+  const variantPriceModifier = variant ? (variant.priceModifier ?? variant.price ?? 0) : 0;
+  
+  const basePrice = (product.basePrice || 0) + variantPriceModifier;
+  
   const extrasPrice = selectedExtras.reduce((sum, extraId) => {
     const extra = product.extras?.find((e) => e.id === extraId);
     return sum + (extra?.price || 0);
   }, 0);
+  
   const totalPrice = (basePrice + extrasPrice) * quantity;
 
   const handleAddToCart = () => {
@@ -104,23 +108,24 @@ export function ProductModal({ open, onOpenChange, product, onAddToCart }: Produ
             <div className="mb-6">
               <h3 className="font-semibold mb-3">Tamaño</h3>
               <div className="grid grid-cols-3 gap-2">
-                {product.variants.map((variant) => {
-                  const variantPrice = (product.basePrice || 0) + (variant.priceModifier || 0);
+                {product.variants.map((v) => {
+                  const vMod = v.priceModifier ?? v.price ?? 0;
+                  const vTotal = (product.basePrice || 0) + vMod;
                   return (
                     <button
-                      key={variant.id}
-                      onClick={() => setSelectedVariant(variant.id)}
+                      key={v.id}
+                      onClick={() => setSelectedVariant(v.id)}
                       className={`p-3 rounded-lg border-2 transition-all ${
-                        selectedVariant === variant.id
+                        selectedVariant === v.id
                           ? "border-primary bg-primary/5"
                           : "border-border hover:border-primary/50"
                       }`}
                     >
-                      <div className="font-medium text-sm">{variant.name}</div>
+                      <div className="font-medium text-sm">{v.name}</div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        {variant.priceModifier && variant.priceModifier !== 0
-                          ? `${variant.priceModifier > 0 ? "+" : ""}$${variant.priceModifier.toFixed(2)}`
-                          : `$${variantPrice.toFixed(2)}`}
+                        {vMod !== 0
+                          ? `${vMod > 0 ? "+" : ""}$${vMod.toFixed(2)}`
+                          : `$${vTotal.toFixed(2)}`}
                       </div>
                     </button>
                   );
@@ -129,7 +134,7 @@ export function ProductModal({ open, onOpenChange, product, onAddToCart }: Produ
             </div>
           )}
 
-          {/* Extras - con scroll interno si hay muchos */}
+          {/* Extras */}
           {product.extras && product.extras.length > 0 && (
             <div className="mb-6">
               <h3 className="font-semibold mb-3">Extras</h3>
@@ -198,7 +203,7 @@ export function ProductModal({ open, onOpenChange, product, onAddToCart }: Produ
             className="w-full h-12 text-lg"
             size="lg"
           >
-            Agregar al carrito - ${totalPrice.toFixed(2)}
+            Agregar al carrito - ${(totalPrice || 0).toFixed(2)}
           </Button>
         </div>
       </DialogContent>
