@@ -198,13 +198,14 @@ export function ProductModal({ open, onOpenChange, product, onAddToCart }: Produ
 
         {/* Footer sticky */}
         <div className="border-t bg-background p-6 pt-4">
-          <Button
-            onClick={handleAddToCart}
-            className="w-full h-12 text-lg"
-            size="lg"
-          >
-            Agregar al carrito - ${(totalPrice || 0).toFixed(2)}
-          </Button>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={onClose} className="flex-1">
+              Cancelar
+            </Button>
+            <Button onClick={handleAddToCart} className="flex-1">
+              Agregar a Orden - ${(totalPrice || 0).toFixed(2)}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
