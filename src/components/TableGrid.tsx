@@ -56,7 +56,7 @@ export function TableGrid({ tables, onTableClick, selectedTableId }: TableGridPr
   };
 
   return (
-    <div className="grid grid-cols-6 gap-4 p-6">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-6">
       {tables.map((table) => {
         const status = getTableStatus(table);
         const order = table.table_orders?.[0];
@@ -66,8 +66,7 @@ export function TableGrid({ tables, onTableClick, selectedTableId }: TableGridPr
             key={table.id}
             onClick={() => onTableClick(table)}
             className={cn(
-              "relative border-2 rounded-xl p-6 transition-all",
-              "min-h-[140px]",
+              "relative border-2 rounded-xl p-6 transition-all min-h-[140px]",
               "flex flex-col items-center justify-center gap-3",
               getStatusColor(status)
             )}
@@ -80,6 +79,7 @@ export function TableGrid({ tables, onTableClick, selectedTableId }: TableGridPr
             {/* Status Badge */}
             <Badge
               variant={status === "available" ? "default" : "secondary"}
+              className="text-sm"
             >
               {getStatusLabel(status)}
             </Badge>
