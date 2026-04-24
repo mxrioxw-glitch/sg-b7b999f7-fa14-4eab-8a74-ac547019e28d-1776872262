@@ -10,25 +10,25 @@ import { ProductModal } from "@/components/ProductModal";
 interface ProductSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectProduct: (product: any, variant?: any, extras?: any[], notes?: string, quantity?: number) => void;
+  onSelectProducts: (products: AddedProduct[]) => Promise<void>; // Changed to batch callback
   products: any[];
   categories: any[];
 }
 
 interface AddedProduct {
   id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  variantName?: string;
+  product: any;
+  variant?: any;
   extras?: any[];
   notes?: string;
+  quantity: number;
+  displayPrice: number;
 }
 
 export function ProductSelectorModal({
   isOpen,
   onClose,
-  onSelectProduct,
+  onSelectProducts,
   products,
   categories,
 }: ProductSelectorModalProps) {
@@ -37,6 +37,7 @@ export function ProductSelectorModal({
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
   const [addedProducts, setAddedProducts] = useState<AddedProduct[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   const filteredProducts = useMemo(() => {
     let filtered = products;
@@ -60,34 +61,49 @@ export function ProductSelectorModal({
   }
 
   function handleProductSelect(product: any, variant?: any, extras?: any[], notes?: string, quantity?: number) {
-    // Calcular precio final
+    // Calcular precio final para display
     const basePrice = variant?.price || product.price || 0;
     const extrasPrice = extras?.reduce((sum, extra) => sum + (extra.price || 0), 0) || 0;
     const finalPrice = basePrice + extrasPrice;
 
-    // Agregar a la lista de productos agregados
+    // Agregar a la lista LOCAL temporal (NO guardamos en DB aún)
     const newProduct: AddedProduct = {
-      id: `${product.id}-${Date.now()}`, // ID único para cada adición
-      name: product.name,
-      price: finalPrice,
-      quantity: quantity || 1,
-      variantName: variant?.name,
+      id: `${product.id}-${Date.now()}`, // ID único temporal
+      product,
+      variant,
       extras,
       notes,
+      quantity: quantity || 1,
+      displayPrice: finalPrice,
     };
 
     setAddedProducts(prev => [...prev, newProduct]);
 
-    // Enviar al callback original
-    onSelectProduct(product, variant, extras, notes, quantity);
-
-    // IMPORTANTE: NO cerramos el modal - el usuario puede seguir agregando
+    // Cerrar solo el modal de configuración
     setShowProductModal(false);
     setSelectedProduct(null);
   }
 
   function handleRemoveProduct(productId: string) {
     setAddedProducts(prev => prev.filter(p => p.id !== productId));
+  }
+
+  async function handleContinue() {
+    if (addedProducts.length === 0) return;
+
+    setIsSaving(true);
+    try {
+      // Enviar TODOS los productos juntos al callback
+      await onSelectProducts(addedProducts);
+      
+      // Limpiar y cerrar después de guardar exitosamente
+      handleClose();
+    } catch (error) {
+      console.error("Error saving products:", error);
+      // El toast de error se muestra en el componente padre
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   function handleClose() {
@@ -98,17 +114,17 @@ export function ProductSelectorModal({
   }
 
   const totalProducts = addedProducts.reduce((sum, p) => sum + p.quantity, 0);
-  const totalAmount = addedProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0);
+  const totalAmount = addedProducts.reduce((sum, p) => sum + (p.displayPrice * p.quantity), 0);
 
   return (
     <>
-      <Sheet open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <Sheet open={isOpen} onOpenChange={(open) => !open && !isSaving && handleClose()}>
         <SheetContent side="bottom" className="h-[95vh] p-0 flex flex-col">
           <div className="flex h-full">
             {/* Left Sidebar - Added Products */}
             <div className="w-80 border-r flex flex-col bg-muted/30">
               <div className="px-4 py-4 border-b bg-background">
-                <h3 className="font-semibold text-lg mb-1">Productos Agregados</h3>
+                <h3 className="font-semibold text-lg mb-1">Productos Seleccionados</h3>
                 {addedProducts.length > 0 && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span>{totalProducts} {totalProducts === 1 ? 'producto' : 'productos'}</span>
@@ -116,41 +132,44 @@ export function ProductSelectorModal({
                     <span className="font-semibold text-foreground">${totalAmount.toFixed(2)}</span>
                   </div>
                 )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Se guardarán al dar "Continuar"
+                </p>
               </div>
 
               <div className="flex-1 overflow-y-auto p-4">
                 {addedProducts.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-sm text-muted-foreground">
-                      Aún no has agregado productos
+                      Aún no has seleccionado productos
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Selecciona productos del menú
+                      Elige productos del menú
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {addedProducts.map((product) => (
+                    {addedProducts.map((item) => (
                       <div
-                        key={product.id}
+                        key={item.id}
                         className="bg-background border rounded-lg p-3"
                       >
                         <div className="flex items-start justify-between mb-1">
                           <div className="flex-1">
-                            <h4 className="font-medium text-sm">{product.name}</h4>
-                            {product.variantName && (
+                            <h4 className="font-medium text-sm">{item.product.name}</h4>
+                            {item.variant && (
                               <p className="text-xs text-muted-foreground">
-                                {product.variantName}
+                                {item.variant.name}
                               </p>
                             )}
-                            {product.extras && product.extras.length > 0 && (
+                            {item.extras && item.extras.length > 0 && (
                               <p className="text-xs text-muted-foreground">
-                                +{product.extras.map(e => e.name).join(', ')}
+                                +{item.extras.map(e => e.name).join(', ')}
                               </p>
                             )}
-                            {product.notes && (
+                            {item.notes && (
                               <p className="text-xs text-muted-foreground italic">
-                                "{product.notes}"
+                                "{item.notes}"
                               </p>
                             )}
                           </div>
@@ -158,17 +177,17 @@ export function ProductSelectorModal({
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => handleRemoveProduct(product.id)}
+                            onClick={() => handleRemoveProduct(item.id)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">
-                            Cantidad: {product.quantity}
+                            Cantidad: {item.quantity}
                           </span>
                           <span className="font-semibold">
-                            ${(product.price * product.quantity).toFixed(2)}
+                            ${(item.displayPrice * item.quantity).toFixed(2)}
                           </span>
                         </div>
                       </div>
@@ -188,6 +207,7 @@ export function ProductSelectorModal({
                     size="icon"
                     onClick={handleClose}
                     className="h-8 w-8"
+                    disabled={isSaving}
                   >
                     <X className="h-5 w-5" />
                   </Button>
@@ -197,7 +217,7 @@ export function ProductSelectorModal({
                   <div className="flex items-center gap-2 mt-2">
                     <Badge variant="default" className="bg-accent text-accent-foreground">
                       <Check className="h-3 w-3 mr-1" />
-                      {totalProducts} {totalProducts === 1 ? "producto agregado" : "productos agregados"}
+                      {totalProducts} {totalProducts === 1 ? "producto seleccionado" : "productos seleccionados"}
                     </Badge>
                   </div>
                 )}
@@ -283,14 +303,16 @@ export function ProductSelectorModal({
 
               <SheetFooter className="px-6 py-4 border-t flex-shrink-0">
                 <Button
-                  onClick={handleClose}
+                  onClick={handleContinue}
                   size="lg"
                   className="w-full"
-                  disabled={addedProducts.length === 0}
+                  disabled={addedProducts.length === 0 || isSaving}
                 >
-                  {addedProducts.length === 0 
-                    ? "Selecciona al menos un producto" 
-                    : `Continuar con ${totalProducts} ${totalProducts === 1 ? 'producto' : 'productos'} ($${totalAmount.toFixed(2)})`
+                  {isSaving 
+                    ? "Guardando..." 
+                    : addedProducts.length === 0 
+                      ? "Selecciona al menos un producto" 
+                      : `Guardar ${totalProducts} ${totalProducts === 1 ? 'producto' : 'productos'} ($${totalAmount.toFixed(2)})`
                   }
                 </Button>
               </SheetFooter>

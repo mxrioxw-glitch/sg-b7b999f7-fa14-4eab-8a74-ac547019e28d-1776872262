@@ -60,7 +60,7 @@ export default function ComedorPage() {
   const [guestsCount, setGuestsCount] = useState(2);
   const [selectedWaiterId, setSelectedWaiterId] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState("no-customer");
-  const [productSelectorCallback, setProductSelectorCallback] = useState<((product: any, variant?: any, extras?: any[], notes?: string, quantity?: number) => void) | null>(null);
+  const [productSelectorCallback, setProductSelectorCallback] = useState<((products: any[]) => Promise<void>) | null>(null);
 
   useEffect(() => {
     loadInitialData();
@@ -247,17 +247,14 @@ export default function ComedorPage() {
     }
   }
 
-  function handleOpenProductSelector(callback: (product: any, variant?: any, extras?: any[], notes?: string, quantity?: number) => void) {
+  function handleOpenProductSelector(callback: (products: any[]) => Promise<void>) {
     setProductSelectorCallback(() => callback);
     setShowProductModal(true);
   }
 
-  function handleProductSelect(product: any, variant?: any, extras?: any[], notes?: string, quantity?: number) {
+  async function handleBatchProductSelect(products: any[]) {
     if (productSelectorCallback) {
-      productSelectorCallback(product, variant, extras, notes, quantity);
-      // NO cerramos setProductSelectorCallback ni setShowProductModal aquí
-      // El ProductSelectorModal se encarga de manejar su propio estado
-      // Solo reseteamos cuando el modal se cierra completamente
+      await productSelectorCallback(products);
     }
   }
 
@@ -542,7 +539,7 @@ export default function ComedorPage() {
         <ProductSelectorModal
           isOpen={showProductModal}
           onClose={handleProductSelectorClose}
-          onSelectProduct={handleProductSelect}
+          onSelectProducts={handleBatchProductSelect}
           products={products}
           categories={categories}
         />
