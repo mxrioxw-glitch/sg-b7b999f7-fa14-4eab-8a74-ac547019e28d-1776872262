@@ -18,7 +18,8 @@ import {
   DollarSign,
   X,
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  Printer
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { tableService } from "@/services/tableService";
@@ -91,11 +92,8 @@ export function TableControlPanel({
       const newItems = products.map(item => {
         const { product, variant, extras, notes, quantity } = item;
         
-        const variantPrice = variant ? (variant.priceModifier ?? variant.price ?? 0) : 0;
-        const extrasPrice = extras?.reduce((sum: number, e: any) => sum + (e.price || 0), 0) || 0;
-        const basePrice = product.basePrice || product.base_price || product.price || 0;
-        
-        const unitPrice = basePrice + variantPrice + extrasPrice;
+        // Fix: usar displayPrice que ya viene calculado correctamente
+        const unitPrice = item.displayPrice;
         const subtotal = unitPrice * quantity;
         const taxAmount = subtotal * taxRate;
         const total = subtotal + taxAmount;
@@ -233,6 +231,189 @@ export function TableControlPanel({
       toast({
         title: "❌ Error",
         description: "No se pudo enviar a cocina",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePrintAccount = () => {
+    if (!order || items.length === 0) {
+      toast({
+        title: "⚠️ Sin items",
+        description: "No hay productos para imprimir",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Calcular totales
+    const subtotal = items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+    const taxTotal = items.reduce((sum, item) => sum + (item.tax_amount || 0), 0);
+    const total = items.reduce((sum, item) => sum + (item.total || 0), 0);
+
+    // Crear contenido del ticket
+    const ticketContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Cuenta - Mesa ${table.table_number}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            font-family: 'Courier New', monospace;
+            width: 80mm;
+            padding: 10mm;
+            font-size: 12pt;
+          }
+          .header {
+            text-align: center;
+            border-bottom: 2px dashed #000;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+          }
+          .header h1 { font-size: 18pt; margin-bottom: 5px; }
+          .header p { font-size: 10pt; }
+          .info { margin-bottom: 15px; font-size: 10pt; }
+          .items { margin-bottom: 15px; }
+          .item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 11pt;
+          }
+          .item-name { flex: 1; }
+          .item-details {
+            font-size: 9pt;
+            color: #666;
+            margin-left: 10px;
+            margin-top: 2px;
+          }
+          .item-price { 
+            white-space: nowrap;
+            margin-left: 10px;
+            font-weight: bold;
+          }
+          .divider {
+            border-top: 1px dashed #000;
+            margin: 10px 0;
+          }
+          .totals {
+            font-size: 11pt;
+          }
+          .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+          }
+          .total-row.final {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 2px solid #000;
+          }
+          .footer {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 2px dashed #000;
+            font-size: 10pt;
+          }
+          @media print {
+            body { width: auto; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>CUENTA</h1>
+          <p>${new Date().toLocaleDateString('es-MX', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}</p>
+        </div>
+
+        <div class="info">
+          <p><strong>Mesa:</strong> ${table.table_number}</p>
+          <p><strong>Personas:</strong> ${order.guests_count || 0}</p>
+          ${order.assigned_waiter_name ? `<p><strong>Mesero:</strong> ${order.assigned_waiter_name}</p>` : ''}
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="items">
+          ${items.map(item => `
+            <div class="item">
+              <div style="flex: 1;">
+                <div class="item-name">
+                  ${item.quantity}x ${item.product_name}
+                  ${item.variant_name ? ` (${item.variant_name})` : ''}
+                </div>
+                ${item.notes ? `<div class="item-details">• ${item.notes}</div>` : ''}
+              </div>
+              <div class="item-price">$${(item.total || 0).toFixed(2)}</div>
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="totals">
+          <div class="total-row">
+            <span>Subtotal:</span>
+            <span>$${subtotal.toFixed(2)}</span>
+          </div>
+          <div class="total-row">
+            <span>IVA (16%):</span>
+            <span>$${taxTotal.toFixed(2)}</span>
+          </div>
+          <div class="total-row final">
+            <span>TOTAL:</span>
+            <span>$${total.toFixed(2)}</span>
+          </div>
+        </div>
+
+        ${order.notes ? `
+          <div class="divider"></div>
+          <div style="margin-top: 10px; font-size: 10pt;">
+            <strong>Notas:</strong> ${order.notes}
+          </div>
+        ` : ''}
+
+        <div class="footer">
+          <p>¡Gracias por su preferencia!</p>
+          <p style="margin-top: 5px; font-size: 9pt;">Esta no es una factura fiscal</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Abrir ventana de impresión
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (printWindow) {
+      printWindow.document.write(ticketContent);
+      printWindow.document.close();
+      printWindow.focus();
+      
+      // Auto-print cuando cargue
+      printWindow.onload = () => {
+        printWindow.print();
+      };
+
+      toast({
+        title: "🖨️ Imprimiendo cuenta",
+        description: "Se abrió la ventana de impresión",
+        className: "bg-accent text-accent-foreground",
+      });
+    } else {
+      toast({
+        title: "❌ Error",
+        description: "No se pudo abrir la ventana de impresión. Verifica los permisos de pop-ups.",
         variant: "destructive",
       });
     }
@@ -419,38 +600,42 @@ export function TableControlPanel({
       </ScrollArea>
 
       {/* Footer Actions */}
-      {order && items.length > 0 && (
-        <div className="p-4 border-t space-y-3 bg-muted/20">
-          <div className="flex items-center justify-between text-lg font-bold">
-            <span>Total:</span>
-            <span className="text-2xl">${(Number(order.total) || 0).toFixed(2)}</span>
-          </div>
+      <div className="mt-6 flex gap-2">
+        <Button
+          variant="outline"
+          onClick={handleSendToKitchen}
+          disabled={pendingItemsCount === 0}
+          className="flex-1"
+        >
+          <Send className="h-4 w-4 mr-2" />
+          Enviar a Cocina
+          {pendingItemsCount > 0 && (
+            <Badge variant="secondary" className="ml-2">
+              {pendingItemsCount}
+            </Badge>
+          )}
+        </Button>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              variant="outline"
-              onClick={handleSendToKitchen}
-              disabled={pendingItemsCount === 0}
-              className="w-full"
-            >
-              <Send className="h-4 w-4 mr-2" />
-              Enviar a Cocina
-              {pendingItemsCount > 0 && (
-                <Badge variant="secondary" className="ml-2">
-                  {pendingItemsCount}
-                </Badge>
-              )}
-            </Button>
-            <Button
-              onClick={() => onProceedToCheckout(order)}
-              className="w-full bg-accent hover:bg-accent/90"
-            >
-              <DollarSign className="h-4 w-4 mr-2" />
-              Cobrar Mesa
-            </Button>
-          </div>
-        </div>
-      )}
+        <Button
+          variant="outline"
+          onClick={handlePrintAccount}
+          disabled={items.length === 0}
+          className="flex-1"
+        >
+          <Printer className="h-4 w-4 mr-2" />
+          Imprimir Cuenta
+        </Button>
+
+        <Button
+          onClick={() => onProceedToCheckout(order)}
+          disabled={items.length === 0}
+          size="lg"
+          className="flex-1"
+        >
+          <DollarSign className="h-4 w-4 mr-2" />
+          Cobrar Mesa
+        </Button>
+      </div>
     </div>
   );
 }
