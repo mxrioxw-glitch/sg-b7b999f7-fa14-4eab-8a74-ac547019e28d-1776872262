@@ -265,9 +265,16 @@ export function ProductSelectorModal({
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     {filteredProducts.map((product) => {
-                      const basePrice = product.variants && product.variants.length > 0 
-                        ? product.variants[0].price 
-                        : product.price;
+                      // Obtener el precio correcto - probar múltiples campos
+                      let basePrice = 0;
+                      
+                      if (product.variants && product.variants.length > 0) {
+                        // Si tiene variantes, usar el precio de la primera variante
+                        basePrice = product.variants[0].price || product.variants[0].base_price || 0;
+                      } else {
+                        // Si no tiene variantes, usar el precio base del producto
+                        basePrice = product.base_price || product.price || 0;
+                      }
                       
                       return (
                         <button
@@ -291,7 +298,7 @@ export function ProductSelectorModal({
                               {product.name}
                             </h3>
                             <p className="text-lg font-bold text-accent">
-                              ${Number(basePrice || 0).toFixed(2)}
+                              ${Number(basePrice).toFixed(2)}
                             </p>
                           </div>
                         </button>
