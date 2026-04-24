@@ -141,6 +141,10 @@ export default function ComedorPage() {
         });
       }
     } else if (table.status === "available") {
+      // Resetear los valores del modal cada vez que se abre
+      setGuestsCount(2);
+      setSelectedWaiterId("");
+      setSelectedCustomerId("no-customer");
       setShowOpenTableModal(true);
     } else if (table.status === "dirty") {
       // Opción para limpiar mesa
@@ -478,7 +482,7 @@ export default function ComedorPage() {
                 Cancelar
               </Button>
               <Button onClick={handleOpenTable}>
-                Abrir Mesa
+                {selectedCustomerId === "no-customer" ? "Abrir sin Cliente" : "Abrir Mesa"}
               </Button>
             </DialogFooter>
           </DialogContent>
