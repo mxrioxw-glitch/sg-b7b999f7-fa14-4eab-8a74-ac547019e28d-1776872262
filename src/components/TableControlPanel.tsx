@@ -480,8 +480,8 @@ export function TableControlPanel({
 
   return (
     <Sheet open={!!table} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-[600px] p-0 flex flex-col">
-        <SheetHeader className="px-6 py-4 border-b">
+      <SheetContent side="right" className="w-[500px] p-0 flex flex-col h-full">
+        <SheetHeader className="px-6 py-4 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <SheetTitle className="text-2xl">Mesa {table?.table_number}</SheetTitle>
@@ -514,9 +514,9 @@ export function TableControlPanel({
           )}
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
           {/* Mesero Asignado */}
-          <div className="mb-6">
+          <div className="mb-4">
             <label className="text-sm font-medium mb-2 block">Mesero Asignado</label>
             <Select value={selectedWaiter} onValueChange={setSelectedWaiter}>
               <SelectTrigger>
@@ -533,9 +533,9 @@ export function TableControlPanel({
           </div>
 
           {/* Items de la Orden */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-lg">Items de la Orden</h3>
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold">Items de la Orden</h3>
               <Button onClick={handleAddProduct} size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Agregar Producto
@@ -543,145 +543,143 @@ export function TableControlPanel({
             </div>
 
             {items.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground bg-muted/30 rounded-lg">
+              <div className="text-center py-6 text-sm text-muted-foreground bg-muted/30 rounded-lg">
                 No hay productos en la orden
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {items.map((item) => (
                   <div
                     key={item.id}
-                    className="border rounded-lg p-4 bg-card"
+                    className="flex items-center gap-3 py-2 px-3 bg-card border rounded-lg"
                   >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <h4 className="font-medium">{item.product_name}</h4>
-                        {item.variant_name && (
-                          <p className="text-sm text-muted-foreground">
-                            {item.variant_name}
-                          </p>
-                        )}
-                        {item.notes && (
-                          <p className="text-xs text-muted-foreground italic mt-1">
-                            {item.notes}
-                          </p>
-                        )}
-                      </div>
-                      <Badge
-                        variant={
-                          item.status === "pending"
-                            ? "secondary"
-                            : item.status === "sent_to_kitchen"
-                            ? "default"
-                            : "outline"
-                        }
-                        className="ml-2"
-                      >
-                        {item.status === "pending"
-                          ? "Pendiente"
-                          : item.status === "sent_to_kitchen"
-                          ? "En Cocina"
-                          : "Servido"}
-                      </Badge>
-                    </div>
-
-                    <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleUpdateQuantity(item.id, -1)}
-                          disabled={item.quantity <= 1}
+                        <h4 className="font-medium text-sm truncate">{item.product_name}</h4>
+                        <Badge
+                          variant={
+                            item.status === "pending"
+                              ? "secondary"
+                              : item.status === "sent_to_kitchen"
+                              ? "default"
+                              : "outline"
+                          }
+                          className="text-xs shrink-0"
                         >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                        <span className="w-10 text-center font-medium">
-                          {item.quantity}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleUpdateQuantity(item.id, 1)}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
+                          {item.status === "pending"
+                            ? "Pendiente"
+                            : item.status === "sent_to_kitchen"
+                            ? "En Cocina"
+                            : "Servido"}
+                        </Badge>
                       </div>
-
-                      <div className="flex items-center gap-3">
-                        <span className="font-bold">
-                          ${(item.total || 0).toFixed(2)}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleRemoveItem(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      {item.variant_name && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          {item.variant_name}
+                        </p>
+                      )}
+                      {item.notes && (
+                        <p className="text-xs text-muted-foreground italic truncate">
+                          {item.notes}
+                        </p>
+                      )}
                     </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleUpdateQuantity(item.id, -1)}
+                        disabled={item.quantity <= 1}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="w-6 text-center text-sm font-medium">
+                        {item.quantity}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleUpdateQuantity(item.id, 1)}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+
+                    <span className="font-semibold text-sm w-20 text-right shrink-0">
+                      ${(item.total || 0).toFixed(2)}
+                    </span>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
+                      onClick={() => handleRemoveItem(item.id)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   </div>
                 ))}
               </div>
             )}
           </div>
+        </div>
 
-          {/* Total */}
+        {/* Total + Footer - Always visible */}
+        <div className="border-t bg-background flex-shrink-0">
           {items.length > 0 && (
-            <div className="border-t pt-4 mb-6">
-              <div className="flex justify-between items-center text-lg font-bold">
-                <span>Total:</span>
-                <span className="text-2xl text-accent">
+            <div className="px-6 py-3 border-b">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold">Total:</span>
+                <span className="text-2xl font-bold text-accent">
                   ${items.reduce((sum, item) => sum + (item.total || 0), 0).toFixed(2)}
                 </span>
               </div>
             </div>
           )}
-        </div>
 
-        {/* Footer with buttons - outside scrollable area */}
-        <div className="border-t px-6 py-4 space-y-3">
-          {/* Primera fila - Acciones secundarias */}
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              onClick={handleSendToKitchen}
-              disabled={pendingItems.length === 0}
-              className="flex-1"
-            >
-              <Send className="h-4 w-4 mr-2" />
-              Enviar a Cocina
-              {pendingItems.length > 0 && (
-                <Badge variant="secondary" className="ml-2">
-                  {pendingItems.length}
-                </Badge>
-              )}
-            </Button>
+          <div className="px-6 py-4 space-y-3">
+            {/* Primera fila - Acciones secundarias */}
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={handleSendToKitchen}
+                disabled={pendingItems.length === 0}
+                className="flex-1"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Enviar a Cocina
+                {pendingItems.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {pendingItems.length}
+                  </Badge>
+                )}
+              </Button>
 
+              <Button
+                variant="outline"
+                onClick={handlePrintAccount}
+                disabled={items.length === 0}
+                className="flex-1"
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Imprimir Cuenta
+              </Button>
+            </div>
+
+            {/* Segunda fila - Acción principal */}
             <Button
-              variant="outline"
-              onClick={handlePrintAccount}
+              onClick={() => onProceedToCheckout(order)}
               disabled={items.length === 0}
-              className="flex-1"
+              size="lg"
+              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground h-12 text-base font-semibold"
             >
-              <Printer className="h-4 w-4 mr-2" />
-              Imprimir Cuenta
+              <DollarSign className="h-5 w-5 mr-2" />
+              Cobrar Mesa
             </Button>
           </div>
-
-          {/* Segunda fila - Acción principal */}
-          <Button
-            onClick={() => onProceedToCheckout(order)}
-            disabled={items.length === 0}
-            size="lg"
-            className="w-full bg-accent hover:bg-accent/90 text-accent-foreground h-14 text-lg font-semibold"
-          >
-            <DollarSign className="h-5 w-5 mr-2" />
-            Cobrar Mesa
-          </Button>
         </div>
       </SheetContent>
     </Sheet>
