@@ -1,14 +1,36 @@
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { Coffee, TrendingUp, BarChart3, Users, ShoppingCart, Package, DollarSign, Clock, Zap, Shield, Globe, Smartphone, ChevronRight, Check, Star } from "lucide-react";
+import { 
+  Coffee, 
+  ShoppingCart, 
+  BarChart3, 
+  Package, 
+  Users, 
+  Clock,
+  Zap,
+  CheckCircle2,
+  ArrowRight,
+  Star,
+  Shield,
+  Headphones,
+  TrendingUp
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SEO } from "@/components/SEO";
+import { useState } from "react";
+import { publicStatsService } from "@/services/publicStatsService";
 
 export default function LandingPage() {
   const router = useRouter();
+  const [stats, setStats] = useState({
+    businesses: 0,
+    sales: 0,
+    uptime: 99.9,
+    loading: true,
+  });
 
   useEffect(() => {
     // Check if user is already logged in
@@ -23,6 +45,19 @@ export default function LandingPage() {
     };
 
     checkAuth();
+
+    // Load real stats
+    const loadStats = async () => {
+      const data = await publicStatsService.getPublicStats();
+      setStats({
+        businesses: data.businesses,
+        sales: data.sales,
+        uptime: data.uptime,
+        loading: false,
+      });
+    };
+
+    loadStats();
   }, [router]);
 
   return (
@@ -351,6 +386,44 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* Stats Section */}
+        <div className="border-t bg-gradient-to-br from-primary/5 to-accent/5 py-12">
+          <div className="container mx-auto px-4 max-w-7xl">
+            <div className="grid sm:grid-cols-3 gap-8 text-center">
+              <div className="space-y-2">
+                <div className="text-4xl font-bold text-foreground">
+                  {stats.loading ? (
+                    <span className="inline-block w-24 h-10 bg-muted animate-pulse rounded"></span>
+                  ) : (
+                    publicStatsService.formatStat(stats.businesses)
+                  )}
+                </div>
+                <p className="text-muted-foreground font-medium">Negocios activos</p>
+              </div>
+              <div className="space-y-2">
+                <div className="text-4xl font-bold text-foreground">
+                  {stats.loading ? (
+                    <span className="inline-block w-24 h-10 bg-muted animate-pulse rounded"></span>
+                  ) : (
+                    publicStatsService.formatStat(stats.sales)
+                  )}
+                </div>
+                <p className="text-muted-foreground font-medium">Ventas diarias</p>
+              </div>
+              <div className="space-y-2">
+                <div className="text-4xl font-bold text-foreground">
+                  {stats.loading ? (
+                    <span className="inline-block w-24 h-10 bg-muted animate-pulse rounded"></span>
+                  ) : (
+                    `${stats.uptime}%`
+                  )}
+                </div>
+                <p className="text-muted-foreground font-medium">Uptime</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* CTA Section */}
         <section className="py-20 bg-primary text-primary-foreground relative overflow-hidden">
           <div className="absolute inset-0">
@@ -377,23 +450,6 @@ export default function LandingPage() {
                 <p className="text-sm text-primary-foreground/80">
                   7 días gratis • Sin tarjeta de crédito
                 </p>
-              </div>
-
-              <div className="flex items-center justify-center gap-8 pt-8">
-                <div className="text-center">
-                  <div className="text-3xl font-bold">500+</div>
-                  <div className="text-sm text-primary-foreground/80">Negocios activos</div>
-                </div>
-                <div className="h-12 w-px bg-primary-foreground/20"></div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold">10K+</div>
-                  <div className="text-sm text-primary-foreground/80">Ventas diarias</div>
-                </div>
-                <div className="h-12 w-px bg-primary-foreground/20"></div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold">99.9%</div>
-                  <div className="text-sm text-primary-foreground/80">Uptime</div>
-                </div>
               </div>
             </div>
           </div>
