@@ -269,7 +269,15 @@ export const tableService = {
   async closeTable(
     tableId: string, 
     orderId: string, 
-    saleData: any
+    saleData: {
+      business_id: string;
+      subtotal: number;
+      tax_amount: number;
+      total_amount: number;
+      tip_amount?: number;
+      payment_method: string;
+      status: string;
+    }
   ) {
     const now = new Date().toISOString();
 
@@ -294,7 +302,17 @@ export const tableService = {
     // Crear la venta en el sistema
     const { data: sale, error: saleError } = await supabase
       .from("sales")
-      .insert(saleData)
+      .insert({
+        business_id: saleData.business_id,
+        subtotal: saleData.subtotal,
+        tax_amount: saleData.tax_amount,
+        total_amount: saleData.total_amount,
+        tip_amount: saleData.tip_amount || 0,
+        payment_method_id: saleData.payment_method,
+        status: saleData.status,
+        sale_type: "dine_in",
+        created_at: now
+      })
       .select()
       .single();
 
