@@ -317,17 +317,17 @@ export default function ComedorPage() {
                 <div className="min-h-screen bg-background">
                   <Header />
 
-                  <main className="container mx-auto py-4 sm:py-6 px-3 sm:px-4">
+                  <main className="container mx-auto py-6">
                     {/* Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+                    <div className="flex items-center justify-between mb-6">
                       <div>
-                        <h1 className="text-2xl sm:text-3xl font-bold">Gestión de Comedor</h1>
-                        <p className="text-sm sm:text-base text-muted-foreground mt-1">
+                        <h1 className="text-3xl font-bold">Gestión de Comedor</h1>
+                        <p className="text-muted-foreground mt-1">
                           Administra mesas, toma pedidos y gestiona el servicio
                         </p>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
                           size="sm"
@@ -335,12 +335,12 @@ export default function ComedorPage() {
                           disabled={isLoading}
                           className="h-9 sm:h-10 text-xs sm:text-sm"
                         >
-                          <RotateCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 ${isLoading ? "animate-spin" : ""}`} />
+                          <RotateCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
                           Actualizar
                         </Button>
 
                         <Select value="all" onValueChange={() => {}}>
-                          <SelectTrigger className="w-[140px] sm:w-[180px] h-9 sm:h-10 text-xs sm:text-sm">
+                          <SelectTrigger className="w-[180px] h-9 sm:h-10 text-xs sm:text-sm">
                             <SelectValue placeholder="Filtrar por estado" />
                           </SelectTrigger>
                           <SelectContent>
