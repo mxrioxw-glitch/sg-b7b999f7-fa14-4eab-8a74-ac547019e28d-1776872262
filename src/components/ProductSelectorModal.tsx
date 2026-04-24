@@ -177,7 +177,7 @@ export function ProductSelectorModal({
 
       {/* Product Configuration Modal */}
       <ProductModal
-        isOpen={showProductModal}
+        open={showProductModal}
         onClose={() => {
           setShowProductModal(false);
           setSelectedProduct(null);
