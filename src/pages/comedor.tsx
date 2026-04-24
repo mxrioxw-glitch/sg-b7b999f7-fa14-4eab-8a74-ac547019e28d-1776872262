@@ -251,6 +251,14 @@ export default function ComedorPage() {
   }
 
   function handleProceedToCheckout(order: any) {
+    if (!order) {
+      toast({
+        title: "❌ Error",
+        description: "No se pudo cargar la información de la orden",
+        variant: "destructive",
+      });
+      return;
+    }
     setShowCheckoutModal(true);
   }
 
@@ -512,7 +520,7 @@ export default function ComedorPage() {
           isOpen={showCheckoutModal}
           onClose={() => setShowCheckoutModal(false)}
           onComplete={handleCheckoutComplete}
-          tableOrder={selectedTable?.table_orders?.[0]}
+          tableOrder={selectedTableOrder}
           table={selectedTable}
           paymentMethods={paymentMethods}
         />
