@@ -14,10 +14,15 @@ import {
   Star,
   Shield,
   Headphones,
-  TrendingUp
+  TrendingUp,
+  ChevronRight,
+  Check,
+  DollarSign,
+  Globe,
+  Smartphone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SEO } from "@/components/SEO";
 import { useState } from "react";
