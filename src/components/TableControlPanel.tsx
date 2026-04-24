@@ -480,11 +480,8 @@ export function TableControlPanel({
 
   return (
     <Sheet open={!!table} onOpenChange={onClose}>
-      <SheetContent 
-        side="right" 
-        className="w-[600px] p-0 flex flex-col overflow-hidden"
-      >
-        <SheetHeader className="px-6 py-4 border-b flex-shrink-0">
+      <SheetContent side="right" className="w-[600px] p-0 flex flex-col">
+        <SheetHeader className="px-6 py-4 border-b">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <SheetTitle className="text-2xl">Mesa {table?.table_number}</SheetTitle>
@@ -558,16 +555,14 @@ export function TableControlPanel({
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
-                        <h4 className="font-medium">
-                          {item.product_name}
-                        </h4>
+                        <h4 className="font-medium">{item.product_name}</h4>
                         {item.variant_name && (
                           <p className="text-sm text-muted-foreground">
                             {item.variant_name}
                           </p>
                         )}
                         {item.notes && (
-                          <p className="text-sm text-muted-foreground italic mt-1">
+                          <p className="text-xs text-muted-foreground italic mt-1">
                             {item.notes}
                           </p>
                         )}
@@ -590,7 +585,7 @@ export function TableControlPanel({
                       </Badge>
                     </div>
 
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
@@ -645,48 +640,48 @@ export function TableControlPanel({
               </div>
             </div>
           )}
+        </div>
 
-          {/* Footer Actions */}
-          <div className="space-y-3">
-            {/* Primera fila - Acciones secundarias */}
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={handleSendToKitchen}
-                disabled={pendingItems.length === 0}
-                className="flex-1"
-              >
-                <Send className="h-4 w-4 mr-2" />
-                Enviar a Cocina
-                {pendingItems.length > 0 && (
-                  <Badge variant="secondary" className="ml-2">
-                    {pendingItems.length}
-                  </Badge>
-                )}
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={handlePrintAccount}
-                disabled={items.length === 0}
-                className="flex-1"
-              >
-                <Printer className="h-4 w-4 mr-2" />
-                Imprimir Cuenta
-              </Button>
-            </div>
-
-            {/* Segunda fila - Acción principal */}
+        {/* Footer with buttons - outside scrollable area */}
+        <div className="border-t px-6 py-4 space-y-3">
+          {/* Primera fila - Acciones secundarias */}
+          <div className="flex gap-3">
             <Button
-              onClick={() => onProceedToCheckout(order)}
-              disabled={items.length === 0}
-              size="lg"
-              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground h-14 text-lg font-semibold"
+              variant="outline"
+              onClick={handleSendToKitchen}
+              disabled={pendingItems.length === 0}
+              className="flex-1"
             >
-              <DollarSign className="h-5 w-5 mr-2" />
-              Cobrar Mesa
+              <Send className="h-4 w-4 mr-2" />
+              Enviar a Cocina
+              {pendingItems.length > 0 && (
+                <Badge variant="secondary" className="ml-2">
+                  {pendingItems.length}
+                </Badge>
+              )}
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={handlePrintAccount}
+              disabled={items.length === 0}
+              className="flex-1"
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Imprimir Cuenta
             </Button>
           </div>
+
+          {/* Segunda fila - Acción principal */}
+          <Button
+            onClick={() => onProceedToCheckout(order)}
+            disabled={items.length === 0}
+            size="lg"
+            className="w-full bg-accent hover:bg-accent/90 text-accent-foreground h-14 text-lg font-semibold"
+          >
+            <DollarSign className="h-5 w-5 mr-2" />
+            Cobrar Mesa
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
