@@ -51,12 +51,14 @@ export function ProductSelectorModal({
   function handleProductClick(product: any) {
     const hasVariants = product.variants && product.variants.length > 0;
     const hasExtras = product.extras && product.extras.length > 0;
+    
+    const actualPrice = product.base_price ?? product.price ?? 0;
 
     if (hasVariants || hasExtras) {
       // Transform product to match ProductModal expected structure
       const transformedProduct = {
         ...product,
-        basePrice: product.price || 0,
+        basePrice: actualPrice,
         image: product.image_url,
         name: product.name,
         category: product.category,
@@ -67,7 +69,7 @@ export function ProductSelectorModal({
       setIsProductModalOpen(true);
     } else {
       // Direct add without modal
-      onSelectProduct(product, undefined, [], "", 1);
+      onSelectProduct({ ...product, basePrice: actualPrice }, undefined, [], "", 1);
       onClose();
     }
   }
@@ -138,7 +140,7 @@ export function ProductSelectorModal({
                   <div className="p-3 space-y-2">
                     <h3 className="font-medium text-sm line-clamp-1">{product.name}</h3>
                     <p className="text-lg font-bold text-primary">
-                      ${(product.price || 0).toFixed(2)}
+                      ${((product.base_price ?? product.price ?? 0)).toFixed(2)}
                     </p>
                   </div>
                 </div>

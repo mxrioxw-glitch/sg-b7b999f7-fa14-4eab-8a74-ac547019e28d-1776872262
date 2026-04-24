@@ -1,24 +1,29 @@
-import { Table } from "@/services/tableService";
 import { Card } from "@/components/ui/card";
 import { Users, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface TableGridProps {
-  tables: Table[];
-  onTableClick: (table: Table) => void;
+  tables: any[];
+  onTableClick: (table: any) => void;
+  selectedTableId?: string;
 }
 
-export function TableGrid({ tables, onTableClick }: TableGridProps) {
+export function TableGrid({ tables, onTableClick, selectedTableId }: TableGridProps) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
       {tables.map((table) => (
-        <TableCard key={table.id} table={table} onClick={() => onTableClick(table)} />
+        <TableCard 
+          key={table.id} 
+          table={table} 
+          onClick={() => onTableClick(table)} 
+          isSelected={selectedTableId === table.id}
+        />
       ))}
     </div>
   );
 }
 
-function TableCard({ table, onClick }: { table: Table; onClick: () => void }) {
+function TableCard({ table, onClick, isSelected }: { table: any; onClick: () => void; isSelected?: boolean }) {
   const [elapsedTime, setElapsedTime] = useState("");
 
   useEffect(() => {

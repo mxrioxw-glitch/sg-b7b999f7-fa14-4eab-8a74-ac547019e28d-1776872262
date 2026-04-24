@@ -59,7 +59,13 @@ export function TableControlPanel({
     });
   };
 
-  const addProductToOrder = async (product: any) => {
+  const addProductToOrder = async (
+    product: any, 
+    variant?: any, 
+    extras?: any[], 
+    notes?: string, 
+    quantity: number = 1
+  ) => {
     if (!order) {
       toast({
         title: "❌ Error",
@@ -71,8 +77,12 @@ export function TableControlPanel({
 
     try {
       const taxRate = 0.16; // 16% IVA
-      const unitPrice = Number(product.variant?.price || product.price || 0);
-      const quantity = 1;
+      
+      const variantPrice = variant ? (variant.priceModifier ?? variant.price ?? 0) : 0;
+      const extrasPrice = extras?.reduce((sum, e) => sum + (e.price || 0), 0) || 0;
+      const basePrice = product.basePrice || product.base_price || product.price || 0;
+      
+      const unitPrice = basePrice + variantPrice + extrasPrice;
       const subtotal = unitPrice * quantity;
       const taxAmount = subtotal * taxRate;
       const total = subtotal + taxAmount;
@@ -80,26 +90,30 @@ export function TableControlPanel({
       const newItem = {
         table_order_id: order.id,
         product_id: product.id,
-        variant_id: product.variant?.id || null,
+        variant_id: variant?.id || null,
         product_name: product.name,
-        variant_name: product.variant?.name || null,
+        variant_name: variant?.name || null,
         quantity,
         unit_price: unitPrice,
         subtotal,
         tax_amount: taxAmount,
         total,
-        notes: product.notes || null,
+        notes: notes || null,
         status: "pending",
       };
 
       await tableService.addItemToOrder(newItem);
 
       toast({
-        title: "✅ Producto agregado",
-        description: `${product.name} agregado a la orden`,
+        title: "✅ Agregado a la orden",
+        description: `${quantity}x ${product.name}`,
         className: "bg-accent text-accent-foreground",
       });
 
+      // Refetch the order to update UI immediately
+      const updatedOrder = await tableService.getTableOrder(table.id);
+      setItems(updatedOrder.table_order_items || []);
+      
       onRefresh();
     } catch (error: any) {
       console.error("Error adding product:", error);
@@ -131,6 +145,10 @@ export function TableControlPanel({
         total,
       });
 
+      // Refetch the order to update UI immediately
+      const updatedOrder = await tableService.getTableOrder(table.id);
+      setItems(updatedOrder.table_order_items || []);
+
       onRefresh();
     } catch (error: any) {
       console.error("Error updating quantity:", error);
@@ -151,6 +169,10 @@ export function TableControlPanel({
         description: "El producto fue removido de la orden",
         className: "bg-accent text-accent-foreground",
       });
+
+      // Refetch the order to update UI immediately
+      const updatedOrder = await tableService.getTableOrder(table.id);
+      setItems(updatedOrder.table_order_items || []);
 
       onRefresh();
     } catch (error: any) {
@@ -182,6 +204,10 @@ export function TableControlPanel({
         description: `${pendingItems.length} items enviados`,
         className: "bg-accent text-accent-foreground",
       });
+
+      // Refetch the order to update UI immediately
+      const updatedOrder = await tableService.getTableOrder(table.id);
+      setItems(updatedOrder.table_order_items || []);
 
       onRefresh();
     } catch (error: any) {

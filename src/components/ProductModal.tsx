@@ -199,7 +199,7 @@ export function ProductModal({ open, onOpenChange, product, onAddToCart }: Produ
         {/* Footer sticky */}
         <div className="border-t bg-background p-6 pt-4">
           <div className="flex gap-3">
-            <Button variant="outline" onClick={onClose} className="flex-1">
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
               Cancelar
             </Button>
             <Button onClick={handleAddToCart} className="flex-1">
