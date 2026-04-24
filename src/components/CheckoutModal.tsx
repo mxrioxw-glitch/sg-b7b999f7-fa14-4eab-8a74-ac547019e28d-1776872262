@@ -129,10 +129,13 @@ export function CheckoutModal({
 
       if (splitType === "full") {
         // Cobrar completo y cerrar mesa
-        await tableService.closeTable(table.id, {
+        await tableService.closeTable(table.id, order.id, {
+          business_id: table.business_id,
+          subtotal: orderSubtotal,
+          tax_amount: orderTax,
           total_amount: finalTotal,
           payment_method: paymentMethod,
-          tip_amount: tipAmount,
+          status: "completed"
         });
 
         toast({
