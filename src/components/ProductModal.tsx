@@ -96,115 +96,116 @@ export function ProductModal({ open, onOpenChange, product, onAddToCart }: Produ
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="p-6 pb-4">
-          <DialogTitle className="text-2xl">{product.name}</DialogTitle>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Configurar Producto</DialogTitle>
         </DialogHeader>
+        <div className="space-y-6">
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto px-6">
+            {/* Variantes */}
+            {product.variants && product.variants.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-semibold mb-3">Tamaño</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {product.variants.map((v) => {
+                    const vMod = v.priceModifier ?? v.price ?? 0;
+                    const vTotal = (product.basePrice || 0) + vMod;
+                    return (
+                      <button
+                        key={v.id}
+                        onClick={() => setSelectedVariant(v.id)}
+                        className={`p-3 rounded-lg border-2 transition-all ${
+                          selectedVariant === v.id
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <div className="font-medium text-sm">{v.name}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {vMod !== 0
+                            ? `${vMod > 0 ? "+" : ""}$${vMod.toFixed(2)}`
+                            : `$${vTotal.toFixed(2)}`}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-6">
-          {/* Variantes */}
-          {product.variants && product.variants.length > 0 && (
-            <div className="mb-6">
-              <h3 className="font-semibold mb-3">Tamaño</h3>
-              <div className="grid grid-cols-3 gap-2">
-                {product.variants.map((v) => {
-                  const vMod = v.priceModifier ?? v.price ?? 0;
-                  const vTotal = (product.basePrice || 0) + vMod;
-                  return (
+            {/* Extras */}
+            {product.extras && product.extras.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-semibold mb-3">Extras</h3>
+                <div className="space-y-2 max-h-[280px] overflow-y-auto pr-2 -mr-2">
+                  {product.extras.map((extra) => (
                     <button
-                      key={v.id}
-                      onClick={() => setSelectedVariant(v.id)}
-                      className={`p-3 rounded-lg border-2 transition-all ${
-                        selectedVariant === v.id
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
+                      key={extra.id}
+                      onClick={() => toggleExtra(extra.id)}
+                      className={`w-full flex items-center justify-between p-3 rounded-lg border-2 transition-all ${
+                        selectedExtras.includes(extra.id)
+                          ? "border-accent bg-accent/10"
+                          : "border-border hover:border-accent/50"
                       }`}
                     >
-                      <div className="font-medium text-sm">{v.name}</div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {vMod !== 0
-                          ? `${vMod > 0 ? "+" : ""}$${vMod.toFixed(2)}`
-                          : `$${vTotal.toFixed(2)}`}
-                      </div>
+                      <span className="font-medium text-sm">{extra.name}</span>
+                      <Badge variant="secondary" className="text-xs">
+                        +${(extra.price || 0).toFixed(2)}
+                      </Badge>
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Extras */}
-          {product.extras && product.extras.length > 0 && (
+            {/* Notas especiales */}
             <div className="mb-6">
-              <h3 className="font-semibold mb-3">Extras</h3>
-              <div className="space-y-2 max-h-[280px] overflow-y-auto pr-2 -mr-2">
-                {product.extras.map((extra) => (
-                  <button
-                    key={extra.id}
-                    onClick={() => toggleExtra(extra.id)}
-                    className={`w-full flex items-center justify-between p-3 rounded-lg border-2 transition-all ${
-                      selectedExtras.includes(extra.id)
-                        ? "border-accent bg-accent/10"
-                        : "border-border hover:border-accent/50"
-                    }`}
-                  >
-                    <span className="font-medium text-sm">{extra.name}</span>
-                    <Badge variant="secondary" className="text-xs">
-                      +${(extra.price || 0).toFixed(2)}
-                    </Badge>
-                  </button>
-                ))}
+              <label className="font-semibold block mb-3">
+                Notas especiales (opcional)
+              </label>
+              <Textarea
+                id="notes"
+                placeholder="Ej: Sin azúcar, extra caliente..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+              />
+            </div>
+
+            {/* Cantidad */}
+            <div className="mb-6">
+              <Label className="mb-2 block">Cantidad</Label>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <span className="w-12 text-center text-lg font-bold">{quantity}</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setQuantity(quantity + 1)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-          )}
-
-          {/* Notas especiales */}
-          <div className="mb-6">
-            <label className="font-semibold block mb-3">
-              Notas especiales (opcional)
-            </label>
-            <Textarea
-              id="notes"
-              placeholder="Ej: Sin azúcar, extra caliente..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-            />
           </div>
 
-          {/* Cantidad */}
-          <div className="mb-6">
-            <Label className="mb-2 block">Cantidad</Label>
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              >
-                <Minus className="h-4 w-4" />
+          {/* Footer sticky */}
+          <div className="border-t bg-background p-6 pt-4">
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+                Cancelar
               </Button>
-              <span className="w-12 text-center text-lg font-bold">{quantity}</span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setQuantity(quantity + 1)}
-              >
-                <Plus className="h-4 w-4" />
+              <Button onClick={handleAddToCart} className="flex-1">
+                Agregar a Orden - ${(totalPrice || 0).toFixed(2)}
               </Button>
             </div>
-          </div>
-        </div>
-
-        {/* Footer sticky */}
-        <div className="border-t bg-background p-6 pt-4">
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
-              Cancelar
-            </Button>
-            <Button onClick={handleAddToCart} className="flex-1">
-              Agregar a Orden - ${(totalPrice || 0).toFixed(2)}
-            </Button>
           </div>
         </div>
       </DialogContent>

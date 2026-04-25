@@ -35,15 +35,9 @@ export function CustomerIdentificationModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5 text-accent" />
-            Identificar Cliente
-          </DialogTitle>
-          <DialogDescription>
-            Selecciona un cliente para acumular puntos de lealtad en esta venta
-          </DialogDescription>
+          <DialogTitle>Identificar Cliente</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
