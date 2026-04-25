@@ -92,8 +92,7 @@ export function ProductForm({ product, onSuccess, trigger }: ProductFormProps) {
   const [variants, setVariants] = useState<VariantForm[]>([]);
   const [extras, setExtras] = useState<ExtraForm[]>([]);
   const [productInventoryLinks, setProductInventoryLinks] = useState<ProductInventoryLink[]>([]);
-  
-  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+    const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const imageInputRef = useRef<HTMLInputElement>(null);
   

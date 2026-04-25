@@ -49,6 +49,7 @@ export function CategoryManager({
     description: "",
     icon: "",
   });
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleOpenModal = (category?: Category) => {
     if (category) {
@@ -197,6 +198,7 @@ export function CategoryManager({
         </CardContent>
       </Card>
 
+      {/* Create/Edit Category Dialog */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent>
           <DialogHeader>
@@ -207,48 +209,46 @@ export function CategoryManager({
               Configura los detalles de la categoría
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nombre *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, name: e.target.value }))
-                  }
-                  required
-                  placeholder="Ej: Bebidas"
-                />
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nombre *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                }
+                required
+                placeholder="Ej: Bebidas"
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="icon">Icono (emoji)</Label>
-                <Input
-                  id="icon"
-                  value={formData.icon}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, icon: e.target.value }))
-                  }
-                  placeholder="☕"
-                  maxLength={2}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="icon">Icono (emoji)</Label>
+              <Input
+                id="icon"
+                value={formData.icon}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, icon: e.target.value }))
+                }
+                placeholder="☕"
+                maxLength={2}
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Descripción</Label>
-                <Input
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      description: e.target.value,
-                    }))
-                  }
-                  placeholder="Descripción opcional"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Descripción</Label>
+              <Input
+                id="description"
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
+                placeholder="Descripción opcional"
+              />
             </div>
 
             <DialogFooter className="mt-6">
@@ -260,6 +260,18 @@ export function CategoryManager({
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Eliminación</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            ¿Estás seguro de eliminar esta categoría?
+          </p>
         </DialogContent>
       </Dialog>
     </>

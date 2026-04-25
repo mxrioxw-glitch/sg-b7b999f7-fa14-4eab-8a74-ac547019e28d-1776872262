@@ -45,18 +45,9 @@ export function QuickCashRegister({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-primary" />
-            {mode === "open" ? "Abrir Turno de Caja" : "Cerrar Turno de Caja"}
-          </DialogTitle>
-          <DialogDescription>
-            {mode === "open"
-              ? "Ingresa el monto inicial en efectivo para abrir el turno"
-              : "Ingresa el monto final en caja para cerrar el turno"}
-          </DialogDescription>
+          <DialogTitle>Corte Rápido de Caja</DialogTitle>
         </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-4">
           {mode === "close" && currentAmount > 0 && (
             <div className="rounded-lg bg-muted/50 p-4">
               <p className="text-sm text-muted-foreground mb-1">Monto Esperado</p>
@@ -123,7 +114,7 @@ export function QuickCashRegister({
                 : "Cerrar Turno"}
             </Button>
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

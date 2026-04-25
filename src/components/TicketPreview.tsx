@@ -194,131 +194,132 @@ export function TicketPreview({
         <DialogHeader>
           <DialogTitle>Vista Previa del Ticket</DialogTitle>
         </DialogHeader>
-
-        <div 
-          id="ticket-content" 
-          className="rounded-lg border border-border bg-white p-4 font-mono"
-          style={{ 
-            maxWidth: printerWidth === "58mm" ? "200px" : "280px",
-            fontSize: printerWidth === "58mm" ? "10px" : "12px",
-            margin: "0 auto"
-          }}
-        >
-          {/* Header */}
-          <div className="text-center mb-3">
-            {businessLogo && (
-              <img
-                src={businessLogo}
-                alt="Logo"
-                className="mx-auto mb-2 object-contain"
-                style={{
-                  maxWidth: printerWidth === "58mm" ? "60px" : "80px",
-                  maxHeight: printerWidth === "58mm" ? "60px" : "80px"
-                }}
-              />
-            )}
-            <h2 
-              className="font-bold mb-1"
-              style={{ fontSize: printerWidth === "58mm" ? "14px" : "16px" }}
-            >
-              {businessName}
-            </h2>
-            {businessAddress && (
-              <p className="text-muted-foreground" style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}>
-                {businessAddress}
-              </p>
-            )}
-            {businessPhone && (
-              <p className="text-muted-foreground" style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}>
-                {businessPhone}
-              </p>
-            )}
-          </div>
-
-          <div className="border-t border-dashed border-border my-2" />
-
-          {/* Sale Info */}
-          <div className="space-y-1 mb-3" style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}>
-            {saleId && <p>Ticket: #{saleId.slice(-8).toUpperCase()}</p>}
-            <p>Fecha: {formattedDate}</p>
-            <p>Método: {paymentMethod}</p>
-          </div>
-
-          <div className="border-t border-dashed border-border my-2" />
-
-          {/* Items */}
-          <div className="space-y-3">
-            {items.map((item, index) => (
-              <div key={index}>
-                <div className="flex justify-between font-semibold">
-                  <span>{item.quantity}x {item.name}</span>
-                  <span>${item.total.toFixed(2)}</span>
-                </div>
-                {item.variant && (
-                  <div 
-                    className="ml-3 text-muted-foreground"
-                    style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}
-                  >
-                    • {item.variant}
-                  </div>
-                )}
-                {item.extras && item.extras.length > 0 && (
-                  <div 
-                    className="ml-3 text-muted-foreground"
-                    style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}
-                  >
-                    • {item.extras.join(", ")}
-                  </div>
-                )}
-                {item.notes && (
-                  <div 
-                    className="ml-3 italic text-muted-foreground"
-                    style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}
-                  >
-                    Nota: {item.notes}
-                  </div>
-                )}
-                <div 
-                  className="ml-3 text-muted-foreground"
-                  style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}
-                >
-                  ${item.unitPrice.toFixed(2)} c/u
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="border-t border-dashed border-border my-2" />
-
-          {/* Totals */}
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span>Subtotal</span>
-              <span>${subtotal.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>IVA ({taxRate}%)</span>
-              <span>${taxAmount.toFixed(2)}</span>
-            </div>
-            <div className="border-t-2 border-border my-2" />
-            <div 
-              className="flex justify-between font-bold"
-              style={{ fontSize: printerWidth === "58mm" ? "12px" : "14px" }}
-            >
-              <span>TOTAL</span>
-              <span>${total.toFixed(2)}</span>
-            </div>
-          </div>
-
-          <div className="border-t border-dashed border-border my-2" />
-
-          {/* Footer */}
+        <div className="space-y-4">
           <div 
-            className="text-center text-muted-foreground"
-            style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}
+            id="ticket-content" 
+            className="rounded-lg border border-border bg-white p-4 font-mono"
+            style={{ 
+              maxWidth: printerWidth === "58mm" ? "200px" : "280px",
+              fontSize: printerWidth === "58mm" ? "10px" : "12px",
+              margin: "0 auto"
+            }}
           >
-            <p>¡Gracias por su compra!</p>
-            <p className="mt-2">Powered by POS SaaS</p>
+            {/* Header */}
+            <div className="text-center mb-3">
+              {businessLogo && (
+                <img
+                  src={businessLogo}
+                  alt="Logo"
+                  className="mx-auto mb-2 object-contain"
+                  style={{
+                    maxWidth: printerWidth === "58mm" ? "60px" : "80px",
+                    maxHeight: printerWidth === "58mm" ? "60px" : "80px"
+                  }}
+                />
+              )}
+              <h2 
+                className="font-bold mb-1"
+                style={{ fontSize: printerWidth === "58mm" ? "14px" : "16px" }}
+              >
+                {businessName}
+              </h2>
+              {businessAddress && (
+                <p className="text-muted-foreground" style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}>
+                  {businessAddress}
+                </p>
+              )}
+              {businessPhone && (
+                <p className="text-muted-foreground" style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}>
+                  {businessPhone}
+                </p>
+              )}
+            </div>
+
+            <div className="border-t border-dashed border-border my-2" />
+
+            {/* Sale Info */}
+            <div className="space-y-1 mb-3" style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}>
+              {saleId && <p>Ticket: #{saleId.slice(-8).toUpperCase()}</p>}
+              <p>Fecha: {formattedDate}</p>
+              <p>Método: {paymentMethod}</p>
+            </div>
+
+            <div className="border-t border-dashed border-border my-2" />
+
+            {/* Items */}
+            <div className="space-y-3">
+              {items.map((item, index) => (
+                <div key={index}>
+                  <div className="flex justify-between font-semibold">
+                    <span>{item.quantity}x {item.name}</span>
+                    <span>${item.total.toFixed(2)}</span>
+                  </div>
+                  {item.variant && (
+                    <div 
+                      className="ml-3 text-muted-foreground"
+                      style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}
+                    >
+                      • {item.variant}
+                    </div>
+                  )}
+                  {item.extras && item.extras.length > 0 && (
+                    <div 
+                      className="ml-3 text-muted-foreground"
+                      style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}
+                    >
+                      • {item.extras.join(", ")}
+                    </div>
+                  )}
+                  {item.notes && (
+                    <div 
+                      className="ml-3 italic text-muted-foreground"
+                      style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}
+                    >
+                      Nota: {item.notes}
+                    </div>
+                  )}
+                  <div 
+                    className="ml-3 text-muted-foreground"
+                    style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}
+                  >
+                    ${item.unitPrice.toFixed(2)} c/u
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t border-dashed border-border my-2" />
+
+            {/* Totals */}
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span>${subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>IVA ({taxRate}%)</span>
+                <span>${taxAmount.toFixed(2)}</span>
+              </div>
+              <div className="border-t-2 border-border my-2" />
+              <div 
+                className="flex justify-between font-bold"
+                style={{ fontSize: printerWidth === "58mm" ? "12px" : "14px" }}
+              >
+                <span>TOTAL</span>
+                <span>${total.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="border-t border-dashed border-border my-2" />
+
+            {/* Footer */}
+            <div 
+              className="text-center text-muted-foreground"
+              style={{ fontSize: printerWidth === "58mm" ? "9px" : "10px" }}
+            >
+              <p>¡Gracias por su compra!</p>
+              <p className="mt-2">Powered by POS SaaS</p>
+            </div>
           </div>
         </div>
 
