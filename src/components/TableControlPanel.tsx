@@ -12,7 +12,8 @@ interface TableControlPanelProps {
   order: any;
   employees: any[];
   onClose: () => void;
-  onAddProduct: () => void;
+  onRefresh: () => Promise<void>;
+  onOpenProductSelector: (callback: (products: any[]) => Promise<void>) => void;
   onProceedToCheckout: (order: any) => void;
 }
 
@@ -21,7 +22,8 @@ export function TableControlPanel({
   order,
   employees,
   onClose,
-  onAddProduct,
+  onRefresh,
+  onOpenProductSelector,
   onProceedToCheckout,
 }: TableControlPanelProps) {
   const { toast } = useToast();
@@ -99,7 +101,11 @@ export function TableControlPanel({
   };
 
   const handleAddProduct = () => {
-    onAddProduct();
+    onOpenProductSelector(async (selectedProducts) => {
+      // Esta lógica la maneja el ProductSelectorModal internamente si ya envía directo a BD,
+      // pero requerimos refrescar la orden de la mesa
+      await onRefresh();
+    });
   };
 
   if (!table) return null;
