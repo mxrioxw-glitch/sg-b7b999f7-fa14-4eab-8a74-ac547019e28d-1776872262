@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { X, Clock, Users, Plus, Minus, Trash2, Send, DollarSign, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { tableService } from "@/services/tableService";
+import { formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
+
+function formatTimeAgo(date: Date) {
+  return formatDistanceToNow(date, { locale: es });
+}
 
 interface TableControlPanelProps {
   table: any;
