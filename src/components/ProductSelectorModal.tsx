@@ -1,349 +1,269 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, X, Check, Trash2 } from "lucide-react";
-import { ProductModal } from "@/components/ProductModal";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Search, Plus, Minus, ShoppingCart } from "lucide-react";
+import { getAllProducts } from "@/services/productService";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProductSelectorModalProps {
-  isOpen: boolean;
+  open: boolean;
   onClose: () => void;
-  onSelectProducts: (products: AddedProduct[]) => Promise<void>;
-  products: any[];
-  categories: any[];
-}
-
-interface AddedProduct {
-  id: string;
-  product: any;
-  variant?: any;
-  extras?: any[];
-  notes?: string;
-  quantity: number;
-  displayPrice: number;
+  onSelectProducts: (products: any[]) => Promise<void>;
+  businessId: string;
 }
 
 export function ProductSelectorModal({
-  isOpen,
+  open,
   onClose,
   onSelectProducts,
-  products,
-  categories,
+  businessId,
 }: ProductSelectorModalProps) {
+  const { toast } = useToast();
+  const [products, setProducts] = useState<any[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
-  const [showProductModal, setShowProductModal] = useState(false);
-  const [addedProducts, setAddedProducts] = useState<AddedProduct[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
+  const [selectedProducts, setSelectedProducts] = useState<Map<string, any>>(new Map());
+  const [isLoading, setIsLoading] = useState(false);
 
-  const filteredProducts = useMemo(() => {
-    let filtered = products;
-
-    if (selectedCategory) {
-      filtered = filtered.filter((p) => p.category_id === selectedCategory);
+  useEffect(() => {
+    if (open) {
+      loadProducts();
+      setSearchQuery("");
+      setSelectedProducts(new Map());
     }
+  }, [open]);
 
-    if (searchQuery.trim()) {
-      filtered = filtered.filter((p) =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase())
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredProducts(products);
+    } else {
+      const query = searchQuery.toLowerCase();
+      setFilteredProducts(
+        products.filter(
+          (p) =>
+            p.name.toLowerCase().includes(query) ||
+            p.category?.name.toLowerCase().includes(query)
+        )
       );
     }
+  }, [searchQuery, products]);
 
-    return filtered;
-  }, [products, selectedCategory, searchQuery]);
-
-  function handleProductClick(product: any) {
-    setSelectedProduct(product);
-    setShowProductModal(true);
-  }
-
-  function handleProductSelect(product: any, variant?: any, extras?: any[], notes?: string, quantity?: number) {
-    // Calcular precio final para display
-    const basePrice = variant?.price || product.price || 0;
-    const extrasPrice = extras?.reduce((sum, extra) => sum + (extra.price || 0), 0) || 0;
-    const finalPrice = basePrice + extrasPrice;
-
-    // Agregar a la lista LOCAL temporal (NO guardamos en DB aún)
-    const newProduct: AddedProduct = {
-      id: `${product.id}-${Date.now()}`,
-      product,
-      variant,
-      extras,
-      notes,
-      quantity: quantity || 1,
-      displayPrice: finalPrice,
-    };
-
-    setAddedProducts(prev => [...prev, newProduct]);
-
-    // Cerrar solo el modal de configuración
-    setShowProductModal(false);
-    setSelectedProduct(null);
-  }
-
-  function handleRemoveProduct(productId: string) {
-    setAddedProducts(prev => prev.filter(p => p.id !== productId));
-  }
-
-  async function handleContinue() {
-    if (addedProducts.length === 0) return;
-
-    setIsSaving(true);
+  async function loadProducts() {
     try {
-      await onSelectProducts(addedProducts);
-      handleClose();
-    } catch (error) {
-      console.error("Error saving products:", error);
+      setIsLoading(true);
+      const data = await getAllProducts(businessId);
+      setProducts(data.filter(p => p.is_active));
+      setFilteredProducts(data.filter(p => p.is_active));
+    } catch (error: any) {
+      toast({
+        title: "❌ Error",
+        description: "No se pudieron cargar los productos",
+        variant: "destructive",
+      });
     } finally {
-      setIsSaving(false);
+      setIsLoading(false);
     }
   }
 
-  function handleClose() {
-    setSearchQuery("");
-    setSelectedCategory(null);
-    setAddedProducts([]);
-    onClose();
+  function handleAddProduct(product: any) {
+    const key = `${product.id}-${product.selectedVariant?.id || 'base'}`;
+    const existing = selectedProducts.get(key);
+
+    if (existing) {
+      const updated = { ...existing, quantity: existing.quantity + 1 };
+      setSelectedProducts(new Map(selectedProducts.set(key, updated)));
+    } else {
+      // Determine price based on variant or base price
+      const basePrice = product.selectedVariant?.price || product.base_price || 0;
+      
+      setSelectedProducts(
+        new Map(
+          selectedProducts.set(key, {
+            ...product,
+            quantity: 1,
+            finalPrice: basePrice,
+            notes: "",
+          })
+        )
+      );
+    }
   }
 
-  const totalProducts = addedProducts.reduce((sum, p) => sum + p.quantity, 0);
-  const totalAmount = addedProducts.reduce((sum, p) => sum + (p.displayPrice * p.quantity), 0);
+  function handleRemoveProduct(product: any) {
+    const key = `${product.id}-${product.selectedVariant?.id || 'base'}`;
+    const existing = selectedProducts.get(key);
+
+    if (existing && existing.quantity > 1) {
+      const updated = { ...existing, quantity: existing.quantity - 1 };
+      setSelectedProducts(new Map(selectedProducts.set(key, updated)));
+    } else {
+      const newMap = new Map(selectedProducts);
+      newMap.delete(key);
+      setSelectedProducts(newMap);
+    }
+  }
+
+  function getProductQuantity(product: any) {
+    const key = `${product.id}-${product.selectedVariant?.id || 'base'}`;
+    return selectedProducts.get(key)?.quantity || 0;
+  }
+
+  async function handleConfirm() {
+    const productsArray = Array.from(selectedProducts.values());
+    
+    if (productsArray.length === 0) {
+      toast({
+        title: "ℹ️ Sin productos",
+        description: "Selecciona al menos un producto",
+      });
+      return;
+    }
+
+    try {
+      await onSelectProducts(productsArray);
+      onClose();
+    } catch (error: any) {
+      toast({
+        title: "❌ Error",
+        description: error.message || "No se pudieron agregar los productos",
+        variant: "destructive",
+      });
+    }
+  }
+
+  const totalItems = Array.from(selectedProducts.values()).reduce(
+    (sum, p) => sum + p.quantity,
+    0
+  );
 
   return (
-    <>
-      <Sheet open={isOpen} onOpenChange={(open) => !open && !isSaving && handleClose()}>
-        <SheetContent side="bottom" className="h-[95vh] p-0 flex flex-col">
-          <div className="flex h-full">
-            {/* Left Sidebar - Added Products */}
-            <div className="w-80 border-r flex flex-col bg-muted/30">
-              <div className="px-4 py-4 border-b bg-background">
-                <h3 className="font-semibold text-lg mb-1">Productos Seleccionados</h3>
-                {addedProducts.length > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>{totalProducts} {totalProducts === 1 ? 'producto' : 'productos'}</span>
-                    <span>•</span>
-                    <span className="font-semibold text-foreground">${totalAmount.toFixed(2)}</span>
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  Se guardarán al dar "Continuar"
-                </p>
-              </div>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl h-[80vh] p-0 flex flex-col">
+        <DialogHeader className="px-6 py-4 border-b">
+          <DialogTitle>Seleccionar Productos</DialogTitle>
+        </DialogHeader>
 
-              <div className="flex-1 overflow-y-auto p-4">
-                {addedProducts.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-sm text-muted-foreground">
-                      Aún no has seleccionado productos
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Elige productos del menú
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {addedProducts.map((item) => (
-                      <div
-                        key={item.id}
-                        className="bg-background border rounded-lg p-3"
-                      >
-                        <div className="flex items-start justify-between mb-1">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-sm">{item.product.name}</h4>
-                            {item.variant && (
-                              <p className="text-xs text-muted-foreground">
-                                {item.variant.name}
-                              </p>
-                            )}
-                            {item.extras && item.extras.length > 0 && (
-                              <p className="text-xs text-muted-foreground">
-                                +{item.extras.map(e => e.name).join(', ')}
-                              </p>
-                            )}
-                            {item.notes && (
-                              <p className="text-xs text-muted-foreground italic">
-                                "{item.notes}"
-                              </p>
-                            )}
-                          </div>
+        {/* Search Bar */}
+        <div className="px-6 py-3 border-b">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar productos..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </div>
+
+        {/* Products Grid */}
+        <ScrollArea className="flex-1 px-6">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-muted-foreground">Cargando productos...</p>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-muted-foreground">No se encontraron productos</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 py-4">
+              {filteredProducts.map((product) => {
+                const quantity = getProductQuantity(product);
+                const price = product.base_price || 0;
+
+                return (
+                  <div
+                    key={product.id}
+                    className={`border rounded-lg p-4 flex flex-col gap-2 transition-all ${
+                      quantity > 0 ? "border-accent ring-2 ring-accent/20" : ""
+                    }`}
+                  >
+                    {product.image_url && (
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="w-full h-32 object-cover rounded"
+                      />
+                    )}
+                    
+                    <div className="flex-1">
+                      <h4 className="font-medium">{product.name}</h4>
+                      {product.category && (
+                        <Badge variant="outline" className="mt-1">
+                          {product.category.name}
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-accent">
+                        ${price.toFixed(2)}
+                      </span>
+
+                      {quantity === 0 ? (
+                        <Button
+                          size="sm"
+                          onClick={() => handleAddProduct(product)}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <div className="flex items-center gap-2">
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => handleRemoveProduct(item.id)}
+                            className="h-8 w-8"
+                            onClick={() => handleRemoveProduct(product)}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <span className="w-8 text-center font-medium">
+                            {quantity}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleAddProduct(product)}
+                          >
+                            <Plus className="h-3 w-3" />
                           </Button>
                         </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            Cantidad: {item.quantity}
-                          </span>
-                          <span className="font-semibold">
-                            ${(item.displayPrice * item.quantity).toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
+                );
+              })}
             </div>
+          )}
+        </ScrollArea>
 
-            {/* Right Side - Product Selection */}
-            <div className="flex-1 flex flex-col">
-              <SheetHeader className="px-6 py-4 border-b flex-shrink-0">
-                <div className="flex items-center justify-between">
-                  <SheetTitle className="text-2xl">Seleccionar Platillo</SheetTitle>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleClose}
-                    className="h-8 w-8"
-                    disabled={isSaving}
-                  >
-                    <X className="h-5 w-5" />
-                  </Button>
-                </div>
-
-                {addedProducts.length > 0 && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge variant="default" className="bg-accent text-accent-foreground">
-                      <Check className="h-3 w-3 mr-1" />
-                      {totalProducts} {totalProducts === 1 ? "producto seleccionado" : "productos seleccionados"}
-                    </Badge>
-                  </div>
-                )}
-
-                {/* Search */}
-                <div className="relative mt-4">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar platillos, bebidas, postres..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-
-                {/* Categories */}
-                <div className="flex gap-2 overflow-x-auto pb-2 mt-4">
-                  <Button
-                    variant={selectedCategory === null ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedCategory(null)}
-                  >
-                    Todas
-                  </Button>
-                  {categories.map((cat) => (
-                    <Button
-                      key={cat.id}
-                      variant={selectedCategory === cat.id ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedCategory(cat.id)}
-                      className="whitespace-nowrap"
-                    >
-                      {cat.name}
-                    </Button>
-                  ))}
-                </div>
-              </SheetHeader>
-
-              {/* Products Grid */}
-              <div className="flex-1 overflow-y-auto px-6 py-4">
-                {filteredProducts.length === 0 ? (
-                  <div className="text-center py-12">
-                    <p className="text-muted-foreground">No se encontraron productos</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-5 gap-4">
-                    {filteredProducts.map((product) => {
-                      // Lógica inteligente de precio
-                      let displayPrice = 0;
-                      
-                      if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
-                        const variantPrices = product.variants
-                          .map((v: any) => {
-                            const basePrice = Number(product.base_price || 0);
-                            const modifier = Number(v.price_modifier || 0);
-                            return basePrice + modifier;
-                          })
-                          .filter((p: number) => p > 0);
-                        
-                        if (variantPrices.length > 0) {
-                          displayPrice = Math.min(...variantPrices);
-                        } else {
-                          displayPrice = Number(product.base_price || 0);
-                        }
-                      } else {
-                        displayPrice = Number(product.base_price || 0);
-                      }
-                      
-                      return (
-                        <button
-                          key={product.id}
-                          onClick={() => handleProductClick(product)}
-                          className="group relative bg-card border rounded-lg overflow-hidden hover:border-accent transition-all hover:shadow-lg"
-                        >
-                          {product.image_url ? (
-                            <img
-                              src={product.image_url}
-                              alt={product.name}
-                              className="w-full h-32 object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-32 bg-muted flex items-center justify-center">
-                              <span className="text-4xl">🍽️</span>
-                            </div>
-                          )}
-                          <div className="p-3">
-                            <h3 className="font-medium text-sm line-clamp-2 mb-1">
-                              {product.name}
-                            </h3>
-                            <p className="text-lg font-bold text-accent">
-                              ${displayPrice.toFixed(2)}
-                            </p>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <SheetFooter className="px-6 py-4 border-t flex-shrink-0">
-                <Button
-                  onClick={handleContinue}
-                  size="lg"
-                  className="w-full"
-                  disabled={addedProducts.length === 0 || isSaving}
-                >
-                  {isSaving 
-                    ? "Guardando..." 
-                    : addedProducts.length === 0 
-                      ? "Selecciona al menos un producto" 
-                      : `Guardar ${totalProducts} ${totalProducts === 1 ? 'producto' : 'productos'} ($${totalAmount.toFixed(2)})`
-                  }
-                </Button>
-              </SheetFooter>
-            </div>
+        {/* Footer */}
+        <div className="border-t px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ShoppingCart className="h-5 w-5 text-muted-foreground" />
+            <span className="font-medium">
+              {totalItems} {totalItems === 1 ? "producto" : "productos"} seleccionados
+            </span>
           </div>
-        </SheetContent>
-      </Sheet>
 
-      {/* Product Configuration Modal */}
-      <ProductModal
-        open={showProductModal}
-        onOpenChange={(open) => {
-          setShowProductModal(open);
-          if (!open) setSelectedProduct(null);
-        }}
-        onAddToCart={handleProductSelect}
-        product={selectedProduct}
-      />
-    </>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirm}
+              disabled={totalItems === 0}
+            >
+              Confirmar
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

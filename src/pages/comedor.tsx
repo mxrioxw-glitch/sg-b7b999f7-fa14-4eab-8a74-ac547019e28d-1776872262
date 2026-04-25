@@ -597,7 +597,7 @@ export default function ComedorPage() {
 
         {/* Product Selector Modal */}
         <ProductSelectorModal
-          isOpen={showProductModal}
+          open={showProductModal}
           onClose={handleProductSelectorClose}
           onSelectProducts={handleBatchProductSelect}
           products={products}
