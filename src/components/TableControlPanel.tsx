@@ -114,14 +114,21 @@ export function TableControlPanel({
     <Sheet open={!!table} onOpenChange={onClose}>
       <SheetContent side="right" className="w-[500px] max-w-[500px] p-0 flex flex-col h-full">
         <SheetHeader className="px-6 py-4 border-b flex-shrink-0">
+          <SheetTitle className="sr-only">Mesa {table?.table_number}</SheetTitle>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <SheetTitle className="text-2xl">Mesa {table?.table_number}</SheetTitle>
+              <h2 className="text-2xl font-semibold">Mesa {table?.table_number}</h2>
               {table?.location && (
-                <Badge variant="outline">{table.location}</Badge>
+                <Badge variant="outline">
+                  {table.location}
+                </Badge>
               )}
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+            >
               <X className="h-5 w-5" />
             </Button>
           </div>
