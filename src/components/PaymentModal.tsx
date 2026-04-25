@@ -144,21 +144,11 @@ export function PaymentModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn(
-        "overflow-y-auto",
-        isMobileOrTablet ? "max-w-[95vw] max-h-[95vh] p-0" : "max-w-4xl max-h-[90vh]"
-      )}>
-        <DialogHeader className={cn(isMobileOrTablet && "p-4 border-b border-border sticky top-0 bg-card z-10")}>
-          <DialogTitle className="flex items-center gap-2 text-lg md:text-2xl">
-            <DollarSign className="h-5 w-5 md:h-6 md:w-6 text-accent" />
-            Procesar Pago
-          </DialogTitle>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Procesar Pago</DialogTitle>
         </DialogHeader>
-
-        <div className={cn(
-          "space-y-4",
-          isMobileOrTablet ? "p-4" : "px-6 pb-6"
-        )}>
+        <div className="space-y-6">
           {/* Cash Register Warning */}
           {!hasCashRegister && onOpenCashRegister && (
             <Card className="border-orange-500 bg-orange-50 dark:bg-orange-950">

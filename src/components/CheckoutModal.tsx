@@ -230,14 +230,11 @@ export function CheckoutModal({ isOpen, onClose, onComplete, tableOrder, table, 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[100vw] w-full h-screen max-h-screen p-0 gap-0 rounded-none m-0">
-        <DialogHeader className="px-6 py-3 border-b flex-shrink-0">
-          <DialogTitle className="text-2xl font-bold">
-            Cobrar {table?.table_number}
-          </DialogTitle>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Cobrar Mesa</DialogTitle>
         </DialogHeader>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 h-[calc(100vh-140px)] overflow-hidden">
+        <div className="space-y-6">
           {/* Columna Izquierda - Sin scroll, todo compacto */}
           <div className="space-y-4 flex flex-col h-full">
             {/* Resumen de la cuenta */}
