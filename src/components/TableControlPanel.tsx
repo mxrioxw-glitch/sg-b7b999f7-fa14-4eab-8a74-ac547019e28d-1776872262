@@ -112,7 +112,7 @@ export function TableControlPanel({
 
   return (
     <Sheet open={!!table} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-[500px] p-0 flex flex-col h-full">
+      <SheetContent side="right" className="w-[500px] max-w-[500px] p-0 flex flex-col h-full">
         <SheetHeader className="px-6 py-4 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
