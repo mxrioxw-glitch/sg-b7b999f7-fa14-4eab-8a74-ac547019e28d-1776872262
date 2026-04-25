@@ -145,7 +145,7 @@ export function TableControlPanel({
           <div className="mb-6">
             <label className="text-sm font-medium mb-2 block">Mesero Asignado</label>
             <Select value={selectedWaiter} onValueChange={setSelectedWaiter}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-background">
                 <SelectValue placeholder="Seleccionar mesero" />
               </SelectTrigger>
               <SelectContent>
@@ -159,7 +159,7 @@ export function TableControlPanel({
           </div>
 
           {/* Items de la Orden */}
-          <div className="mb-6">
+          <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-lg">Items de la Orden</h3>
               <Button onClick={handleAddProduct} size="sm">
@@ -175,15 +175,22 @@ export function TableControlPanel({
             ) : (
               <div className="space-y-3">
                 {items.map((item) => (
-                  <div key={item.id} className="border rounded-lg p-3 bg-card">
-                    <div className="flex items-start justify-between mb-3">
+                  <div
+                    key={item.id}
+                    className="border rounded-lg p-3 bg-card"
+                  >
+                    <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium">{item.product_name}</h4>
+                        <h4 className="font-medium text-sm">{item.product_name}</h4>
                         {item.variant_name && (
-                          <p className="text-sm text-muted-foreground">{item.variant_name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {item.variant_name}
+                          </p>
                         )}
                         {item.notes && (
-                          <p className="text-xs text-muted-foreground italic mt-1">{item.notes}</p>
+                          <p className="text-xs text-muted-foreground italic mt-1">
+                            {item.notes}
+                          </p>
                         )}
                       </div>
                       <Badge
@@ -194,7 +201,7 @@ export function TableControlPanel({
                             ? "default"
                             : "outline"
                         }
-                        className="ml-2"
+                        className="ml-2 shrink-0"
                       >
                         {item.status === "pending"
                           ? "Pendiente"
@@ -204,7 +211,7 @@ export function TableControlPanel({
                       </Badge>
                     </div>
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
@@ -215,7 +222,9 @@ export function TableControlPanel({
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
-                        <span className="w-10 text-center font-medium">{item.quantity}</span>
+                        <span className="w-8 text-center font-medium text-sm">
+                          {item.quantity}
+                        </span>
                         <Button
                           variant="outline"
                           size="icon"
@@ -227,7 +236,9 @@ export function TableControlPanel({
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <span className="font-bold">${(item.total || 0).toFixed(2)}</span>
+                        <span className="font-bold text-sm">
+                          ${(item.total || 0).toFixed(2)}
+                        </span>
                         <Button
                           variant="ghost"
                           size="icon"
