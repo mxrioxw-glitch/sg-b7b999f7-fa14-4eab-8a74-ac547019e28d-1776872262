@@ -333,6 +333,14 @@ export default function ComedorPage() {
                       Actualizar
                     </Button>
 
+                    <Button
+                      onClick={() => setShowCreateTableModal(true)}
+                      size="sm"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Crear Mesa
+                    </Button>
+
                     <Select value="all" onValueChange={() => {}}>
                       <SelectTrigger className="w-[180px]">
                         <SelectValue placeholder="Filtrar por estado" />
