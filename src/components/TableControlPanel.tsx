@@ -114,10 +114,9 @@ export function TableControlPanel({
     <Sheet open={!!table} onOpenChange={onClose}>
       <SheetContent side="right" className="w-[500px] max-w-[500px] p-0 flex flex-col h-full">
         <SheetHeader className="px-6 py-4 border-b flex-shrink-0">
-          <SheetTitle className="sr-only">Mesa {table?.table_number}</SheetTitle>
-          <div className="flex items-center justify-between">
+          <SheetTitle>Mesa {table?.table_number}</SheetTitle>
+          <div className="flex items-center justify-between mt-2">
             <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-semibold">Mesa {table?.table_number}</h2>
               {table?.location && (
                 <Badge variant="outline">
                   {table.location}
@@ -133,18 +132,20 @@ export function TableControlPanel({
             </Button>
           </div>
 
-          {order && (
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                <span>Abierta hace {getElapsedTime(order.created_at)}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
-                <span>{guestsCount} {guestsCount === 1 ? "persona" : "personas"}</span>
-              </div>
-            </div>
-          )}
+          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-3">
+            {order && (
+              <>
+                <div className="flex items-center gap-1">
+                  <Clock className="h-4 w-4" />
+                  <span>Abierta hace {formatTimeAgo(new Date(order.created_at))}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Users className="h-4 w-4" />
+                  <span>{order.guests_count} {order.guests_count === 1 ? 'persona' : 'personas'}</span>
+                </div>
+              </>
+            )}
+          </div>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
