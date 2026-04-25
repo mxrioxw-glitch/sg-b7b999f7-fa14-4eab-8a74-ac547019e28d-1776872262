@@ -14,9 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Users, DollarSign, Clock, RefreshCw, Settings, RotateCw } from "lucide-react";
+import { Plus, Users, RotateCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { requireActiveSubscription } from "@/middleware/subscription";
 import { tableService } from "@/services/tableService";
@@ -101,8 +100,6 @@ export default function ComedorPage() {
         getCustomers(business.id),
       ]);
 
-      console.log("Tables loaded:", tablesData); // Debug log
-      
       setTables(tablesData);
       setEmployees(employeesData.filter(e => 
         e.role === "waiter" || 
@@ -252,9 +249,71 @@ export default function ComedorPage() {
     setShowProductModal(true);
   }
 
-  async function handleBatchProductSelect(products: any[]) {
-    if (productSelectorCallback) {
-      await productSelectorCallback(products);
+  async function handleBatchProductSelect(selectedProducts: any[]) {
+    if (!selectedTableOrder?.id) {
+      toast({
+        title: "❌ Error",
+        description: "No hay una orden activa",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Agregar cada producto a la orden
+      for (const item of selectedProducts) {
+        const basePrice = item.variant ? 
+          (item.product.base_price + (item.variant.price_modifier || 0)) : 
+          item.product.base_price;
+        
+        const extrasTotal = item.extras?.reduce((sum: number, extra: any) => sum + (extra.price || 0), 0) || 0;
+        const unitPrice = basePrice + extrasTotal;
+        const subtotal = unitPrice * item.quantity;
+        const taxRate = item.product.tax_rate || 0;
+        const taxAmount = subtotal * (taxRate / 100);
+        const total = subtotal + taxAmount;
+
+        await tableService.addItemToOrder({
+          table_order_id: selectedTableOrder.id,
+          product_id: item.product.id,
+          variant_id: item.variant?.id || null,
+          product_name: item.product.name,
+          variant_name: item.variant?.name || null,
+          quantity: item.quantity,
+          unit_price: unitPrice,
+          subtotal: subtotal,
+          tax_amount: taxAmount,
+          total: total,
+          notes: item.notes || null,
+          status: "pending",
+        });
+
+        // Agregar extras si existen
+        if (item.extras && item.extras.length > 0) {
+          // Los extras se guardan automáticamente a través del trigger de la DB
+        }
+      }
+
+      toast({
+        title: "✅ Productos agregados",
+        description: `${selectedProducts.length} ${selectedProducts.length === 1 ? 'producto agregado' : 'productos agregados'} a la mesa`,
+        className: "bg-accent text-accent-foreground",
+      });
+
+      // Recargar la orden para mostrar los nuevos productos
+      const updatedOrder = await tableService.getTableOrder(selectedTable.id);
+      setSelectedTableOrder(updatedOrder);
+      
+      if (productSelectorCallback) {
+        await productSelectorCallback(selectedProducts);
+      }
+    } catch (error: any) {
+      console.error("Error adding products:", error);
+      toast({
+        title: "❌ Error",
+        description: error.message || "No se pudieron agregar los productos",
+        variant: "destructive",
+      });
     }
   }
 
@@ -401,7 +460,7 @@ export default function ComedorPage() {
                 {/* Tables Grid */}
                 {isLoading ? (
                   <div className="text-center py-12">
-                    <RefreshCw className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                    <RotateCw className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
                     <p className="text-muted-foreground mt-4">Cargando mesas...</p>
                   </div>
                 ) : tables.length === 0 ? (
@@ -428,22 +487,26 @@ export default function ComedorPage() {
           </div>
         </div>
 
-        {/* Control Panel Sheet */}
-        <Sheet open={showControlPanel} onOpenChange={setShowControlPanel}>
-          <SheetContent side="right" className="w-full sm:max-w-lg p-0">
-            {selectedTable && (
-              <TableControlPanel
-                table={selectedTable}
-                order={selectedTableOrder}
-                employees={employees}
-                onClose={() => setShowControlPanel(false)}
-                onRefresh={loadInitialData}
-                onOpenProductSelector={handleOpenProductSelector}
-                onProceedToCheckout={handleProceedToCheckout}
-              />
-            )}
-          </SheetContent>
-        </Sheet>
+        {/* Control Panel */}
+        {selectedTable && (
+          <TableControlPanel
+            table={selectedTable}
+            order={selectedTableOrder}
+            employees={employees}
+            onClose={() => {
+              setShowControlPanel(false);
+              setSelectedTable(null);
+              setSelectedTableOrder(null);
+            }}
+            onRefresh={async () => {
+              const updatedOrder = await tableService.getTableOrder(selectedTable.id);
+              setSelectedTableOrder(updatedOrder);
+              await loadInitialData();
+            }}
+            onOpenProductSelector={handleOpenProductSelector}
+            onProceedToCheckout={handleProceedToCheckout}
+          />
+        )}
 
         {/* Open Table Modal */}
         <Dialog open={showOpenTableModal} onOpenChange={setShowOpenTableModal}>
@@ -470,7 +533,7 @@ export default function ComedorPage() {
                   <SelectContent>
                     {employees.map((emp) => (
                       <SelectItem key={emp.id} value={emp.id}>
-                        {emp.user?.full_name || emp.user?.email || 'Sin nombre'}
+                        {emp.profiles?.full_name || emp.profiles?.email || emp.user?.full_name || emp.user?.email || 'Sin nombre'}
                       </SelectItem>
                     ))}
                   </SelectContent>
