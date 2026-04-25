@@ -1,14 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Clock, Users, Plus, Minus, Trash2, Send, DollarSign, Printer } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { X, Clock, Users, Send, Printer, DollarSign, Edit2, Trash2, Plus, Minus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { tableService } from "@/services/tableService";
-import { formatDistanceToNow } from "date-fns";
-import { es } from "date-fns/locale";
 
 interface TableControlPanelProps {
   table: any;
@@ -30,72 +30,134 @@ export function TableControlPanel({
   onProceedToCheckout,
 }: TableControlPanelProps) {
   const { toast } = useToast();
-  const [guestsCount, setGuestsCount] = useState(order?.guests_count || 1);
-  const [selectedWaiter, setSelectedWaiter] = useState(order?.assigned_waiter_id || "");
-  const [orderNotes, setOrderNotes] = useState(order?.notes || "");
-  const [items, setItems] = useState<any[]>(order?.table_order_items || []);
+  const [showChangeWaiter, setShowChangeWaiter] = useState(false);
+  const [newWaiterId, setNewWaiterId] = useState("");
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editQuantity, setEditQuantity] = useState(1);
 
-  const pendingItems = items.filter(item => item.status === 'pending');
+  if (!table) return null;
 
-  useEffect(() => {
-    setItems(order?.table_order_items || []);
-    setGuestsCount(order?.guests_count || 1);
-    setSelectedWaiter(order?.assigned_waiter_id || "");
-    setOrderNotes(order?.notes || "");
-  }, [order]);
+  const formatTimeAgo = (date: Date) => {
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    
+    if (hours > 0) return `${hours}h ${minutes % 60}m`;
+    if (minutes > 0) return `${minutes}m`;
+    return `${seconds}s`;
+  };
 
-  const handleUpdateQuantity = async (itemId: string, change: number) => {
-    const item = items.find(i => i.id === itemId);
-    if (!item) return;
-
-    const newQuantity = item.quantity + change;
-    if (newQuantity < 1) return;
+  const handleChangeWaiter = async () => {
+    if (!newWaiterId || !order) return;
 
     try {
-      await tableService.updateOrderItem(itemId, { quantity: newQuantity });
-      setItems(items.map(i => 
-        i.id === itemId ? { ...i, quantity: newQuantity, total: i.unit_price * newQuantity } : i
-      ));
-      toast({ title: "✅ Cantidad actualizada" });
+      await tableService.changeWaiter(order.id, newWaiterId);
+      
+      toast({
+        title: "✅ Mesero actualizado",
+        description: "El mesero ha sido cambiado exitosamente",
+        className: "bg-accent text-accent-foreground",
+      });
+      
+      setShowChangeWaiter(false);
+      await onRefresh();
     } catch (error: any) {
-      toast({ title: "❌ Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "❌ Error",
+        description: error.message || "No se pudo cambiar el mesero",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleRemoveItem = async (itemId: string) => {
+  const handleDeleteItem = async (itemId: string) => {
     try {
       await tableService.deleteOrderItem(itemId);
-      setItems(items.filter(i => i.id !== itemId));
-      toast({ title: "✅ Producto eliminado" });
+      
+      toast({
+        title: "✅ Producto eliminado",
+        description: "El producto ha sido eliminado de la orden",
+        className: "bg-accent text-accent-foreground",
+      });
+      
+      await onRefresh();
     } catch (error: any) {
-      toast({ title: "❌ Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "❌ Error",
+        description: error.message || "No se pudo eliminar el producto",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateQuantity = async (itemId: string, delta: number) => {
+    const item = order?.table_order_items?.find((i: any) => i.id === itemId);
+    if (!item) return;
+
+    const newQuantity = item.quantity + delta;
+    if (newQuantity < 1) {
+      await handleDeleteItem(itemId);
+      return;
+    }
+
+    try {
+      const newSubtotal = item.unit_price * newQuantity;
+      const newTaxAmount = newSubtotal * 0.16;
+      const newTotal = newSubtotal + newTaxAmount;
+
+      await tableService.updateOrderItem(itemId, {
+        quantity: newQuantity,
+        subtotal: Number(newSubtotal.toFixed(2)),
+        tax_amount: Number(newTaxAmount.toFixed(2)),
+        total: Number(newTotal.toFixed(2)),
+      });
+
+      await onRefresh();
+    } catch (error: any) {
+      toast({
+        title: "❌ Error",
+        description: error.message || "No se pudo actualizar la cantidad",
+        variant: "destructive",
+      });
     }
   };
 
   const handleSendToKitchen = async () => {
+    if (!order?.table_order_items) return;
+
+    const pendingItems = order.table_order_items
+      .filter((item: any) => item.status === "pending")
+      .map((item: any) => item.id);
+
+    if (pendingItems.length === 0) {
+      toast({
+        title: "ℹ️ Sin items pendientes",
+        description: "No hay productos pendientes para enviar a cocina",
+      });
+      return;
+    }
+
     try {
-      const pendingIds = pendingItems.map(i => i.id);
-      await tableService.sendItemsToKitchen(pendingIds);
-      setItems(items.map(i => 
-        pendingIds.includes(i.id) ? { ...i, status: 'sent_to_kitchen' } : i
-      ));
-      toast({ title: "✅ Enviado a cocina", description: `${pendingIds.length} items enviados` });
+      await tableService.sendItemsToKitchen(pendingItems);
+      
+      toast({
+        title: "✅ Enviado a cocina",
+        description: `${pendingItems.length} ${pendingItems.length === 1 ? 'producto enviado' : 'productos enviados'} a cocina`,
+        className: "bg-accent text-accent-foreground",
+      });
+      
+      await onRefresh();
     } catch (error: any) {
-      toast({ title: "❌ Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "❌ Error",
+        description: error.message || "No se pudo enviar a cocina",
+        variant: "destructive",
+      });
     }
   };
 
-  const handlePrintAccount = () => {
-    toast({ title: "🖨️ Imprimiendo cuenta..." });
-  };
-
-  const handleAddProduct = () => {
-    onOpenProductSelector(async (selectedProducts) => {
-      await onRefresh();
-    });
-  };
-
-  if (!table) return null;
+  const pendingItemsCount = order?.table_order_items?.filter((item: any) => item.status === "pending").length || 0;
+  const currentWaiter = employees.find(e => e.id === order?.assigned_waiter_id);
 
   return (
     <Sheet open={!!table} onOpenChange={onClose}>
@@ -108,6 +170,11 @@ export function TableControlPanel({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h2 className="text-2xl font-semibold">Mesa {table?.table_number}</h2>
+              {table?.area && (
+                <Badge variant="outline">
+                  {table.area}
+                </Badge>
+              )}
             </div>
             <Button
               variant="ghost"
@@ -123,7 +190,7 @@ export function TableControlPanel({
               <>
                 <div className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
-                  <span>Abierta hace {formatDistanceToNow(new Date(order.created_at), { locale: es })}</span>
+                  <span>Abierta hace {formatTimeAgo(new Date(order.opened_at))}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Users className="h-4 w-4" />
@@ -134,176 +201,199 @@ export function TableControlPanel({
           </div>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
-          {/* Mesero Asignado */}
-          <div className="mb-6">
-            <label className="text-sm font-medium mb-2 block">Mesero Asignado</label>
-            <Select value={selectedWaiter} onValueChange={setSelectedWaiter}>
-              <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Seleccionar mesero" />
-              </SelectTrigger>
-              <SelectContent>
-                {employees.map((emp) => (
-                  <SelectItem key={emp.id} value={emp.id}>
-                    {emp.full_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Items de la Orden */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-lg">Items de la Orden</h3>
-              <Button onClick={handleAddProduct} size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar Producto
-              </Button>
+        {/* Mesero Asignado */}
+        <div className="px-6 py-3 border-b bg-muted/30 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Mesero Asignado</p>
+              <p className="font-medium">
+                {currentWaiter?.profiles?.full_name || currentWaiter?.profiles?.email || "Sin asignar"}
+              </p>
             </div>
-
-            {items.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground bg-muted/30 rounded-lg">
-                No hay productos en la orden
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="border rounded-lg p-3 bg-card"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm">{item.product_name}</h4>
-                        {item.variant_name && (
-                          <p className="text-xs text-muted-foreground">
-                            {item.variant_name}
-                          </p>
-                        )}
-                        {item.notes && (
-                          <p className="text-xs text-muted-foreground italic mt-1">
-                            {item.notes}
-                          </p>
-                        )}
-                      </div>
-                      <Badge
-                        variant={
-                          item.status === "pending"
-                            ? "secondary"
-                            : item.status === "sent_to_kitchen"
-                            ? "default"
-                            : "outline"
-                        }
-                        className="ml-2 shrink-0"
-                      >
-                        {item.status === "pending"
-                          ? "Pendiente"
-                          : item.status === "sent_to_kitchen"
-                          ? "En Cocina"
-                          : "Servido"}
-                      </Badge>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleUpdateQuantity(item.id, -1)}
-                          disabled={item.quantity <= 1}
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                        <span className="w-8 text-center font-medium text-sm">
-                          {item.quantity}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleUpdateQuantity(item.id, 1)}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <span className="font-bold text-sm">
-                          ${(item.total || 0).toFixed(2)}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleRemoveItem(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setNewWaiterId(order?.assigned_waiter_id || "");
+                setShowChangeWaiter(true);
+              }}
+            >
+              <Edit2 className="h-4 w-4 mr-1" />
+              Cambiar
+            </Button>
           </div>
         </div>
 
-        {/* Total + Footer - Always visible */}
-        <div className="border-t bg-background flex-shrink-0">
-          {items.length > 0 && (
-            <div className="px-6 py-4 border-b">
-              <div className="flex justify-between items-center">
-                <span className="text-lg font-semibold">Total:</span>
-                <span className="text-2xl font-bold text-accent">
-                  ${items.reduce((sum, item) => sum + (item.total || 0), 0).toFixed(2)}
-                </span>
-              </div>
+        {/* Items de la Orden */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold">Items de la Orden</h3>
+            <Button
+              onClick={() => onOpenProductSelector(async () => await onRefresh())}
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Agregar Producto
+            </Button>
+          </div>
+
+          {!order?.table_order_items || order.table_order_items.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <p>No hay productos en la orden</p>
+              <p className="text-sm mt-2">Haz click en "Agregar Producto" para comenzar</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {order.table_order_items.map((item: any) => (
+                <div
+                  key={item.id}
+                  className="border rounded-lg p-4 space-y-2"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="font-medium">{item.product_name}</p>
+                      {item.variant_name && (
+                        <p className="text-sm text-muted-foreground">{item.variant_name}</p>
+                      )}
+                      {item.notes && (
+                        <p className="text-xs text-muted-foreground italic mt-1">
+                          Nota: {item.notes}
+                        </p>
+                      )}
+                    </div>
+                    <Badge
+                      variant={
+                        item.status === "pending" ? "secondary" :
+                        item.status === "sent_to_kitchen" ? "default" :
+                        "outline"
+                      }
+                    >
+                      {item.status === "pending" ? "Pendiente" :
+                       item.status === "sent_to_kitchen" ? "En Cocina" :
+                       "Servido"}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleUpdateQuantity(item.id, -1)}
+                        disabled={item.status !== "pending"}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="w-8 text-center font-medium">{item.quantity}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleUpdateQuantity(item.id, 1)}
+                        disabled={item.status !== "pending"}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">${Number(item.total).toFixed(2)}</span>
+                      {item.status === "pending" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive"
+                          onClick={() => handleDeleteItem(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
+        </div>
 
-          <div className="px-6 py-4 space-y-3">
-            {/* Primera fila - Acciones secundarias */}
-            <div className="grid grid-cols-2 gap-3">
+        {/* Footer con Total y Acciones */}
+        {order && (
+          <div className="border-t p-6 space-y-4 flex-shrink-0">
+            <div className="flex items-center justify-between text-lg font-semibold">
+              <span>Total:</span>
+              <span className="text-accent">${Number(order.total || 0).toFixed(2)}</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="outline"
                 onClick={handleSendToKitchen}
-                disabled={pendingItems.length === 0}
-                className="w-full"
+                disabled={pendingItemsCount === 0}
               >
                 <Send className="h-4 w-4 mr-2" />
                 Enviar a Cocina
-                {pendingItems.length > 0 && (
+                {pendingItemsCount > 0 && (
                   <Badge variant="secondary" className="ml-2">
-                    {pendingItems.length}
+                    {pendingItemsCount}
                   </Badge>
                 )}
               </Button>
 
               <Button
                 variant="outline"
-                onClick={handlePrintAccount}
-                disabled={items.length === 0}
-                className="w-full"
+                onClick={() => {/* TODO: Implement print */}}
               >
                 <Printer className="h-4 w-4 mr-2" />
                 Imprimir Cuenta
               </Button>
             </div>
 
-            {/* Segunda fila - Acción principal */}
             <Button
-              onClick={() => onProceedToCheckout(order)}
-              disabled={items.length === 0}
+              className="w-full"
               size="lg"
-              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground h-14 text-lg font-semibold"
+              onClick={() => onProceedToCheckout(order)}
+              disabled={!order.table_order_items || order.table_order_items.length === 0}
             >
               <DollarSign className="h-5 w-5 mr-2" />
               Cobrar Mesa
             </Button>
           </div>
-        </div>
+        )}
+
+        {/* Change Waiter Dialog */}
+        <Dialog open={showChangeWaiter} onOpenChange={setShowChangeWaiter}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cambiar Mesero</DialogTitle>
+              <DialogDescription>
+                Selecciona el nuevo mesero para esta mesa
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Select value={newWaiterId} onValueChange={setNewWaiterId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar mesero" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.profiles?.full_name || emp.profiles?.email || 'Sin nombre'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowChangeWaiter(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleChangeWaiter}>
+                Confirmar Cambio
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </SheetContent>
     </Sheet>
   );
