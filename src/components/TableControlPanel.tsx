@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,10 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import { tableService } from "@/services/tableService";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-
-function formatTimeAgo(date: Date) {
-  return formatDistanceToNow(date, { locale: es });
-}
 
 interface TableControlPanelProps {
   table: any;
@@ -39,20 +35,6 @@ export function TableControlPanel({
   const [items, setItems] = useState<any[]>(order?.table_order_items || []);
 
   const pendingItems = items.filter(item => item.status === 'pending');
-
-  const getElapsedTime = (createdAt: string) => {
-    const now = new Date();
-    const created = new Date(createdAt);
-    const diffMs = now.getTime() - created.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-
-    if (diffMins < 60) {
-      return `${diffMins}m`;
-    }
-    const hours = Math.floor(diffMins / 60);
-    const mins = diffMins % 60;
-    return `${hours}h ${mins}m`;
-  };
 
   useEffect(() => {
     setItems(order?.table_order_items || []);
@@ -108,8 +90,6 @@ export function TableControlPanel({
 
   const handleAddProduct = () => {
     onOpenProductSelector(async (selectedProducts) => {
-      // Esta lógica la maneja el ProductSelectorModal internamente si ya envía directo a BD,
-      // pero requerimos refrescar la orden de la mesa
       await onRefresh();
     });
   };
@@ -143,7 +123,7 @@ export function TableControlPanel({
               <>
                 <div className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
-                  <span>Abierta hace {formatTimeAgo(new Date(order.created_at))}</span>
+                  <span>Abierta hace {formatDistanceToNow(new Date(order.created_at), { locale: es })}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Users className="h-4 w-4" />
