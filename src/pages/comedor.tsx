@@ -249,64 +249,45 @@ export default function ComedorPage() {
     setShowProductModal(true);
   }
 
-  async function handleBatchProductSelect(selectedProducts: any[]) {
-    if (!selectedTableOrder?.id) {
-      toast({
-        title: "❌ Error",
-        description: "No hay una orden activa",
-        variant: "destructive",
-      });
-      return;
-    }
+  async function handleBatchProductSelect(products: any[]) {
+    if (!selectedTableOrder || !selectedTable) return;
 
     try {
-      // Agregar cada producto a la orden
-      for (const item of selectedProducts) {
-        const basePrice = item.variant ? 
-          (item.product.base_price + (item.variant.price_modifier || 0)) : 
-          item.product.base_price;
-        
-        const extrasTotal = item.extras?.reduce((sum: number, extra: any) => sum + (extra.price || 0), 0) || 0;
-        const unitPrice = basePrice + extrasTotal;
-        const subtotal = unitPrice * item.quantity;
-        const taxRate = item.product.tax_rate || 0;
-        const taxAmount = subtotal * (taxRate / 100);
+      // Add each product to the order
+      for (const product of products) {
+        const subtotal = Number(product.finalPrice) * product.quantity;
+        const taxAmount = subtotal * 0.16; // 16% tax
         const total = subtotal + taxAmount;
 
         await tableService.addItemToOrder({
           table_order_id: selectedTableOrder.id,
-          product_id: item.product.id,
-          variant_id: item.variant?.id || null,
-          product_name: item.product.name,
-          variant_name: item.variant?.name || null,
-          quantity: item.quantity,
-          unit_price: unitPrice,
-          subtotal: subtotal,
-          tax_amount: taxAmount,
-          total: total,
-          notes: item.notes || null,
+          product_id: product.id,
+          product_name: product.name,
+          variant_id: product.selectedVariant?.id || null,
+          variant_name: product.selectedVariant?.name || null,
+          quantity: product.quantity,
+          unit_price: Number(product.finalPrice),
+          subtotal: Number(subtotal.toFixed(2)),
+          tax_amount: Number(taxAmount.toFixed(2)),
+          total: Number(total.toFixed(2)),
+          notes: product.notes || null,
           status: "pending",
         });
-
-        // Agregar extras si existen
-        if (item.extras && item.extras.length > 0) {
-          // Los extras se guardan automáticamente a través del trigger de la DB
-        }
       }
 
       toast({
         title: "✅ Productos agregados",
-        description: `${selectedProducts.length} ${selectedProducts.length === 1 ? 'producto agregado' : 'productos agregados'} a la mesa`,
+        description: `${products.length} ${products.length === 1 ? 'producto agregado' : 'productos agregados'} a la orden`,
         className: "bg-accent text-accent-foreground",
       });
 
-      // Recargar la orden para mostrar los nuevos productos
+      // Reload the table order to show the new items
       const updatedOrder = await tableService.getTableOrder(selectedTable.id);
       setSelectedTableOrder(updatedOrder);
-      
-      if (productSelectorCallback) {
-        await productSelectorCallback(selectedProducts);
-      }
+
+      // Reload tables to update counters
+      await loadInitialData();
+
     } catch (error: any) {
       console.error("Error adding products:", error);
       toast({
