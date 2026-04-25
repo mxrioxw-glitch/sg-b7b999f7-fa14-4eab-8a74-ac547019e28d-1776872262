@@ -1,72 +1,56 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Plus, Minus, ShoppingCart } from "lucide-react";
-import { getAllProducts } from "@/services/productService";
 import { useToast } from "@/hooks/use-toast";
 
 interface ProductSelectorModalProps {
   open: boolean;
   onClose: () => void;
   onSelectProducts: (products: any[]) => Promise<void>;
-  businessId: string;
+  products: any[];
+  categories: any[];
 }
 
 export function ProductSelectorModal({
   open,
   onClose,
   onSelectProducts,
-  businessId,
+  products,
+  categories,
 }: ProductSelectorModalProps) {
   const { toast } = useToast();
-  const [products, setProducts] = useState<any[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<Map<string, any>>(new Map());
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
-      loadProducts();
       setSearchQuery("");
       setSelectedProducts(new Map());
+      setFilteredProducts(products.filter(p => p.is_active));
     }
-  }, [open]);
+  }, [open, products]);
 
   useEffect(() => {
+    const activeProducts = products.filter(p => p.is_active);
     if (searchQuery.trim() === "") {
-      setFilteredProducts(products);
+      setFilteredProducts(activeProducts);
     } else {
       const query = searchQuery.toLowerCase();
       setFilteredProducts(
-        products.filter(
+        activeProducts.filter(
           (p) =>
             p.name.toLowerCase().includes(query) ||
-            p.category?.name.toLowerCase().includes(query)
+            p.category?.name?.toLowerCase().includes(query)
         )
       );
     }
   }, [searchQuery, products]);
-
-  async function loadProducts() {
-    try {
-      setIsLoading(true);
-      const data = await getAllProducts(businessId);
-      setProducts(data.filter(p => p.is_active));
-      setFilteredProducts(data.filter(p => p.is_active));
-    } catch (error: any) {
-      toast({
-        title: "❌ Error",
-        description: "No se pudieron cargar los productos",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }
 
   function handleAddProduct(product: any) {
     const key = `${product.id}-${product.selectedVariant?.id || 'base'}`;
@@ -76,7 +60,6 @@ export function ProductSelectorModal({
       const updated = { ...existing, quantity: existing.quantity + 1 };
       setSelectedProducts(new Map(selectedProducts.set(key, updated)));
     } else {
-      // Determine price based on variant or base price
       const basePrice = product.selectedVariant?.price || product.base_price || 0;
       
       setSelectedProducts(
@@ -126,6 +109,7 @@ export function ProductSelectorModal({
       await onSelectProducts(productsArray);
       onClose();
     } catch (error: any) {
+      console.error(error);
       toast({
         title: "❌ Error",
         description: error.message || "No se pudieron agregar los productos",
@@ -142,8 +126,11 @@ export function ProductSelectorModal({
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl h-[80vh] p-0 flex flex-col">
-        <DialogHeader className="px-6 py-4 border-b">
+        <VisuallyHidden>
           <DialogTitle>Seleccionar Productos</DialogTitle>
+        </VisuallyHidden>
+        <DialogHeader className="px-6 py-4 border-b">
+          <h2 className="text-lg font-semibold">Seleccionar Productos</h2>
         </DialogHeader>
 
         {/* Search Bar */}
@@ -161,12 +148,8 @@ export function ProductSelectorModal({
 
         {/* Products Grid */}
         <ScrollArea className="flex-1 px-6">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-muted-foreground">Cargando productos...</p>
-            </div>
-          ) : filteredProducts.length === 0 ? (
-            <div className="flex items-center justify-center h-full">
+          {filteredProducts.length === 0 ? (
+            <div className="flex items-center justify-center h-full py-12">
               <p className="text-muted-foreground">No se encontraron productos</p>
             </div>
           ) : (
@@ -199,7 +182,7 @@ export function ProductSelectorModal({
                       )}
                     </div>
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mt-auto">
                       <span className="font-semibold text-accent">
                         ${price.toFixed(2)}
                       </span>
