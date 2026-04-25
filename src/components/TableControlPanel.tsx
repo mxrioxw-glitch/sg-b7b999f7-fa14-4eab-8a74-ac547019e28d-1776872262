@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -100,14 +101,13 @@ export function TableControlPanel({
     <Sheet open={!!table} onOpenChange={onClose}>
       <SheetContent side="right" className="w-[500px] max-w-[500px] p-0 flex flex-col h-full">
         <SheetHeader className="px-6 py-4 border-b flex-shrink-0">
-          <SheetTitle>Mesa {table?.table_number}</SheetTitle>
-          <div className="flex items-center justify-between mt-2">
+          <VisuallyHidden>
+            <SheetTitle>Mesa {table?.table_number}</SheetTitle>
+          </VisuallyHidden>
+          
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {table?.location && (
-                <Badge variant="outline">
-                  {table.location}
-                </Badge>
-              )}
+              <h2 className="text-2xl font-semibold">Mesa {table?.table_number}</h2>
             </div>
             <Button
               variant="ghost"
